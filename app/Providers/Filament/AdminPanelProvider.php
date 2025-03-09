@@ -23,6 +23,7 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->default()
+            ->brandLogo(asset('images/tvku.jpg'))
             ->id('admin')
             ->path('admin')
             ->login(Login::class)
