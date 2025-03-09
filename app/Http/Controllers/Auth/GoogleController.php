@@ -15,7 +15,8 @@ class GoogleController extends Controller
      */
     public function redirectToGoogle()
     {
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')
+            ->redirect();
     }
 
     /**
@@ -38,16 +39,16 @@ class GoogleController extends Controller
                 }
                 
                 Auth::login($existingUser);
+                
+                return redirect()->route('filament.admin.pages.dashboard');
             } else {
                 // No access if the user doesn't exist and needs to be created by admin
-                return redirect()->route('login')
+                return redirect()->route('filament.admin.auth.login')
                     ->with('error', 'Akun tidak ditemukan. Silakan hubungi administrator.');
             }
             
-            return redirect()->route('filament.admin.pages.dashboard');
-            
         } catch (\Exception $e) {
-            return redirect()->route('login')
+            return redirect()->route('filament.admin.auth.login')
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }

@@ -19,6 +19,9 @@ class Login extends BaseLogin
     {
         return parent::form($form)
             ->schema([
+                // Tambahkan komponen view untuk flash message
+                \Filament\Forms\Components\View::make('filament.pages.auth.flash-message'),
+                
                 $this->getEmailFormComponent(),
                 $this->getPasswordFormComponent(),
                 $this->getRememberFormComponent(),
