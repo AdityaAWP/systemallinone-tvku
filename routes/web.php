@@ -11,7 +11,6 @@ Route::get('/', function () {
 Route::get('auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
 
-// Tambahkan alias untuk route login jika diperlukan
 Route::get('/login', function () {
     return redirect()->route('filament.admin.auth.login');
 })->name('login');

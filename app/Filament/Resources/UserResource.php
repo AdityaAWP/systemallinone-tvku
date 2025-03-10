@@ -5,7 +5,8 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -15,10 +16,8 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class UserResource extends Resource
 {
@@ -27,36 +26,76 @@ class UserResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-users';
 
     protected static ?string $navigationGroup = 'Administration';
+    
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
-                TextInput::make('email')
-                    ->email()
-                    ->required()
-                    ->maxLength(255)
-                    ->unique(ignoreRecord: true),
-                TextInput::make('password')
-                    ->password()
-                    ->dehydrateStateUsing(fn ($state) => Hash::make($state))
-                    ->dehydrated(fn ($state) => filled($state))
-                    ->required(fn (string $operation): bool => $operation === 'create'),
-                Select::make('role')
-                    ->options([
-                        'user' => 'User',
-                        'super_admin' => 'Super Admin',
-                    ])
-                    ->default('user')
-                    ->required()
-                    ->visible(fn () => Auth::user() && Auth::user()->role === 'super_admin'),
+                Section::make('Informasi Utama')
+                    ->schema([
+                        TextInput::make('name')
+                            ->required()
+                            ->maxLength(255),
+                        TextInput::make('email')
+                            ->email()
+                            ->required()
+                            ->maxLength(255)
+                            ->unique(ignoreRecord: true),
+                        TextInput::make('password')
+                            ->password()
+                            ->dehydrateStateUsing(fn ($state) => filled($state) ? Hash::make($state) : null)
+                            ->dehydrated(fn ($state) => filled($state))
+                            ->required(fn (string $operation): bool => $operation === 'create'),
+                        Select::make('position_id')
+                            ->relationship('position', 'name')
+                            ->required()
+                            ->searchable()
+                            ->preload(),
+                    ])->columns(2),
+                    
+                Section::make('Informasi Akses')
+                    ->schema([
+                        Select::make('role')
+                            ->options([
+                                'super_admin' => 'Super Admin',
+                                'admin' => 'Admin',
+                                'user' => 'User',
+                            ])
+                            ->default('user')
+                            ->required()
+                            ->visible(fn () => Auth::user() && Auth::user()->role === 'super_admin'),
                 Forms\Components\Toggle::make('is_admin')
-                    ->label('Admin Access')
-                    ->default(true)
-                    ->required(),
+                            ->label('Admin Access')
+                            ->default(false)
+                            ->required(),
+                    ])->columns(2),
+                    
+                Section::make('Informasi Personal')
+                    ->schema([
+                        Select::make('gender')
+                            ->options([
+                                'Laki-laki' => 'Laki-laki',
+                                'Perempuan' => 'Perempuan',
+                            ]),
+                        TextInput::make('ktp')
+                            ->label('Nomor KTP')
+                            ->maxLength(16),
+                        DatePicker::make('birth')
+                            ->label('Tanggal Lahir'),
+                        TextInput::make('phone')
+                            ->label('Nomor Telepon')
+                            ->tel()
+                            ->maxLength(15),
+                        TextInput::make('last_education')
+                            ->label('Pendidikan Terakhir')
+                            ->maxLength(255),
+                        Forms\Components\Textarea::make('address')
+                            ->label('Alamat')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                    ])->columns(2),
             ]);
     }
 
@@ -68,11 +107,16 @@ class UserResource extends Resource
                     ->searchable(),
                 TextColumn::make('email')
                     ->searchable(),
+                TextColumn::make('position.name')
+                    ->label('Position')
+                    ->sortable(),
                 TextColumn::make('role')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'super_admin' => 'danger',
+                        'admin' => 'warning',
                         'user' => 'success',
+                        default => 'gray',
                     }),
                 IconColumn::make('is_admin')
                     ->label('Admin Access')
@@ -81,13 +125,18 @@ class UserResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('position')
+                    ->relationship('position', 'name')
+                    ->preload()
+                    ->searchable(),
+                Tables\Filters\SelectFilter::make('role')
+                    ->options([
+                        'super_admin' => 'Super Admin',
+                        'admin' => 'Admin',
+                        'user' => 'User',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

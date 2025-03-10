@@ -5,13 +5,14 @@ namespace App\Models;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -27,6 +28,13 @@ class User extends Authenticatable implements FilamentUser
         'role',
         'is_admin',
         'created_by',
+        'position_id',
+        'gender',
+        'ktp',
+        'address',
+        'birth',
+        'last_education',
+        'phone',
     ];
 
     /**
@@ -48,6 +56,7 @@ class User extends Authenticatable implements FilamentUser
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'is_admin' => 'boolean',
+        'birth' => 'date',
     ];
 
     /**
@@ -68,10 +77,26 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Get the position of the user.
+     */
+    public function position()
+    {
+        return $this->belongsTo(Position::class);
+    }
+
+    /**
      * Check if user is a super admin.
      */
     public function isSuperAdmin(): bool
     {
         return $this->is_admin && $this->role === 'super_admin';
+    }
+    
+    /**
+     * Check if user is an admin.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->is_admin && $this->role === 'admin';
     }
 }

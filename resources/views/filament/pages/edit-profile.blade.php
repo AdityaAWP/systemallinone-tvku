@@ -1,11 +1,9 @@
-<x-filament-panels::page>
-    <x-filament::section class="w md:w-1/2 ">
-        <form wire:submit="save">
-            {{ $this->form }}
-
-            <x-filament::button type="submit" class="mt-7 bg-[#1E87C7]">
-                Simpan
-            </x-filament::button>
-        </form>
-    </x-filament::section>
-</x-filament-panels::page>
+<x-filament::page>
+    <form wire:submit="save" class="m-4">
+        {{ $this->form }}
+        
+        <x-filament::button type="submit" class="m-4">
+            Save
+        </x-filament::button>
+    </form>
+</x-filament::page>
