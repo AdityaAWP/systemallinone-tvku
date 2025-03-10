@@ -36,7 +36,7 @@ return new class extends Migration
             if (!Schema::hasColumn('users', 'deleted_at')) {
                 $table->softDeletes();
             }
-            
+
             // Ubah kolom role menjadi nullable
             $table->string('role')->nullable()->change();
         });
