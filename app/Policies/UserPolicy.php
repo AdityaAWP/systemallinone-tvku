@@ -10,7 +10,7 @@ class UserPolicy
     use HandlesAuthorization;
 
     /**
-     * Determine whether the user can view any models.
+     * Tentukan apakah pengguna dapat melihat model apa pun.
      */
     public function viewAny(User $user): bool
     {
@@ -18,7 +18,7 @@ class UserPolicy
     }
 
     /**
-     * Determine whether the user can view the model.
+     * Tentukan apakah pengguna dapat melihat model.
      */
     public function view(User $user, User $model): bool
     {
@@ -30,7 +30,7 @@ class UserPolicy
     }
 
     /**
-     * Determine whether the user can create models.
+     * Tentukan apakah pengguna dapat membuat model.
      */
     public function create(User $user): bool
     {
@@ -38,16 +38,16 @@ class UserPolicy
     }
 
     /**
-     * Determine whether the user can update the model.
+     * Tentukan apakah pengguna dapat memperbarui model.
      */
     public function update(User $user, User $model): bool
     {
-        // Super admin can update any user
+        // Super admin dapat memperbarui pengguna mana pun
         if ($user->isSuperAdmin()) {
             return true;
         }
         
-        // Regular admin can only update users they created
+        // Admin biasa hanya dapat memperbarui pengguna yang mereka buat
         if ($user->is_admin && $user->id === $model->created_by) {
             return true;
         }
@@ -56,16 +56,16 @@ class UserPolicy
     }
 
     /**
-     * Determine whether the user can delete the model.
+     * Tentukan apakah pengguna dapat menghapus model.
      */
     public function delete(User $user, User $model): bool
     {
-        // Super admin can delete any user except themselves
+        // Super admin dapat menghapus pengguna mana pun kecuali diri mereka sendiri
         if ($user->isSuperAdmin() && $user->id !== $model->id) {
             return true;
         }
         
-        // Regular admin can only delete users they created
+        // Admin biasa hanya dapat menghapus pengguna yang mereka buat
         if ($user->is_admin && $user->id === $model->created_by && $user->id !== $model->id) {
             return true;
         }
@@ -74,7 +74,7 @@ class UserPolicy
     }
 
     /**
-     * Determine whether the user can restore the model.
+     * Tentukan apakah pengguna dapat memulihkan model.
      */
     public function restore(User $user, User $model): bool
     {
@@ -82,7 +82,7 @@ class UserPolicy
     }
 
     /**
-     * Determine whether the user can permanently delete the model.
+     * Tentukan apakah pengguna dapat menghapus model secara permanen.
      */
     public function forceDelete(User $user, User $model): bool
     {

@@ -65,8 +65,12 @@ class UserResource extends Resource
                             ])
                             ->default('user')
                             ->required()
-                            ->visible(fn () => Auth::user() && Auth::user()->role === 'super_admin'),
-                Forms\Components\Toggle::make('is_admin')
+                            ->visible(fn () => Auth::user() && Auth::user()->role === 'super_admin')
+                            ->disabled(fn () => Auth::user() && Auth::user()->role !== 'super_admin'),
+                        Forms\Components\Hidden::make('role')
+                            ->default('user')
+                            ->visible(fn () => Auth::user() && Auth::user()->role === 'admin'),
+                        Forms\Components\Toggle::make('is_admin')
                             ->label('Admin Access')
                             ->default(false)
                             ->required(),

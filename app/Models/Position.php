@@ -12,7 +12,7 @@ class Position extends Model
     protected $fillable = ['name'];
     
     /**
-     * Get the users with this position.
+     * Dapatkan pengguna dengan posisi ini.
      */
     public function users()
     {
