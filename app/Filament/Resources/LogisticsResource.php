@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class LogisticsResource extends Resource
 {
     protected static ?string $model = Item::class;
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-cube';
     protected static ?string $navigationGroup = 'Main Menu';
     protected static ?string $navigationLabel = 'Logistics';
     protected static ?string $label = 'Logistics';
