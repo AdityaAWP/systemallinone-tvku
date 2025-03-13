@@ -60,12 +60,10 @@ class UserPolicy
      */
     public function delete(User $user, User $model): bool
     {
-        // Super admin dapat menghapus pengguna mana pun kecuali diri mereka sendiri
         if ($user->isSuperAdmin() && $user->id !== $model->id) {
             return true;
         }
         
-        // Admin biasa hanya dapat menghapus pengguna yang mereka buat
         if ($user->is_admin && $user->id === $model->created_by && $user->id !== $model->id) {
             return true;
         }

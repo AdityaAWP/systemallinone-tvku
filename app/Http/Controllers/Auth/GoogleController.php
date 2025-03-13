@@ -48,6 +48,9 @@ class GoogleController extends Controller
             }
             
         } catch (\Exception $e) {
+            if ($e->getCode() == 403) {
+                return redirect()->route('error.403');
+            }
             return redirect()->route('filament.admin.auth.login')
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
