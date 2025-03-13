@@ -6,6 +6,7 @@ use App\Filament\Pages\Auth\Login;
 use App\Filament\Widgets\UserStatsWidget;
 use App\Filament\Widgets\UserProfileWidget;
 use Filament\Http\Middleware\Authenticate;
+use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
@@ -38,6 +39,19 @@ class AdminPanelProvider extends PanelProvider
                 'info' => Color::Blue,
                 'dark' => Color::Gray,
             ])
+            ->plugin(
+                FilamentFullCalendarPlugin::make()
+                    ->schedulerLicenseKey('')
+                    ->selectable(true)
+                    ->editable()
+                    ->timezone(config('app.timezone'))
+                    ->locale(config('app.locale'))
+                    ->plugins([
+                        'dayGrid',
+                        'timeGrid',
+                    ])
+                    ->config([])
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

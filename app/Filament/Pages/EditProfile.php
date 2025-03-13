@@ -9,17 +9,19 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 class EditProfile extends Page
 {
     use InteractsWithForms;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    protected static ?string $navigationGroup = 'Manajemen Users';
+    protected static ?string $navigationGroup = 'General';
+    protected static ?int $navigationSort = 2;
     protected static string $view = 'filament.pages.edit-profile';
     public ?array $data = [];
     
     public function mount(): void
     {
-        $user = Auth::user();
+        $user = User::find(Auth::id());
         $this->form->fill([
             'name' => $user->name,
             'email' => $user->email,
@@ -51,7 +53,7 @@ class EditProfile extends Page
     public function save(): void
     {
         $data = $this->form->getState();
-        $user = Auth::user();
+        $user = User::find(Auth::id());
         $user->name = $data['name'];
         $user->email = $data['email'];
         $user->no_phone = $data['no_phone'] ?? null;
