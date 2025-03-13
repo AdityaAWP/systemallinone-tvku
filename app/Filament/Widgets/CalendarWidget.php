@@ -2,18 +2,17 @@
 
 namespace App\Filament\Widgets;
 
-use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
+use App\Models\Event;
+use App\Filament\Resources\EventResource;
+use Filament\Forms\Form;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DateTimePicker;
+use Illuminate\Database\Eloquent\Model;
 use Saade\FilamentFullCalendar\Data\EventData;
 use Saade\FilamentFullCalendar\Actions\EditAction;
 use Saade\FilamentFullCalendar\Actions\DeleteAction;
-use App\Filament\Resources\EventResource;
-use App\Models\Event;
-use Saade\FilamentFullCalendar\Actions;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Form;
-use Illuminate\Database\Eloquent\Model;
+use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
 
 class CalendarWidget extends FullCalendarWidget
 {
@@ -69,5 +68,10 @@ class CalendarWidget extends FullCalendarWidget
                 ),
             DeleteAction::make(),
         ];
+    }
+
+    public static function getSort(): int
+    {
+        return 2; // Ensures this widget is at the top
     }
 }

@@ -3,11 +3,11 @@
 namespace App\Filament\Widgets;
 
 use App\Models\User;
-use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget as Widget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
 
-class UserStatsWidget extends BaseWidget
+class UserStatsWidget extends Widget
 {
     protected function getStats(): array
     {
@@ -15,19 +15,21 @@ class UserStatsWidget extends BaseWidget
         
         return [
             Stat::make('Tipe Akun', $user->position ? $user->position->name : 'Belum ditetapkan')
-                ->description('Jabatan Anda dalam sistem')
-                ->descriptionIcon('heroicon-m-user-circle')
+                ->description('Jabatan Anda dalam sistem')->icon('heroicon-o-user')
                 ->color('primary'),
             
-            Stat::make('Akun Dibuat', $user->created_at->isoFormat('D MMMM Y'))
+            Stat::make('Akun Dibuat', $user->created_at->isoFormat('D MMMM Y'))->icon('heroicon-o-calendar')
                 ->description($user->created_at->diffForHumans())
-                ->descriptionIcon('heroicon-m-calendar')
                 ->color('success'),
             
-            Stat::make('Login Terakhir', now()->isoFormat('D MMMM Y'))
+            Stat::make('Login Terakhir', now()->isoFormat('D MMMM Y'))->icon('heroicon-o-clock')
                 ->description('Aktif sekarang')
-                ->descriptionIcon('heroicon-m-clock')
                 ->color('warning'),
         ];
+    }
+
+    public static function getSort(): int
+    {
+        return 1; // Ensures this widget is at the top
     }
 }
