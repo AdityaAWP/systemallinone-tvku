@@ -56,6 +56,6 @@ class ProfileWidget extends Widget
 
     public static function getSort(): int
     {
-        return 3; // Ensures this widget is at the top
+        return 2; // Ensures this widget is at the top
     }
 }

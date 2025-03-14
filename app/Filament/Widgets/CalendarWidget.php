@@ -72,6 +72,6 @@ class CalendarWidget extends FullCalendarWidget
 
     public static function getSort(): int
     {
-        return 2; // Ensures this widget is at the top
+        return 3; // Ensures this widget is at the top
     }
 }
