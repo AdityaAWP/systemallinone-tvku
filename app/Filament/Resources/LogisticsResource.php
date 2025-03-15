@@ -24,6 +24,7 @@ class LogisticsResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-cube';
     protected static ?string $navigationGroup = 'Main Menu';
     protected static ?string $navigationLabel = 'Logistics';
+    protected static ?int $navigationSort = 2;
     protected static ?string $label = 'Logistics';
 
     

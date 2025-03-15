@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\OvertimeResource\Pages;
@@ -6,6 +7,7 @@ use App\Models\Overtime;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TextInput;
@@ -15,46 +17,83 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
-use HusamTariq\FilamentTimePicker\Forms\Components\TimePickerField;
 
 class OvertimeResource extends Resource
 {
     protected static ?string $model = Overtime::class;
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-clock';
+    protected static ?string $navigationGroup = 'Main Menu';
+    protected static ?int $navigationSort = 1;
     public static function form(Form $form): Form
-    
     {
         return $form
             ->schema([
-                DatePicker::make('tanggal_overtime')
-                    ->label('Tanggal Lembur')
-                    ->required(),
-                TimePickerField::make('check_in')->label('Waktu Check-in'),
-                TimePicker::make('check_out')
-                ->label('Waktu Check-out')
-                ->required()
-                ->afterStateUpdated(function (Get $get, Set $set) {
-                    $checkIn = $get('check_in');
-                    $checkOut = $get('check_out');
+                Forms\Components\Grid::make(3)
+                    ->schema([
+                        DatePicker::make('tanggal_overtime')
+                            ->label('Tanggal Lembur')
+                            ->required(),
+                        TimePicker::make('check_in')
+                            ->label('Waktu Check-in')
+                            ->seconds(false)
+                            ->required(),
+                        TimePicker::make('check_out')
+                            ->label('Waktu Check-out')
+                            ->seconds(false)
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                $tanggal = $get('tanggal_overtime');
+                                $checkIn = $get('check_in');
+                                $checkOut = $get('check_out');
 
-                    if ($checkIn && $checkOut) {
-                        $checkInTime = Carbon::parse($checkIn);
-                        $checkOutTime = Carbon::parse($checkOut);
+                                if ($tanggal && $checkIn && $checkOut) {
+                                    try {
+                                        $tanggalString = Carbon::parse($tanggal)->format('Y-m-d');
+                                        $checkInTime = Carbon::parse($checkIn)->format('H:i:s');
+                                        $checkOutTime = Carbon::parse($checkOut)->format('H:i:s');
 
-                        $totalHours = $checkOutTime->diffInMinutes($checkInTime) / 60;
-                        $overtimeHours = max(0, $totalHours - 8); 
+                                        $checkInDateTime = Carbon::parse("{$tanggalString} {$checkInTime}");
+                                        $checkOutDateTime = Carbon::parse("{$tanggalString} {$checkOutTime}");
 
-                        $set('overtime', $overtimeHours);
-                    }
-                }),
+                                        if ($checkOutDateTime->lt($checkInDateTime)) {
+                                            $checkOutDateTime->addDay();
+                                        }
 
-                TextInput::make('overtime')
-                    ->label('Overtime (hours)')
-                    ->disabled()
-                    ->numeric(),
-                TextInput::make('description')
-                    ->label('Deskripsi')
-                    ->required()
+                                        $totalMinutes = abs($checkOutDateTime->diffInMinutes($checkInDateTime));
+
+                                        $hours = (int)floor($totalMinutes / 60);
+                                        $minutes = $totalMinutes % 60;
+
+                                        $set('overtime', round($totalMinutes / 60, 2));
+                                        $set('overtime_hours', $hours);
+                                        $set('overtime_minutes', $minutes);
+
+                                        Log::info("Form calculation - Date: {$tanggalString}, Check-in: {$checkInDateTime->format('Y-m-d H:i:s')}, Check-out: {$checkOutDateTime->format('Y-m-d H:i:s')}, Total minutes: {$totalMinutes}, Hours: {$hours}, Minutes: {$minutes}");
+                                    } catch (\Exception $e) {
+                                        Log::error("Error in afterStateUpdated: " . $e->getMessage());
+                                    }
+                                }
+                            }),
+                    ]),
+
+                Forms\Components\Grid::make(4)
+                    ->schema([
+                        TextInput::make('overtime_hours')
+                            ->label('Jam')
+                            ->disabled()
+                            ->numeric()
+                            ->columnSpan(1),
+                        TextInput::make('overtime_minutes')
+                            ->label('Menit')
+                            ->disabled()
+                            ->numeric()
+                            ->columnSpan(1),
+                        TextInput::make('description')
+                            ->label('Deskripsi')
+                            ->required()
+                            ->columnSpan(3),
+                    ]),
             ]);
     }
 
@@ -62,21 +101,43 @@ class OvertimeResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('tanggal_overtime')->sortable(),
-                TextColumn::make('check_in'),
-                TextColumn::make('check_out'),
-                TextColumn::make('overtime')->label('Overtime (hours)'),
-                TextColumn::make('description')->label('Deskripsi'),
+                TextColumn::make('tanggal_overtime')
+                    ->searchable()
+                    ->date('d F Y')
+                    ->sortable(),
+                TextColumn::make('check_in')
+                    ->searchable()
+                    ->dateTime('H:i'),
+                TextColumn::make('check_out')
+                    ->searchable()
+                    ->dateTime('H:i'),
+                TextColumn::make('overtime_formatted')
+                    ->searchable()
+                    ->label('Durasi Overtime')
+                    ->state(fn(Overtime $record): string => "{$record->overtime_hours} jam {$record->overtime_minutes} menit"),
+                TextColumn::make('description')
+                    ->searchable()
+                    ->label('Description'),
+            ])
+            ->filters([
+                //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
     }
 
     public static function getPages(): array
