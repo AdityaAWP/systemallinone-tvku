@@ -56,25 +56,13 @@ class Overtime extends Model
                         $checkOutDateTime->addDay();
                     }
 
-                    $jamKerjaSelesai = $checkInDateTime->copy()->addHours(8);
+                    $totalMinutes = abs($checkOutDateTime->diffInMinutes($checkInDateTime));
 
-                    if ($checkOutDateTime->gt($jamKerjaSelesai)) {
-                        $overtimeStart = $jamKerjaSelesai;
-                        $overtimeEnd = $checkOutDateTime;
+                    $model->overtime = round($totalMinutes / 60, 2);
+                    $model->overtime_hours = (int)floor($totalMinutes / 60);
+                    $model->overtime_minutes = $totalMinutes % 60;
 
-                        $totalMinutes = abs($overtimeEnd->diffInMinutes($overtimeStart));
-
-                        $model->overtime = round($totalMinutes / 60, 2);
-                        $model->overtime_hours = (int)floor($totalMinutes / 60);
-                        $model->overtime_minutes = $totalMinutes % 60;
-                    } else {
-                        $model->overtime = 0;
-                        $model->overtime_hours = 0;
-                        $model->overtime_minutes = 0;
-                    }
-
-                    $totalMinutes = $totalMinutes ?? 0;
-                    Log::info("Model saving - Check-in: {$checkInDateTime->format('Y-m-d H:i:s')}, Check-out: {$checkOutDateTime->format('Y-m-d H:i:s')}, Jam Kerja Selesai: {$jamKerjaSelesai->format('Y-m-d H:i:s')}, Total minutes: {$totalMinutes}, Hours: {$model->overtime_hours}, Minutes: {$model->overtime_minutes}");
+                    Log::info("Model saving - Check-in: {$checkInDateTime->format('Y-m-d H:i:s')}, Check-out: {$checkOutDateTime->format('Y-m-d H:i:s')}, Total minutes: {$totalMinutes}, Hours: {$model->overtime_hours}, Minutes: {$model->overtime_minutes}");
                 } catch (\Exception $e) {
                     Log::error("Error in boot saving: " . $e->getMessage() . " at line " . $e->getLine());
                 }
