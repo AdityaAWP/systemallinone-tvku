@@ -18,6 +18,8 @@ return new class extends Migration
             $table->time('check_in');
             $table->time('check_out');
             $table->decimal('overtime', 5, 2)->comment('in hours');
+            $table->integer('overtime_hours'); 
+            $table->integer('overtime_minutes'); 
             $table->string('description');
             $table->timestamps();
         });

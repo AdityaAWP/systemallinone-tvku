@@ -30,7 +30,7 @@ class SuperAdminSeeder extends Seeder
         // Buat super admin
         User::create([
             'name' => 'Super Admin',
-            'email' => 'superadmin@example.com',
+            'email' => 'admin@example.com',
             'password' => Hash::make('password'),
             'role' => 'super_admin',
             'is_admin' => true,
