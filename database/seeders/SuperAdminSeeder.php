@@ -9,30 +9,24 @@ use Illuminate\Support\Facades\Hash;
 
 class SuperAdminSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Buat position jika belum ada
         $superAdminPosition = Position::firstOrCreate(
-            ['name' => 'Super Admin']
+            ['name' => 'Super Admin', 'role' => 'super_admin']
         );
         
         $adminPosition = Position::firstOrCreate(
-            ['name' => 'Admin']
+            ['name' => 'Admin', 'role' => 'admin']
         );
         
         $staffPosition = Position::firstOrCreate(
-            ['name' => 'Staff']
+            ['name' => 'Staff', 'role' => 'user']
         );
         
-        // Buat super admin
         User::create([
             'name' => 'Super Admin',
             'email' => 'admin@example.com',
             'password' => Hash::make('password'),
-            'role' => 'super_admin',
             'is_admin' => true,
             'position_id' => $superAdminPosition->id,
             'gender' => 'Laki-laki',

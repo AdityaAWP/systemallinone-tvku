@@ -14,18 +14,12 @@ class User extends Authenticatable implements FilamentUser
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
         'google_id',
         'avatar',
-        'role',
         'is_admin',
         'created_by',
         'position_id',
@@ -37,21 +31,11 @@ class User extends Authenticatable implements FilamentUser
         'phone',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
@@ -59,44 +43,34 @@ class User extends Authenticatable implements FilamentUser
         'birth' => 'date',
     ];
 
-    /**
-     * Determine if the user can access the Filament panel.
-     */
     public function canAccessPanel(Panel $panel): bool
     {
-        // Allow access if the user is an admin or a regular user
-        return $this->is_admin || $this->role === 'user';
+        return $this->is_admin || $this->position?->role === 'user';
     }
 
-    /**
-     * Get the users created by this user.
-     */
     public function createdUsers()
     {
         return $this->hasMany(User::class, 'created_by');
     }
 
-    /**
-     * Get the position of the user.
-     */
     public function position()
     {
         return $this->belongsTo(Position::class);
     }
 
     /**
-     * Check if user is a super admin.
+     * Check if the user is a Super Admin.
      */
     public function isSuperAdmin(): bool
     {
-        return $this->is_admin && $this->role === 'super_admin';
+        return $this->position?->role === 'super_admin';
     }
     
     /**
-     * Check if user is an admin.
+     * Check if the user is an Admin.
      */
     public function isAdmin(): bool
     {
-        return $this->is_admin && $this->role === 'admin';
+        return $this->is_admin && $this->position?->role === 'admin';
     }
 }

@@ -8,19 +8,16 @@ use Illuminate\Database\Seeder;
 
 class PositionSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $postions = [
-            ['name' => 'Super Admin'],
-            ['name' => 'Admin'],
-            ['name' => 'Manager'],
-            ['name' => 'Staff'],
+        $positions = [
+            ['name' => 'Super Admin', 'role' => 'super_admin'],
+            ['name' => 'Admin', 'role' => 'admin'],
+            ['name' => 'Manager', 'role' => 'user'],
+            ['name' => 'Staff', 'role' => 'user'],
         ];
 
-        foreach ($postions as $position) {
+        foreach ($positions as $position) {
             Position::create($position);
         }
     }

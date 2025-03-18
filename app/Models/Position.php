@@ -9,11 +9,8 @@ class Position extends Model
 {
     use HasFactory;
     
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'role'];
     
-    /**
-     * Dapatkan pengguna dengan posisi ini.
-     */
     public function users()
     {
         return $this->hasMany(User::class);

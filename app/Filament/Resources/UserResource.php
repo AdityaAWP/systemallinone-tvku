@@ -26,7 +26,6 @@ class UserResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $navigationGroup = 'General';
     protected static ?string $navigationLabel = 'Users';
-    
     protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
@@ -45,37 +44,24 @@ class UserResource extends Resource
                             ->unique(ignoreRecord: true),
                         TextInput::make('password')
                             ->password()
-                            ->dehydrateStateUsing(fn ($state) => filled($state) ? Hash::make($state) : null)
-                            ->dehydrated(fn ($state) => filled($state))
-                            ->required(fn (string $operation): bool => $operation === 'create'),
+                            ->dehydrateStateUsing(fn($state) => filled($state) ? Hash::make($state) : null)
+                            ->dehydrated(fn($state) => filled($state))
+                            ->required(fn(string $operation): bool => $operation === 'create'),
                         Select::make('position_id')
                             ->relationship('position', 'name')
                             ->required()
                             ->searchable()
                             ->preload(),
                     ])->columns(2),
-                    
+
                 Section::make('Informasi Akses')
                     ->schema([
-                        Select::make('role')
-                            ->options([
-                                'super_admin' => 'Super Admin',
-                                'admin' => 'Admin',
-                                'user' => 'User',
-                            ])
-                            ->default('user')
-                            ->required()
-                            ->visible(fn () => Auth::user() && Auth::user()->role === 'super_admin')
-                            ->disabled(fn () => Auth::user() && Auth::user()->role !== 'super_admin'),
-                        Forms\Components\Hidden::make('role')
-                            ->default('user')
-                            ->visible(fn () => Auth::user() && Auth::user()->role === 'admin'),
                         Forms\Components\Toggle::make('is_admin')
                             ->label('Admin Access')
                             ->default(false)
                             ->required(),
                     ])->columns(2),
-                    
+
                 Section::make('Informasi Personal')
                     ->schema([
                         Select::make('gender')
@@ -114,9 +100,10 @@ class UserResource extends Resource
                 TextColumn::make('position.name')
                     ->label('Position')
                     ->sortable(),
-                TextColumn::make('role')
+                TextColumn::make('position.role')
+                    ->label('Role')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'super_admin' => 'danger',
                         'admin' => 'warning',
                         'user' => 'success',
@@ -135,12 +122,6 @@ class UserResource extends Resource
                     ->relationship('position', 'name')
                     ->preload()
                     ->searchable(),
-                Tables\Filters\SelectFilter::make('role')
-                    ->options([
-                        'super_admin' => 'Super Admin',
-                        'admin' => 'Admin',
-                        'user' => 'User',
-                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -172,12 +153,10 @@ class UserResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
-        
+
         if ($user->role === 'super_admin') {
-            // Super admin can see all users
             return parent::getEloquentQuery();
         } else {
-            // Regular admin can only see their created users
             return parent::getEloquentQuery()
                 ->where('created_by', $user->id);
         }

@@ -6,6 +6,7 @@ use App\Filament\Resources\PositionResource\Pages;
 use App\Models\Position;
 use Filament\Forms;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -30,6 +31,13 @@ class PositionResource extends Resource
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
+                Select::make('role')
+                    ->options([
+                        'super_admin' => 'Super Admin',
+                        'admin' => 'Admin',
+                        'user' => 'User',
+                    ])
+                    ->required(),
             ]);
     }
 
@@ -40,6 +48,14 @@ class PositionResource extends Resource
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('role')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'super_admin' => 'danger',
+                        'admin' => 'warning',
+                        'user' => 'success',
+                        default => 'gray',
+                    }),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
