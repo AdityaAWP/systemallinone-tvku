@@ -35,6 +35,10 @@ class LogisticsResource extends Resource
             ->schema([
                 TextInput::make('name')
                     ->required(),
+                TextInput::make('stock')
+                    ->label('Stok (Angka Saja)')
+                    ->required()
+                    ->numeric(),
                 Radio::make('category')
                     ->label('Kategori Barang')
                     ->required()
@@ -53,6 +57,8 @@ class LogisticsResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->searchable(),
+                TextColumn::make('stock')
                     ->searchable(),
                 TextColumn::make('category')
                     ->searchable()
