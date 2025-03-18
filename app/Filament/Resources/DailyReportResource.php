@@ -2,8 +2,11 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Exports\DailyReportExporter;
 use App\Filament\Resources\DailyReportResource\Pages;
 use App\Models\DailyReport;
+use Filament\Actions\ExportAction;
+use Filament\Actions\Exports\Models\Export;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Illuminate\Support\Carbon;
@@ -15,6 +18,7 @@ use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 
@@ -126,10 +130,13 @@ class DailyReportResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+                
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make()
+                        ->exporter(DailyReportExporter::class)
                 ]),
             ]);
     }
