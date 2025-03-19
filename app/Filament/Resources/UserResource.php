@@ -47,19 +47,11 @@ class UserResource extends Resource
                             ->dehydrateStateUsing(fn($state) => filled($state) ? Hash::make($state) : null)
                             ->dehydrated(fn($state) => filled($state))
                             ->required(fn(string $operation): bool => $operation === 'create'),
-                        Select::make('position_id')
-                            ->relationship('position', 'name')
+                        Select::make('roles')
+                            ->relationship('roles', 'name')
                             ->required()
                             ->searchable()
                             ->preload(),
-                    ])->columns(2),
-
-                Section::make('Informasi Akses')
-                    ->schema([
-                        Forms\Components\Toggle::make('is_admin')
-                            ->label('Admin Access')
-                            ->default(false)
-                            ->required(),
                     ])->columns(2),
 
                 Section::make('Informasi Personal')
@@ -97,29 +89,16 @@ class UserResource extends Resource
                     ->searchable(),
                 TextColumn::make('email')
                     ->searchable(),
-                TextColumn::make('position.name')
-                    ->label('Position')
+                TextColumn::make('roles.name')
+                    ->label('Roles')
                     ->sortable(),
-                TextColumn::make('position.role')
-                    ->label('Role')
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'super_admin' => 'danger',
-                        'admin' => 'warning',
-                        'user' => 'success',
-                        default => 'gray',
-                    }),
-                IconColumn::make('is_admin')
-                    ->label('Admin Access')
-                    ->boolean(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('position')
-                    ->relationship('position', 'name')
+                Tables\Filters\SelectFilter::make('roles')
+                    ->relationship('roles', 'name')
                     ->preload()
                     ->searchable(),
             ])
@@ -154,7 +133,7 @@ class UserResource extends Resource
     {
         $user = Auth::user();
 
-        if ($user->role === 'super_admin') {
+        if ($user->roles === 'super_admin') {
             return parent::getEloquentQuery();
         } else {
             return parent::getEloquentQuery()

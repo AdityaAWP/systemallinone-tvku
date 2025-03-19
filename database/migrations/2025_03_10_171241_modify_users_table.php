@@ -12,11 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'position_id')) {
-                $table->foreignId('position_id')->nullable()->constrained()->after('role');
-            }
             if (!Schema::hasColumn('users', 'gender')) {
-                $table->enum('gender', ['Laki-laki', 'Perempuan'])->nullable()->after('position_id');
+                $table->enum('gender', ['Laki-laki', 'Perempuan'])->nullable()->after('email_verified_at');
             }
             if (!Schema::hasColumn('users', 'ktp')) {
                 $table->string('ktp')->nullable()->after('gender');
@@ -36,9 +33,6 @@ return new class extends Migration
             if (!Schema::hasColumn('users', 'deleted_at')) {
                 $table->softDeletes();
             }
-
-            // Ubah kolom role menjadi nullable
-            $table->string('role')->nullable()->change();
         });
     }
 
@@ -48,10 +42,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            if (Schema::hasColumn('users', 'position_id')) {
-                $table->dropForeign(['position_id']);
-                $table->dropColumn('position_id');
-            }
             if (Schema::hasColumn('users', 'gender')) {
                 $table->dropColumn('gender');
             }
@@ -73,7 +63,6 @@ return new class extends Migration
             if (Schema::hasColumn('users', 'deleted_at')) {
                 $table->dropColumn('deleted_at');
             }
-            $table->string('role')->default('user')->change();
         });
     }
 };

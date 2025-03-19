@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\User;
+
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class UserPolicy
@@ -10,80 +11,134 @@ class UserPolicy
     use HandlesAuthorization;
 
     /**
-     * Tentukan apakah pengguna dapat melihat model apa pun.
+     * Determine whether the user can view any models.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
      */
     public function viewAny(User $user): bool
     {
-        return $user->is_admin;
+        return $user->can('view_any_user');
     }
 
     /**
-     * Tentukan apakah pengguna dapat melihat model.
+     * Determine whether the user can view the model.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
      */
-    public function view(User $user, User $model): bool
+    public function view(User $user): bool
     {
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-        
-        return $user->is_admin && $user->id === $model->created_by;
+        return $user->can('view_user');
     }
 
     /**
-     * Tentukan apakah pengguna dapat membuat model.
+     * Determine whether the user can create models.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
      */
     public function create(User $user): bool
     {
-        return $user->is_admin;
+        return $user->can('create_user');
     }
 
     /**
-     * Tentukan apakah pengguna dapat memperbarui model.
+     * Determine whether the user can update the model.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
      */
-    public function update(User $user, User $model): bool
+    public function update(User $user): bool
     {
-        // Super admin dapat memperbarui pengguna mana pun
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-        
-        // Admin biasa hanya dapat memperbarui pengguna yang mereka buat
-        if ($user->is_admin && $user->id === $model->created_by) {
-            return true;
-        }
-        
-        return false;
+        return $user->can('update_user');
     }
 
     /**
-     * Tentukan apakah pengguna dapat menghapus model.
+     * Determine whether the user can delete the model.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
      */
-    public function delete(User $user, User $model): bool
+    public function delete(User $user): bool
     {
-        if ($user->isSuperAdmin() && $user->id !== $model->id) {
-            return true;
-        }
-        
-        if ($user->is_admin && $user->id === $model->created_by && $user->id !== $model->id) {
-            return true;
-        }
-        
-        return false;
+        return $user->can('delete_user');
     }
 
     /**
-     * Tentukan apakah pengguna dapat memulihkan model.
+     * Determine whether the user can bulk delete.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
      */
-    public function restore(User $user, User $model): bool
+    public function deleteAny(User $user): bool
     {
-        return $user->isSuperAdmin();
+        return $user->can('delete_any_user');
     }
 
     /**
-     * Tentukan apakah pengguna dapat menghapus model secara permanen.
+     * Determine whether the user can permanently delete.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
      */
-    public function forceDelete(User $user, User $model): bool
+    public function forceDelete(User $user): bool
     {
-        return $user->isSuperAdmin();
+        return $user->can('force_delete_user');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_user');
+    }
+
+    /**
+     * Determine whether the user can restore.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
+     */
+    public function restore(User $user): bool
+    {
+        return $user->can('restore_user');
+    }
+
+    /**
+     * Determine whether the user can bulk restore.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_user');
+    }
+
+    /**
+     * Determine whether the user can bulk restore.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
+     */
+    public function replicate(User $user): bool
+    {
+        return $user->can('replicate_user');
+    }
+
+    /**
+     * Determine whether the user can reorder.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
+     */
+    public function reorder(User $user): bool
+    {
+        return $user->can('reorder_user');
     }
 }

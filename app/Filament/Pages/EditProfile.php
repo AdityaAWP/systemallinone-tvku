@@ -32,7 +32,6 @@ class EditProfile extends Page
             'email' => $user->email,
             'no_phone' => $user->no_phone ?? '',
             'npp' => $user->npp ?? '',
-            'position_id' => $user->position_id ?? null,
         ]);
     }
     protected function getHeaderWidgets(): array
@@ -53,10 +52,6 @@ class EditProfile extends Page
                     ->required(),
                 TextInput::make('no_phone'),
                 TextInput::make('npp'),
-                Select::make('position_id')
-                    ->label('Position')
-                    ->options(Position::all()->pluck('name', 'id'))
-                    ->preload(),
             ])
             ->statePath('data');
     }
@@ -69,7 +64,6 @@ class EditProfile extends Page
         $user->email = $data['email'];
         $user->no_phone = $data['no_phone'] ?? null;
         $user->npp = $data['npp'] ?? null;
-        $user->position_id = $data['position_id'] ?? null;
         $user->save();
         
         Notification::make()

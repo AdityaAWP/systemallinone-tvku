@@ -18,7 +18,6 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('no_phone')->nullable();
             $table->string('npp')->nullable();
-            $table->foreignId('position_id')->nullable();
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
