@@ -11,18 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('overtimes', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->date('tanggal_overtime');
-            $table->time('check_in');
-            $table->time('check_out');
-            $table->decimal('overtime', 5, 2)->comment('in hours');
-            $table->integer('overtime_hours');
-            $table->integer('overtime_minutes');
-            $table->string('description');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('overtimes')) {
+            Schema::create('overtimes', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->onDelete('cascade');
+                $table->date('tanggal_overtime');
+                $table->time('check_in');
+                $table->time('check_out');
+                $table->decimal('overtime', 5, 2)->comment('in hours');
+                $table->integer('overtime_hours');
+                $table->integer('overtime_minutes');
+                $table->string('description');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
