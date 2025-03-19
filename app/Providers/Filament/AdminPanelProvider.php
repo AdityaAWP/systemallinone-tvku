@@ -39,7 +39,6 @@ class AdminPanelProvider extends PanelProvider
                 'info' => Color::Blue,
                 'dark' => Color::Gray,
             ])
-            ->viteTheme('resources/css/filament/admin/theme.css')
             ->plugin(
                 FilamentFullCalendarPlugin::make()
                     ->schedulerLicenseKey('')
