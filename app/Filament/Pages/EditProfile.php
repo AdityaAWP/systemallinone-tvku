@@ -1,5 +1,7 @@
 <?php
 namespace App\Filament\Pages;
+
+use App\Filament\Widgets\ProfileWidget;
 use App\Models\Position;
 use Filament\Pages\Page;
 use Filament\Forms\Form;
@@ -17,6 +19,9 @@ class EditProfile extends Page
     protected static ?string $navigationGroup = 'General';
     protected static ?int $navigationSort = 2;
     protected static string $view = 'filament.pages.edit-profile';
+    protected static ?string $title = 'Profile';
+
+
     public ?array $data = [];
     
     public function mount(): void
@@ -29,6 +34,12 @@ class EditProfile extends Page
             'npp' => $user->npp ?? '',
             'position_id' => $user->position_id ?? null,
         ]);
+    }
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            ProfileWidget::class,
+        ];
     }
     
     public function form(Form $form): Form
