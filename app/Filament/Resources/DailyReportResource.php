@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Exports\DailyReportExporter;
 use App\Filament\Resources\DailyReportResource\Pages;
 use App\Models\DailyReport;
-use Filament\Actions\ExportAction;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -21,6 +20,7 @@ use Filament\Tables;
 use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Actions\ExportAction;
 
 class DailyReportResource extends Resource
 {
@@ -104,6 +104,9 @@ class DailyReportResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->headerActions([
+                ExportAction::make()->exporter(DailyReportExporter::class),
+            ])
             ->columns([
                 TextColumn::make('entry_date')
                     ->label('Tanggal')

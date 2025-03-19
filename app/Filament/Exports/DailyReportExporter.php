@@ -7,6 +7,7 @@ use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
 
+
 class DailyReportExporter extends Exporter
 {
     protected static ?string $model = DailyReport::class;
@@ -14,18 +15,18 @@ class DailyReportExporter extends Exporter
     public static function getColumns(): array
     {
         return [
-            ExportColumn::make('id')
-                ->label('ID'),
-            ExportColumn::make('user.name'),
-            ExportColumn::make('entry_date'),
-            ExportColumn::make('check_in'),
-            ExportColumn::make('check_out'),
-            ExportColumn::make('work_hours'),
-            ExportColumn::make('work_hours_component'),
-            ExportColumn::make('work_minutes_component'),
-            ExportColumn::make('description'),
-            ExportColumn::make('created_at'),
-            ExportColumn::make('updated_at'),
+            ExportColumn::make('user.name')
+            ->label('Nama'),
+            ExportColumn::make('entry_date')
+            ->label('Tanggal'),
+            ExportColumn::make('check_in')
+            ->label('Check In'),
+            ExportColumn::make('check_out')
+            ->label('Check Out'),
+            ExportColumn::make('work_hours')
+            ->label('Jam Kerja'),
+            ExportColumn::make('description')
+            ->label('Keterangan'),
         ];
     }
 
