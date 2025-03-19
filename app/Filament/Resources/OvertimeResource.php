@@ -125,6 +125,15 @@ class OvertimeResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+                // Tables\Actions\Action::make('pdf')
+                //     ->label('Export PDF')
+                //     ->icon('heroicon-o-document-download')
+                //     ->action(function (Overtime $record) {
+                //         return response()->streamDownload(function () use ($record) {
+                //             $pdf = PDF::loadView('overtime.pdf', compact('record'));
+                //             $pdf->stream();
+                //         }, "overtime-{$record->id}.pdf");
+                //     })
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

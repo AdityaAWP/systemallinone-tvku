@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\PDFController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -19,3 +20,5 @@ Route::get('error/403', function () {
 Route::get('/login', function () {
     return redirect()->route('filament.admin.auth.login');
 })->name('login');
+
+Route::get('download', [PDFController::class, 'downloadpdf'])->name('overtime.report');
