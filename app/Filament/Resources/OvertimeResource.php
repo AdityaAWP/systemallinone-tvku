@@ -4,6 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\OvertimeResource\Pages;
 use App\Models\Overtime;
+use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
+use Barryvdh\DomPDF\PDF;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Illuminate\Support\Carbon;
@@ -17,6 +19,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Illuminate\Support\Facades\Blade;
 
 class OvertimeResource extends Resource
 {
@@ -125,15 +128,9 @@ class OvertimeResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-                // Tables\Actions\Action::make('pdf')
-                //     ->label('Export PDF')
-                //     ->icon('heroicon-o-document-download')
-                //     ->action(function (Overtime $record) {
-                //         return response()->streamDownload(function () use ($record) {
-                //             $pdf = PDF::loadView('overtime.pdf', compact('record'));
-                //             $pdf->stream();
-                //         }, "overtime-{$record->id}.pdf");
-                //     })
+                Tables\Actions\Action::make('download') 
+                    ->url(fn(Overtime $overtime) => route('overtime.single', $overtime))
+                    ->openUrlInNewTab()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

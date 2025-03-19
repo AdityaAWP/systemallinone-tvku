@@ -14,7 +14,7 @@ class ListOvertimes extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
-            Actions\Action::make('Laporan')->label('Laporan')->url(fn()=>route('overtime.report'))->openUrlInNewTab()
+            Actions\Action::make('Laporan')->label('Download Semua Laporan')->url(fn()=>route('overtime.report'))->openUrlInNewTab()
         ];
     }
 }

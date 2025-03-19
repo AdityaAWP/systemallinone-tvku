@@ -20,4 +20,21 @@ class PDFController extends Controller
         $pdf = PDF::loadview('overtimePDF', $data);
         return $pdf->download('laporan-lembur.pdf');
     }
+    public function userpdf($id) {
+        $overtime = Overtime::with('user')->where('id', $id)->get();
+        if($overtime->isEmpty()) {
+            return redirect()->back()->with('error', 'Record not found');
+        }
+        
+        $data = [
+            'title' => 'Laporan Lembur Individual',
+            'overtime' => $overtime
+        ];
+        
+        $pdf = PDF::loadView('overtimePDF', $data);
+        
+        return response($pdf->output())
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="laporan-lembur-'.$id.'.pdf"');
+    }
 }

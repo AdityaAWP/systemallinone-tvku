@@ -2,195 +2,224 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Overtime Permission Request Form</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Certificate of Analysis</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            line-height: 1.6;
-            max-width: 800px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
             margin: 0 auto;
-            padding: 20px;
+            background: white;
+            box-shadow: 0 0 0.5cm rgba(0, 0, 0, 0.5);
+        }
+
+        .header,
+        .footer {
+            text-align: center;
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            margin-bottom: 5px;
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .header h2 {
-            margin-top: 0;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .recipient {
+            font-size: 14px;
             margin-bottom: 20px;
         }
 
-        .recipient-line {
-            display: flex;
-            margin-bottom: 5px;
-        }
-
-        .recipient-label {
-            width: 80px;
-        }
-
-        .form-field {
-            display: flex;
-            margin-bottom: 15px;
-        }
-
-        .form-label {
-            width: 80px;
-        }
-
-        .form-input {
-            flex: 1;
-            border: none;
-            border-bottom: 1px dotted #000;
-        }
-
-        .pre-filled {
-            border-bottom: none;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-
-        th,
-        td {
-            border: 1px solid #000;
-            padding: 8px;
+        .title {
             text-align: center;
+            display: block;
+            width: 450px;
+            margin: 0 auto;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
         }
 
-        th {
-            background-color: #f2f2f2;
+        .content {
+            font-size: 12px;
+            /* margin-bottom: 20px; */
         }
 
-        .footer {
-            margin-top: 30px;
+        /* .data-layout {
+            display: grid;
+            grid-template-columns: 1.5fr 3fr 1fr 2fr;
+            /* 4 kolom */
+        gap: 10px;
+        /* Jarak antar elemen */
+        font-family: Arial,
+        sans-serif;
+        font-size: 12px;
         }
 
-        .signature-section {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 50px;
+        */ .row {
+            display: contents;
+            /* Membiarkan elemen row mengikuti grid */
         }
 
-        .signature {
-            text-align: center;
-            width: 30%;
-        }
-
-        .signature-line {
-            margin-top: 70px;
-            border-top: 1px solid #000;
-        }
-
-        .signature-name {
-            margin-top: 10px;
+        .label {
             font-weight: bold;
         }
 
-        .signature-title {
+        .value {
+            text-align: left;
+        }
+
+        .info {
+            font-family: Arial, sans-serif;
             font-size: 12px;
+        }
+
+        .content table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .content table th,
+        .content table td {
+            border: 1px solid #000;
+        }
+
+        .content table th {
+            text-align: center;
+            padding: 8px;
+        }
+
+        .content table td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 10px;
+        }
+
+        .approved-by {
+            margin-top: 40px;
+        }
+
+        .approved-by table {
+            width: 100%;
+        }
+
+        .approved-by table td {
+            width: 50%;
+            text-align: center;
+        }
+
+        .approved-by table #identity {
+            padding-top: 100px;
+        }
+
+        .print-button {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .print-button button {
+            padding: 10px 20px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .print-button button:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 
 <body>
-    <div class="header">
-        <h1>SURAT PERMOHONAN IJIN LEMBUR</h1>
-        <h2>TVKU SEMARANG</h2>
-    </div>
+    <div class="" id="certificate">
+        <div class="title">SURAT PERMOHONAN IJIN LEMBUR TVKU SEMARANG</div>
 
-    <div class="recipient">
-        <div class="recipient-line">
-            <div class="recipient-label">Kepada</div>
-            <div>: Staff HRD TVKU Semarang</div>
-        </div>
-        <div class="recipient-line">
-            <div class="recipient-label">Hal</div>
-            <div>: Permohonan Lembur Karyawan</div>
-        </div>
-    </div>>
-    <div>Dengan ini saya, {{ $overtime[0]->user->name }}<div>
+        <div class="content">
+            <div class="">
+                <div class="">
+                    <div class="">Kepada</div>
+                    <div class="value">: Staff HRD TVKU Semarang</div>
+                    <div class="label"></div>
+                    <div class="value"></div>
+                </div>
 
-            <div class="form-field">
-                <div class="form-label">Nama</div>
-                <div>: <input type="text" class="form-input"></div>
-            </div>
-            <div class="form-field">
-                <div class="form-label">Jabatan</div>
-                <div>: <input type="text" class="form-input"></div>
-            </div>
-            <div class="form-field">
-                <div class="form-label">Divisi</div>
-                <div>: <span class="pre-filled">Teknik</span></div>
-            </div>
+                <div class="row">
+                    <div class="label">Hal</div>
+                    <div class="value">: Permohonan Lembur Karyawan</div>
+                    <div class="label"></div>
+                    <div class="value"></div>
+                </div>
 
-            <div>Memohon untuk bekerja ekstra pada,</div>
+                <div class="row">
+                    <div class="label">Nama</div>
+                    <div class="value">: {{ $overtime[0]->user->name }}</div>
+                    <div class="label"></div>
+                    <div class="value"></div>
+                </div>
+                <div class="row">
+                    <div class="label">Jabatan</div>
+                    <div class="value">: ....</div>
+                    <div class="label"></div>
+                    <div class="value"></div>
+                </div>
+            </div>
 
             <table>
                 <thead>
                     <tr>
                         <th>No</th>
-                        <th>Hari/Tanggal</th>
-                        <th>Jam Kerja Normal</th>
-                        <th>Jam Lembur</th>
-                        <th>Guna</th>
+                        <th>Pengujian</th>
+                        <th>Spesifikasi</th>
+                        <th>Hasil</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($overtime as $item)
                     <tr>
-                        <td>{{ $item['tanggal_overtime'] }}</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
+                        <td>1</td>
+                        <td>{{ $item->tanggal_overtime}}</td>
+                        <td>
+                            Terjadi warna biru intensif pada kertas saring,
+                            warna akan memucat setelah beberapa menit
+                        </td>
+                        <td>Terpenuhi</td>
                     </tr>
                     @endforeach
 
                 </tbody>
             </table>
+        </div>
 
-            <div class="footer">
-                <p>Demikian permohonan dari kami, atas persetujuannya kami ucapkan terimakasih</p>
-            </div>
+        <div class="approved-by">
+            <table>
+                <tr>
+                    <td>Approved by: <br /></td>
+                    <td>QA-Analyst: <br /></td>
+                </tr>
+                <tr>
+                    <td id="identity">
+                        <strong>PP</strong><br />
+                        Head Of Laboratory
+                    </td>
+                    <td id="identity">
+                        <strong>(WIDODO)</strong>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
 
-            <div class="signature-section">
-                <div class="signature">
-                    <div>Pemohon,</div>
-                    <div class="signature-line"></div>
-                    <div class="signature-name"></div>
-                </div>
-                <div class="signature">
-                    <div>Mengetahui,</div>
-                    <div class="signature-line"></div>
-                    <div class="signature-name">Eko Purwito</div>
-                    <div class="signature-title">Manager Teknik</div>
-                </div>
-                <div class="signature">
-                    <div>Menyetujui,</div>
-                    <div class="signature-line"></div>
-                    <div class="signature-name">Dr. Hery Pamungkas SS, M.I.Kom</div>
-                    <div class="signature-title">Direktur Operasional</div>
-                </div>
-            </div>
+    <!-- Include jsPDF and html2canvas libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 </body>
 
 </html>

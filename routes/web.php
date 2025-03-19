@@ -22,3 +22,4 @@ Route::get('/login', function () {
 })->name('login');
 
 Route::get('download', [PDFController::class, 'downloadpdf'])->name('overtime.report');
+Route::get('download/{id}', [PDFController::class, 'userpdf'])->name('overtime.single');
