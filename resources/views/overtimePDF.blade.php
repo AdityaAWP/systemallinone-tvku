@@ -191,7 +191,7 @@ use Carbon\Carbon;
                     <tbody>
                         @foreach ($overtime as $item)
                         <tr>
-                            <td style="border: 1px solid black">1</td>
+                            <td style="border: 1px solid black">{{ $loop->iteration }}</td>
                             <td style="border: 1px solid black">{{
                                 Carbon::parse($item->tanggal_overtime)->format('F j, Y') }}</td>
                             <td style="border: 1px solid black">
