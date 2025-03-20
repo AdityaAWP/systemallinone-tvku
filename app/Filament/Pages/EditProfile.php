@@ -16,7 +16,7 @@ class EditProfile extends Page
 {
     use InteractsWithForms;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    protected static ?string $navigationGroup = 'General';
+    protected static ?string $navigationGroup = 'User Management';
     protected static ?int $navigationSort = 2;
     protected static string $view = 'filament.pages.edit-profile';
     protected static ?string $title = 'Profile';
