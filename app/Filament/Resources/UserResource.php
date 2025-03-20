@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
+use App\Models\Division;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
@@ -50,6 +51,11 @@ class UserResource extends Resource
                         Select::make('roles')
                             ->relationship('roles', 'name')
                             ->required()
+                            ->searchable()
+                            ->preload(),
+                        Select::make('division_id')
+                            ->label('Division')
+                            ->options(Division::all()->pluck('name', 'id')) 
                             ->searchable()
                             ->preload(),
                     ])->columns(2),

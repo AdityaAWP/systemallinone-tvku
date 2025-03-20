@@ -53,6 +53,11 @@ class User extends Authenticatable //implements FilamentUser
         return $this->hasMany(User::class, 'created_by');
     }
 
+    public function division()
+    {
+        return $this->belongsTo(Division::class);
+    }
+
     // public function position()
     // {
     //     return $this->belongsTo(Position::class);

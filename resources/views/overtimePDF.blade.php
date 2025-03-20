@@ -1,10 +1,14 @@
+<?php
+use Carbon\Carbon;
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Certificate of Analysis</title>
+    <title>Surat Izin Lembur</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -80,10 +84,10 @@
             border-collapse: collapse;
         }
 
-        .content table th,
+        /* .content table th,
         .content table td {
             border: 1px solid #000;
-        }
+        } */
 
         .content table th {
             text-align: center;
@@ -143,82 +147,101 @@
 
         <div class="content">
             <div class="">
-                <div class="">
-                    <div class="">Kepada</div>
-                    <div class="value">: Staff HRD TVKU Semarang</div>
-                    <div class="label"></div>
-                    <div class="value"></div>
+                <div>
+                    <table>
+                        <tr>
+                            <td style="width: 70px;">Kepada</td>
+                            <td>: Staff HRD TVKU Semarang</td>
+                        </tr>
+                        <tr>
+                            <td>Hal</td>
+                            <td>: Permohonan Lembur Karyawan</td>
+                        </tr>
+                    </table>
+                    <h4 style="font-weight: 400;margin-left: 7px;">Dengan ini saya, </h4>
+                    <br>
+                    <table>
+                        <tr>
+                            <td style="width: 70px;">Nama</td>
+                            <td>: {{ $overtime[0]->user->name }}</td>
+                        </tr>
+                        <tr>
+                            <td>Jabatan</td>
+                            <td>: {{ Str::title(str_replace('_', ' ', $overtime[0]->user->role)) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Divisi</td>
+                            <td>: Devisi</td>
+                        </tr>
+                    </table>
+                    <br>
+                    <h4 style="font-weight: 400;margin-left: 7px;">Memohon untuk bekerja ekstra pada, </h4>
                 </div>
 
-                <div class="row">
-                    <div class="label">Hal</div>
-                    <div class="value">: Permohonan Lembur Karyawan</div>
-                    <div class="label"></div>
-                    <div class="value"></div>
-                </div>
+                <table style="border: 1px solid black">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid black">No</th>
+                            <th style="border: 1px solid black">Hari / Tanggal</th>
+                            <th style="border: 1px solid black">Jam Kerja Normal</th>
+                            <th style="border: 1px solid black">Jam Lembur</th>
+                            <th style="border: 1px solid black">Guna</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($overtime as $item)
+                        <tr>
+                            <td style="border: 1px solid black">1</td>
+                            <td style="border: 1px solid black">{{
+                                Carbon::parse($item->tanggal_overtime)->format('F j, Y') }}</td>
+                            <td style="border: 1px solid black">
+                                8 JAM
+                            </td>
+                            <td style="border: 1px solid black">
+                                @php
+                                $overtime = explode('.', $item->overtime);
+                                $hours = $overtime[0];
+                                $minutes = isset($overtime[1]) ? $overtime[1] : 0;
+                                @endphp
 
-                <div class="row">
-                    <div class="label">Nama</div>
-                    <div class="value">: {{ $overtime[0]->user->name }}</div>
-                    <div class="label"></div>
-                    <div class="value"></div>
-                </div>
-                <div class="row">
-                    <div class="label">Jabatan</div>
-                    <div class="value">: ....</div>
-                    <div class="label"></div>
-                    <div class="value"></div>
-                </div>
+                                {{ $hours }} Jam {{ $minutes }} Menit
+                            </td>
+                            <td style="border: 1px solid black">{{ $item->description }}</td>
+                        </tr>
+                        @endforeach
+
+                    </tbody>
+                </table>
             </div>
 
-            <table>
-                <thead>
+            <div class="approved-by">
+                <table>
                     <tr>
-                        <th>No</th>
-                        <th>Pengujian</th>
-                        <th>Spesifikasi</th>
-                        <th>Hasil</th>
+                        <td>Pemohon, <br /></td>
+                        <td>Mengetahui, <br /></td>
+                        <td>Menyetujui, <br /></td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach ($overtime as $item)
                     <tr>
-                        <td>1</td>
-                        <td>{{ $item->tanggal_overtime}}</td>
-                        <td>
-                            Terjadi warna biru intensif pada kertas saring,
-                            warna akan memucat setelah beberapa menit
+                        <td id="identity">
+                            ...............<br />
+                            ...............
                         </td>
-                        <td>Terpenuhi</td>
+                        <td id="identity">
+                            Eko Purwito <br>
+                            Manager Teknik
+                        </td>
+                        <td id="identity">
+                            Dr.Hery Pamungkas SS, M.I.Kom <br>
+                            Direktur Operasional
+                        </td>
                     </tr>
-                    @endforeach
-
-                </tbody>
-            </table>
+                </table>
+            </div>
         </div>
 
-        <div class="approved-by">
-            <table>
-                <tr>
-                    <td>Approved by: <br /></td>
-                    <td>QA-Analyst: <br /></td>
-                </tr>
-                <tr>
-                    <td id="identity">
-                        <strong>PP</strong><br />
-                        Head Of Laboratory
-                    </td>
-                    <td id="identity">
-                        <strong>(WIDODO)</strong>
-                    </td>
-                </tr>
-            </table>
-        </div>
-    </div>
-
-    <!-- Include jsPDF and html2canvas libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <!-- Include jsPDF and html2canvas libraries -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 </body>
 
