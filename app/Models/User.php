@@ -10,6 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable //implements FilamentUser
 {
@@ -43,11 +44,6 @@ class User extends Authenticatable //implements FilamentUser
         'birth' => 'date',
     ];
 
-    // public function canAccessPanel(Panel $panel): bool
-    // {
-    //     return $this->is_admin || $this->position?->role === 'user';
-    // }
-
     public function createdUsers()
     {
         return $this->hasMany(User::class, 'created_by');
@@ -58,24 +54,33 @@ class User extends Authenticatable //implements FilamentUser
         return $this->belongsTo(Division::class);
     }
 
-    // public function position()
-    // {
-    //     return $this->belongsTo(Position::class);
-    // }
-
-    // /**
-    //  * Check if the user is a Super Admin.
-    //  */
-    // public function isSuperAdmin(): bool
-    // {
-    //     return $this->position?->role === 'super_admin';
-    // }
+    public function leaves(): HasMany
+    {
+        return $this->hasMany(Leave::class);
+    }
     
-    // /**
-    //  * Check if the user is an Admin.
-    //  */
-    // public function isAdmin(): bool
-    // {
-    //     return $this->is_admin && $this->position?->role === 'admin';
-    // }
+    public function leaveQuotas(): HasMany
+    {
+        return $this->hasMany(LeaveQuota::class);
+    }
+
+    public function getCurrentYearQuota()
+    {
+        return LeaveQuota::getUserQuota($this->id, date('Y'));
+    }
+
+    public function hasReachedMonthlyLeaveLimit($month = null, $year = null)
+    {
+        $month = $month ?? date('m');
+        $year = $year ?? date('Y');
+        
+        $leavesCount = $this->leaves()
+                    ->where('leave_type', '!=', 'maternity')
+                    ->whereMonth('from_date', $month)
+                    ->whereYear('from_date', $year)
+                    ->where('status', '!=', 'rejected')
+                    ->count();
+        
+        return $leavesCount >= 2;
+    }
 }
