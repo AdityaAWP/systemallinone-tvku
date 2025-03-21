@@ -30,8 +30,9 @@ class EditProfile extends Page
         $this->form->fill([
             'name' => $user->name,
             'email' => $user->email,
-            'no_phone' => $user->no_phone ?? '',
-            'npp' => $user->npp ?? '',
+            'phone' => $user->phone ?? '',
+            'ktp' => $user->ktp ?? '',
+            'address' => $user->address ?? '',
         ]);
     }
     protected function getHeaderWidgets(): array
@@ -50,8 +51,9 @@ class EditProfile extends Page
                 TextInput::make('email')
                     ->email()
                     ->required(),
-                TextInput::make('no_phone'),
-                TextInput::make('npp'),
+                TextInput::make('phone'),
+                TextInput::make('ktp'),
+                TextInput::make('address'),
             ])
             ->statePath('data');
     }
@@ -62,8 +64,9 @@ class EditProfile extends Page
         $user = User::find(Auth::id());
         $user->name = $data['name'];
         $user->email = $data['email'];
-        $user->no_phone = $data['no_phone'] ?? null;
-        $user->npp = $data['npp'] ?? null;
+        $user->phone = $data['phone'] ?? null;
+        $user->ktp = $data['ktp'] ?? null;
+        $user->address = $data['address'] ?? null;
         $user->save();
         
         Notification::make()

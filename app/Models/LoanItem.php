@@ -31,7 +31,7 @@ class LoanItem extends Model
     protected $casts = [
         'booking_date' => 'date',
         'return_date' => 'date',
-        'start_booking' => 'time',
+        'start_booking' => 'datetime',
     ];
 
     public function user(): BelongsTo
