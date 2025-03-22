@@ -55,7 +55,7 @@ class UserResource extends Resource
                             ->preload(),
                         Select::make('division_id')
                             ->label('Division')
-                            ->options(Division::all()->pluck('name', 'id')) 
+                            ->options(Division::all()->pluck('name', 'id'))
                             ->searchable()
                             ->preload(),
                     ])->columns(2),
@@ -98,6 +98,9 @@ class UserResource extends Resource
                 TextColumn::make('roles.name')
                     ->label('Roles')
                     ->sortable(),
+                TextColumn::make('division.name')
+                    ->label('Division')
+                    ->searchable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
