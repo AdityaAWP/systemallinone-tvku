@@ -28,17 +28,43 @@ class LeaveStatusUpdated extends Notification implements ShouldQueue
     {
         $url = route('filament.admin.resources.leaves.view', $this->leave->id);
 
+        $status = $this->translateStatus($this->leave->status);
+        $leaveType = $this->translateLeaveType($this->leave->leave_type);
+        
         $mailMessage = (new MailMessage)
-            ->subject('Leave Request Status Updated')
-            ->greeting('Hello ' . $notifiable->name)
-            ->line('Your ' . $this->leave->leave_type . ' leave request for ' . $this->leave->from_date->format('d M Y') . ' to ' . $this->leave->to_date->format('d M Y') . ' has been ' . $this->leave->status . '.');
+            ->subject('Status Permintaan Cuti: ' . $status)
+            ->greeting('Halo ' . $notifiable->name)
+            ->line('Permintaan cuti ' . $leaveType . ' Anda dari ' . $this->leave->from_date->format('d M Y') . ' sampai ' . $this->leave->to_date->format('d M Y') . ' telah ' . $status . '.');
         
         if ($this->leave->isRejected() && $this->leave->rejection_reason) {
-            $mailMessage->line('Reason for rejection: ' . $this->leave->rejection_reason);
+            $mailMessage->line('Alasan penolakan: ' . $this->leave->rejection_reason);
         }
         
         return $mailMessage
-            ->action('View Details', $url)
-            ->line('Thank you for using our leave management system.');
+            ->action('Lihat Detail', $url)
+            ->line('Terima kasih telah menggunakan sistem manajemen cuti kami.');
+    }
+    
+    private function translateStatus($status)
+    {
+        $translations = [
+            'pending' => 'Menunggu',
+            'approved' => 'Disetujui',
+            'rejected' => 'Ditolak'
+        ];
+
+        return $translations[$status] ?? $status;
+    }
+
+    private function translateLeaveType($type)
+    {
+        $translations = [
+            'casual' => 'Tahunan',
+            'medical' => 'Sakit',
+            'maternity' => 'Melahirkan',
+            'other' => 'Lainnya'
+        ];
+
+        return $translations[$type] ?? $type;
     }
 }

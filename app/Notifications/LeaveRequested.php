@@ -29,12 +29,24 @@ class LeaveRequested extends Notification implements ShouldQueue
         $url = route('filament.admin.resources.leaves.edit', $this->leave->id);
 
         return (new MailMessage)
-            ->subject('New Leave Request from ' . $this->leave->user->name)
-            ->greeting('Hello ' . $notifiable->name)
-            ->line($this->leave->user->name . ' has requested ' . $this->leave->leave_type . ' leave.')
-            ->line('From: ' . $this->leave->from_date->format('d M Y') . ' To: ' . $this->leave->to_date->format('d M Y'))
-            ->line('Reason: ' . $this->leave->reason)
-            ->action('View Request', $url)
-            ->line('Please review this request at your earliest convenience.');
+            ->subject('Permintaan Cuti Baru dari ' . $this->leave->user->name)
+            ->greeting('Halo ' . $notifiable->name)
+            ->line($this->leave->user->name . ' telah mengajukan ' . $this->leave->days . ' hari cuti ' . $this->translateLeaveType($this->leave->leave_type) . '.')
+            ->line('Dari: ' . $this->leave->from_date->format('d M Y') . ' Sampai: ' . $this->leave->to_date->format('d M Y'))
+            ->line('Alasan: ' . $this->leave->reason)
+            ->action('Tinjau Permintaan', $url)
+            ->line('Mohon tinjau permintaan ini secepatnya.');
+    }
+
+    private function translateLeaveType($type)
+    {
+        $translations = [
+            'casual' => 'Tahunan',
+            'medical' => 'Sakit',
+            'maternity' => 'Melahirkan',
+            'other' => 'Lainnya'
+        ];
+
+        return $translations[$type] ?? $type;
     }
 }

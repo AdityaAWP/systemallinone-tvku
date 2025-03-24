@@ -60,6 +60,7 @@ class EditLeave extends EditRecord
 
         // Send notification if status changed
         if ($statusChanged && $updatedRecord->status !== $originalStatus) {
+            // Send email notification to the employee
             $updatedRecord->user->notify(new LeaveStatusUpdated($updatedRecord));
             
             // If leave was rejected and was a casual leave, refund the quota
@@ -69,10 +70,13 @@ class EditLeave extends EditRecord
                 $quota->save();
             }
             
+            // Status message for UI notification
+            $statusMsg = $updatedRecord->status === 'approved' ? 'disetujui' : 'ditolak';
+            
             // Show a notification in the UI
             FilamentNotification::make()
-                ->title('Leave status updated')
-                ->body('The user has been notified of the status change.')
+                ->title('Status cuti telah diperbarui')
+                ->body("Karyawan telah diberitahu melalui email bahwa permintaan cuti telah $statusMsg.")
                 ->success()
                 ->send();
         }
