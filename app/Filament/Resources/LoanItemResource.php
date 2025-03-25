@@ -8,6 +8,7 @@ use App\Models\LoanItem;
 use Filament\Actions\ViewAction;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Split;
@@ -33,9 +34,25 @@ class LoanItemResource extends Resource
     {
         $user = Auth::user();
         $items = Item::all();
-        echo($items);
+
+        $itemsByCategory = $items->groupBy('category');
+
+        $categorySections = [];
+        foreach ($itemsByCategory as $category => $categoryItems) {
+            $categorySections[] = Section::make($category)
+                ->schema([
+                    Select::make('item_id')
+                        ->label('Pilih Item')
+                        ->options($categoryItems->pluck('name', 'id'))
+                        ->required(),
+                    TextInput::make('quantity')
+                        ->label('Jumlah')
+                ]);
+        }
+
         return $form
             ->schema([
+                // Existing user and loan information sections
                 Split::make([
                     Section::make('Keterangan Peminjaman')
                     ->schema([
@@ -71,42 +88,35 @@ class LoanItemResource extends Resource
                     ])
                 ])->columnSpan('full'),
                 Split::make([
-                    Section::make('Keterangan Peminjaman')
-                    ->schema([
-                        TextInput::make('user.name')
-                            ->default($user->name)
-                            ->label('Peminjam'),
-                        TextInput::make('program')
-                            ->label('Program'),
-                        TextInput::make('location')
-                            ->label('Lokasi'),
-                        TextInput::make('booking_date')
-                            ->label('Tanggal Booking'),
-                        TextInput::make('start_booking')
-                            ->label('Jam Booking'),
-                        TextInput::make('return_date')
-                            ->label('Tanggal Pengembalian'),
-                        TextInput::make('user.division')
-                            ->default($user->division['name'])
-                            ->label('Divisi'),
-                    ]),
-                    Section::make('Review')
-                    ->schema([
-                        TextInput::make('producer_name')
-                            ->default($items[0]->name)
-                            ->label('Nama Produser'),
-                        TextInput::make('producer_telp')
-                            ->label('Telp. Produser'),
-                        TextInput::make('crew_name')
-                            ->label('Nama Crew'),
-                        TextInput::make('crew_telp')
-                            ->label('Telp. Crew'),
-                        TextInput::make('crew_division')
-                            ->label('Divisi Crew'),
-                    ])
-                ])->columnSpan('full')
+                    ...($categorySections)
+                ])->columnSpan('full'),
+                Split::make([
+                    Section::make('Catatan')
+                        ->schema([
+                            Textarea::make('notes')
+                            ->label('')
+                            ->rows(10)
+                            ->cols(20),
+                        ]),
+                    Section::make('Approval Logistik')
+                        ->schema([
+                            TextInput::make('approver_name')
+                                ->label('Nama'),
+                            TextInput::make('approver_telp')
+                                ->label('Telp.'),
+                            Radio::make('approval_status')
+                                ->label('Status')
+                                ->options([
+                                    'Approve' => 'Approve',
+                                    'Decline' => 'Decline',
+                                    'Pending' => 'Pending',
+                                ])
+                        ])
+                ])->columnSpan('full'),
             ]);
     }
+
+
 
     public static function table(Table $table): Table
     {
