@@ -45,39 +45,44 @@ class LoanItemResource extends Resource
             $itemCount = $categoryItems->count();
             $midPoint = ceil($itemCount / 2);
     
-            $leftColumn = $categoryItems->take($midPoint)->map(function ($item) {
-                return Grid::make("left_item_{$item->id}")
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make("left_item_{$item->id}_name")
-                            ->label($item->name)
-                            ->disabled()
-                            ->default($item->name)
-                            ->columnSpan(1),
-                        TextInput::make("left_item_{$item->id}_quantity")
-                            ->label('Quantity')
-                            ->numeric()
-                            ->minValue(0)
-                            ->columnSpan(1)
-                    ]);
-            })->toArray();
-    
-            $rightColumn = $categoryItems->slice($midPoint)->map(function ($item) {
-                return Grid::make("right_item_{$item->id}")
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make("right_item_{$item->id}_name")
-                            ->label($item->name)
-                            ->disabled()
-                            ->default($item->name)
-                            ->columnSpan(1),
-                        TextInput::make("right_item_{$item->id}_quantity")
-                            ->label('Quantity')
-                            ->numeric()
-                            ->minValue(0)
-                            ->columnSpan(1)
-                    ]);
-            })->toArray();
+            // In your LoanItemResource form() method
+// Modify the left and right column item quantity fields to use proper names:
+
+$leftColumn = $categoryItems->take($midPoint)->map(function ($item) {
+    return Grid::make("left_item_{$item->id}")
+        ->columns(2)
+        ->schema([
+            TextInput::make("left_item_{$item->id}_name")
+                ->label($item->name)
+                ->disabled()
+                ->default($item->name)
+                ->columnSpan(1),
+            TextInput::make("left_item_{$item->id}_quantity")
+                ->name("left_item_{$item->id}_quantity") // Add this line
+                ->label('Quantity')
+                ->numeric()
+                ->minValue(0)
+                ->columnSpan(1)
+        ]);
+})->toArray();
+
+$rightColumn = $categoryItems->slice($midPoint)->map(function ($item) {
+    return Grid::make("right_item_{$item->id}")
+        ->columns(2)
+        ->schema([
+            TextInput::make("right_item_{$item->id}_name")
+                ->label($item->name)
+                ->disabled()
+                ->default($item->name)
+                ->columnSpan(1),
+            TextInput::make("right_item_{$item->id}_quantity")
+                ->name("right_item_{$item->id}_quantity") // Add this line
+                ->label('Quantity')
+                ->numeric()
+                ->minValue(0)
+                ->columnSpan(1)
+        ]);
+})->toArray();
     
             $categorySections[] = Section::make($category)
                 ->columns(2)
@@ -211,19 +216,12 @@ class LoanItemResource extends Resource
     {
         dd($request->all());
         $validatedData = $request->validate([
-            'location' => 'required',
-            'booking_date' => 'required|date',
-            'start_booking' => 'required',
-            // Add other validation rules
+           
         ]);
     
         // Create the loan item
         $loanItem = LoanItem::create([
-            'user_id' => auth()->id(),
-            'location' => $validatedData['location'],
-            'booking_date' => $validatedData['booking_date'],
-            'start_booking' => $validatedData['start_booking'],
-            // Add other fields
+          
         ]);
     
         // Process the items
