@@ -13,6 +13,7 @@ class LoanItem extends Model
     protected $fillable = [
         'user_id',
         'location',
+        'program',
         'booking_date',
         'start_booking',
         'return_date',
@@ -41,7 +42,7 @@ class LoanItem extends Model
 
     public function items(): BelongsToMany
     {
-        return $this->belongsToMany(Item::class, 'loan_item_equipment')
+        return $this->belongsToMany(Item::class, 'loan_item_pivot')
             ->withPivot('quantity')
             ->withTimestamps();
     }

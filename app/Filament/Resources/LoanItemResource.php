@@ -8,6 +8,7 @@ use App\Models\LoanItem;
 use Filament\Actions\ViewAction;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -18,8 +19,11 @@ use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Request;
 
 class LoanItemResource extends Resource
 {
@@ -34,25 +38,59 @@ class LoanItemResource extends Resource
     {
         $user = Auth::user();
         $items = Item::all();
-
         $itemsByCategory = $items->groupBy('category');
-
         $categorySections = [];
+    
         foreach ($itemsByCategory as $category => $categoryItems) {
+            $itemCount = $categoryItems->count();
+            $midPoint = ceil($itemCount / 2);
+    
+            $leftColumn = $categoryItems->take($midPoint)->map(function ($item) {
+                return Grid::make("left_item_{$item->id}")
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make("left_item_{$item->id}_name")
+                            ->label($item->name)
+                            ->disabled()
+                            ->default($item->name)
+                            ->columnSpan(1),
+                        TextInput::make("left_item_{$item->id}_quantity")
+                            ->label('Quantity')
+                            ->numeric()
+                            ->minValue(0)
+                            ->columnSpan(1)
+                    ]);
+            })->toArray();
+    
+            $rightColumn = $categoryItems->slice($midPoint)->map(function ($item) {
+                return Grid::make("right_item_{$item->id}")
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make("right_item_{$item->id}_name")
+                            ->label($item->name)
+                            ->disabled()
+                            ->default($item->name)
+                            ->columnSpan(1),
+                        TextInput::make("right_item_{$item->id}_quantity")
+                            ->label('Quantity')
+                            ->numeric()
+                            ->minValue(0)
+                            ->columnSpan(1)
+                    ]);
+            })->toArray();
+    
             $categorySections[] = Section::make($category)
+                ->columns(2)
                 ->schema([
-                    Select::make('item_id')
-                        ->label('Pilih Item')
-                        ->options($categoryItems->pluck('name', 'id'))
-                        ->required(),
-                    TextInput::make('quantity')
-                        ->label('Jumlah')
+                    Grid::make('left_column')
+                        ->schema($leftColumn),
+                    Grid::make('right_column')
+                        ->schema($rightColumn)
                 ]);
         }
-
+    
         return $form
             ->schema([
-                // Existing user and loan information sections
                 Split::make([
                     Section::make('Keterangan Peminjaman')
                     ->schema([
@@ -60,14 +98,16 @@ class LoanItemResource extends Resource
                             ->default($user->name)
                             ->label('Peminjam'),
                         TextInput::make('program')
+                        ->nullable()
+                        ->default('s')
                             ->label('Program'),
                         TextInput::make('location')
                             ->label('Lokasi'),
-                        TextInput::make('booking_date')
+                        DatePicker::make('booking_date')
                             ->label('Tanggal Booking'),
-                        TextInput::make('start_booking')
+                        TimePicker::make('start_booking')
                             ->label('Jam Booking'),
-                        TextInput::make('return_date')
+                        TimePicker::make('return_date')
                             ->label('Tanggal Pengembalian'),
                         TextInput::make('user.division')
                             ->default($user->division['name'])
@@ -87,9 +127,9 @@ class LoanItemResource extends Resource
                             ->label('Divisi Crew'),
                     ])
                 ])->columnSpan('full'),
-                Split::make([
-                    ...($categorySections)
-                ])->columnSpan('full'),
+                
+                Split::make($categorySections)->columnSpan('full'),
+                
                 Split::make([
                     Section::make('Catatan')
                         ->schema([
@@ -117,26 +157,28 @@ class LoanItemResource extends Resource
     }
 
 
-
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.name')
+                TextColumn::make('user.name')
                     ->label('Peminjam')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('location')
+                TextColumn::make('location')
                     ->label('Lokasi')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('booking_date')
+                TextColumn::make('booking_date')
                     ->label('Tanggal Booking')
                     ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('start_booking')
-                    ->label('Jam Booking')
-                    ->time()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('approval_status')
+                TextColumn::make('items_list')
+                    ->label('Item')
+                    ->getStateUsing(function ($record) {
+                        return $record->items->map(function ($item) {
+                            return "{$item->name} (Qty: {$item->pivot->quantity})";
+                        })->implode(', ');
+                    }),
+                TextColumn::make('approval_status')
                     ->label('Status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -144,20 +186,13 @@ class LoanItemResource extends Resource
                         'Decline' => 'danger',
                         'Pending' => 'warning',
                     }),
-                Tables\Columns\TextColumn::make('return_status')
-                    ->label('Pengembalian')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'Sudah Dikembalikan' => 'success',
-                        'Belum Dikembalikan' => 'warning',
-                    }),
             ])
             ->filters([
                 //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -172,7 +207,36 @@ class LoanItemResource extends Resource
             //
         ];
     }
-
+    public static function createRecord(Request $request)
+    {
+        dd($request->all());
+        $validatedData = $request->validate([
+            'location' => 'required',
+            'booking_date' => 'required|date',
+            'start_booking' => 'required',
+            // Add other validation rules
+        ]);
+    
+        // Create the loan item
+        $loanItem = LoanItem::create([
+            'user_id' => auth()->id(),
+            'location' => $validatedData['location'],
+            'booking_date' => $validatedData['booking_date'],
+            'start_booking' => $validatedData['start_booking'],
+            // Add other fields
+        ]);
+    
+        // Process the items
+        $itemsData = $request->except(array_keys($validatedData));
+        foreach ($itemsData as $key => $value) {
+            if (str_contains($key, '_quantity') && $value > 0) {
+                $itemId = str_replace(['left_item_', 'right_item_', '_quantity'], '', $key);
+                $loanItem->items()->attach($itemId, ['quantity' => $value]);
+            }
+        }
+    
+        return redirect()->route('filament.resources.loan-items.index');
+    }
     public static function getPages(): array
     {
         return [

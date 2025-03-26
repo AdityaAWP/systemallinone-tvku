@@ -14,5 +14,5 @@ class CreateLoanItem extends CreateRecord
     {
         return [...$data, 'user_id' => Auth::id()];
     }
-
+    
 }
