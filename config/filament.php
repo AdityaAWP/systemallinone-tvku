@@ -86,4 +86,9 @@ return [
 
     'livewire_loading_delay' => 'default',
 
+    'notifications' => [
+        'enabled' => true,
+    ],
+
+
 ];

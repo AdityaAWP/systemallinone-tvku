@@ -9,6 +9,7 @@
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^2.1",
         "bezhansalleh/filament-shield": "3.2.6",
+        "filament/actions": "^3.3",
         "filament/filament": "^3.2",
         "filament/notifications": "^3.3",
         "husam-tariq/filament-timepicker": "^3.0",

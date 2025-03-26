@@ -15,9 +15,9 @@ class ShieldSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Create roles
-        $hrdRole = Role::create(['name' => 'HRD']);
-        $managerRole = Role::create(['name' => 'Manager']);
-        $staffRole = Role::create(['name' => 'Staff']);
+        $hrdRole = Role::create(['name' => 'hrd']);
+        $managerRole = Role::create(['name' => 'manager']);
+        $staffRole = Role::create(['name' => 'staff']);
 
         // Create permissions for Leave management
         $leavePermissions = [
@@ -32,10 +32,10 @@ class ShieldSeeder extends Seeder
         ];
 
         foreach ($leavePermissions as $permission => $roles) {
-            $permission = Permission::create(['name' => $permission]);
+            $permissionModel = Permission::firstOrCreate(['name' => $permission]);
             
             foreach ($roles as $roleName) {
-                Role::findByName($roleName)->givePermissionTo($permission);
+                Role::findByName($roleName)->givePermissionTo($permissionModel);
             }
         }
 
