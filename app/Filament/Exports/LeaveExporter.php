@@ -57,6 +57,9 @@ class LeaveExporter extends Exporter
         } elseif ($user->hasRole('manager')) {
             $teamUserIds = $user->getTeamUserIds();
             $query->whereIn('user_id', $teamUserIds);
+        } elseif (!$user->hasRole('hrd')) {
+            // If not HRD, return empty query
+            $query->whereRaw('1 = 0');
         }
 
         return $query;

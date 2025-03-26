@@ -26,6 +26,7 @@ class LeaveResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
     protected static ?string $navigationLabel = 'Leave';
     protected static ?string $title = 'Leave';
+    
     protected function getHeaderWidgets(): array
     {
         return [
@@ -123,13 +124,13 @@ class LeaveResource extends Resource
                         Forms\Components\Toggle::make('approval_manager')
                             ->label('Manager Approval')
                             ->helperText('Approve or reject this leave request')
-                            ->visible(fn() => $user->hasRole('manager') && !$isCreating) // Pastikan role menggunakan huruf kecil
+                            ->visible(fn() => $user->hasRole('manager') && !$isCreating)
                             ->reactive(),
 
                         Forms\Components\Toggle::make('approval_hrd')
                             ->label('HRD Approval')
                             ->helperText('Approve or reject this leave request')
-                            ->visible(fn() => $user->hasRole('hrd') && !$isCreating) // Pastikan role menggunakan huruf kecil
+                            ->visible(fn() => $user->hasRole('hrd') && !$isCreating)
                             ->reactive(),
 
                         Forms\Components\Textarea::make('rejection_reason')
@@ -186,8 +187,10 @@ class LeaveResource extends Resource
 
         return $table
             ->headerActions([
+                // Only show export for HRD
                 ExportAction::make()
-                ->exporter(LeaveExporter::class),
+                    ->exporter(LeaveExporter::class)
+                    ->visible(fn() => $user->hasRole('hrd')),
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
@@ -294,14 +297,13 @@ class LeaveResource extends Resource
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn() => auth()->user()->hasRole('hrd')),
 
-                    // Aksi ekspor menggunakan Filament
+                    // Modify bulk export to only be visible for HRD
                     Tables\Actions\ExportAction::make()
                         ->exporter(LeaveExporter::class)
                         ->label('Ekspor')
                         ->color('success')
                         ->icon('heroicon-o-document-download')
-                        // Hanya tampilkan untuk HRD, Manajer, dan Staff
-                        ->visible(fn() => auth()->user()->hasAnyRole(['hrd', 'manager', 'staff'])),
+                        ->visible(fn() => auth()->user()->hasRole('hrd')),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
@@ -327,7 +329,7 @@ class LeaveResource extends Resource
     {
         $user = Auth::user();
 
-        if ($user->hasRole('staff')) { // Pastikan role menggunakan huruf kecil
+        if ($user->hasRole('staff')) {
             return parent::getEloquentQuery()->where('user_id', $user->id);
         }
 
