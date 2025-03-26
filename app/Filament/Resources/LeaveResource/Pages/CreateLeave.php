@@ -59,7 +59,7 @@ class CreateLeave extends CreateRecord
         if ($specificTypeLeavesThisMonth >= 2) {
             $leaveTypeName = $this->getLeaveTypeName($leaveType);
             FilamentNotification::make()
-                ->title("Batas Cuti {$leaveTypeName} Bulanan Tercapai")
+                ->title("Batas Cuti Bulanan Tercapai")
                 ->body("Anda sudah mengambil 2 cuti {$leaveTypeName} di bulan ini. Anda tidak dapat mengambil cuti {$leaveTypeName} lagi bulan ini.")
                 ->danger()
                 ->persistent()

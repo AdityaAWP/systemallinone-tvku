@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\LeaveResource\Pages;
+use App\Filament\Widgets\LeaveStatsWidget;
 use App\Models\Leave;
 use App\Models\LeaveQuota;
 use App\Models\User;
@@ -23,7 +24,12 @@ class LeaveResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
     protected static ?string $navigationLabel = 'Leave';
     protected static ?string $title = 'Leave';
-    protected static ?string $label = 'Leave';
+    protected function getHeaderWidgets(): array
+{
+    return [
+        LeaveStatsWidget::class,
+    ];
+}
 
     public static function form(Form $form): Form
     {
