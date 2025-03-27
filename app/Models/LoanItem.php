@@ -46,4 +46,48 @@ class LoanItem extends Model
             ->withPivot('quantity')
             ->withTimestamps();
     }
+    
+    // Add this method to handle stock changes when loan is approved
+    public function processStockChanges($oldStatus, $newStatus)
+    {
+        if ($oldStatus === $newStatus) {
+            return;
+        }
+        
+        // If status changed to Approve, decrease stock
+        if ($newStatus === 'Approve' && $oldStatus !== 'Approve') {
+            foreach ($this->items as $item) {
+                $item->decreaseStock($item->pivot->quantity);
+            }
+        }
+        
+        // If status changed from Approve to something else, restore stock
+        if ($oldStatus === 'Approve' && $newStatus !== 'Approve') {
+            foreach ($this->items as $item) {
+                $item->increaseStock($item->pivot->quantity);
+            }
+        }
+    }
+    
+    // Add this method to handle return status changes
+    public function processReturnStatusChanges($oldStatus, $newStatus)
+    {
+        if ($oldStatus === $newStatus) {
+            return;
+        }
+        
+        // If status changed to "Sudah Dikembalikan", increase stock
+        if ($newStatus === 'Sudah Dikembalikan' && $oldStatus !== 'Sudah Dikembalikan') {
+            foreach ($this->items as $item) {
+                $item->increaseStock($item->pivot->quantity);
+            }
+        }
+        
+        // If status changed from "Sudah Dikembalikan" to "Belum Dikembalikan", decrease stock
+        if ($oldStatus === 'Sudah Dikembalikan' && $newStatus === 'Belum Dikembalikan') {
+            foreach ($this->items as $item) {
+                $item->decreaseStock($item->pivot->quantity);
+            }
+        }
+    }
 }

@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Exports\LoanItemExporter;
 use App\Filament\Resources\LoanItemResource\Pages;
 use App\Models\Item;
 use App\Models\LoanItem;
+use Filament\Actions\ExportAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
@@ -19,10 +21,12 @@ use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
+
 use Illuminate\Support\Facades\Request;
 
 class LoanItemResource extends Resource
@@ -30,8 +34,6 @@ class LoanItemResource extends Resource
     protected static ?string $model = LoanItem::class;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'Peminjaman';
-
-
     
 
     public static function form(Form $form): Form
@@ -44,45 +46,50 @@ class LoanItemResource extends Resource
         foreach ($itemsByCategory as $category => $categoryItems) {
             $itemCount = $categoryItems->count();
             $midPoint = ceil($itemCount / 2);
-    
-            // In your LoanItemResource form() method
-// Modify the left and right column item quantity fields to use proper names:
 
-$leftColumn = $categoryItems->take($midPoint)->map(function ($item) {
-    return Grid::make("left_item_{$item->id}")
-        ->columns(2)
-        ->schema([
-            TextInput::make("left_item_{$item->id}_name")
-                ->label($item->name)
-                ->disabled()
-                ->default($item->name)
-                ->columnSpan(1),
-            TextInput::make("left_item_{$item->id}_quantity")
-                ->name("left_item_{$item->id}_quantity") // Add this line
-                ->label('Quantity')
-                ->numeric()
-                ->minValue(0)
-                ->columnSpan(1)
-        ]);
-})->toArray();
+            $leftColumn = $categoryItems->take($midPoint)->map(function ($item) {
+                return Grid::make("left_item_{$item->id}")
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make("left_item_{$item->id}_name")
+                            ->label($item->name)
+                            ->disabled()
+                            ->default($item->name)
+                            ->columnSpan(1),
+                        TextInput::make("left_item_{$item->id}_quantity")
+                            ->name("left_item_{$item->id}_quantity") // Add this line
+                            ->label('Quantity')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(function () use ($item) {
+                                return $item->stock; 
+                            })
+                            ->reactive()
+                            ->columnSpan(1)
+                    ]);
+            })->toArray();
 
-$rightColumn = $categoryItems->slice($midPoint)->map(function ($item) {
-    return Grid::make("right_item_{$item->id}")
-        ->columns(2)
-        ->schema([
-            TextInput::make("right_item_{$item->id}_name")
-                ->label($item->name)
-                ->disabled()
-                ->default($item->name)
-                ->columnSpan(1),
-            TextInput::make("right_item_{$item->id}_quantity")
-                ->name("right_item_{$item->id}_quantity") // Add this line
-                ->label('Quantity')
-                ->numeric()
-                ->minValue(0)
-                ->columnSpan(1)
-        ]);
-})->toArray();
+            $rightColumn = $categoryItems->slice($midPoint)->map(function ($item) {
+                return Grid::make("right_item_{$item->id}")
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make("right_item_{$item->id}_name")
+                            ->label($item->name)
+                            ->disabled()
+                            ->default($item->name)
+                            ->columnSpan(1),
+                        TextInput::make("right_item_{$item->id}_quantity")
+                            ->name("right_item_{$item->id}_quantity") // Add this line
+                            ->label('Quantity')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(function () use ($item) {
+                                return $item->stock; 
+                            })
+                            ->reactive()
+                            ->columnSpan(1)
+                    ]);
+            })->toArray();
     
             $categorySections[] = Section::make($category)
                 ->columns(2)
@@ -101,34 +108,45 @@ $rightColumn = $categoryItems->slice($midPoint)->map(function ($item) {
                     ->schema([
                         TextInput::make('user.name')
                             ->default($user->name)
+                            ->required()
                             ->label('Peminjam'),
                         TextInput::make('program')
-                        ->nullable()
-                        ->default('s')
+                            ->required()
                             ->label('Program'),
                         TextInput::make('location')
+                            ->required()
                             ->label('Lokasi'),
                         DatePicker::make('booking_date')
+                            ->required()
                             ->label('Tanggal Booking'),
                         TimePicker::make('start_booking')
+                            ->required()
+                            ->seconds(false)
                             ->label('Jam Booking'),
-                        TimePicker::make('return_date')
+                        DatePicker::make('return_date')
+                            ->required()
                             ->label('Tanggal Pengembalian'),
                         TextInput::make('user.division')
+                            ->required()
                             ->default($user->division['name'])
                             ->label('Divisi'),
                     ]),
                     Section::make('Review')
                     ->schema([
                         TextInput::make('producer_name')
+                            ->required()
                             ->label('Nama Produser'),
                         TextInput::make('producer_telp')
+                            ->required()
                             ->label('Telp. Produser'),
                         TextInput::make('crew_name')
+                            ->required()
                             ->label('Nama Crew'),
                         TextInput::make('crew_telp')
+                            ->required()
                             ->label('Telp. Crew'),
                         TextInput::make('crew_division')
+                            ->required()
                             ->label('Divisi Crew'),
                     ])
                 ])->columnSpan('full'),
@@ -146,15 +164,25 @@ $rightColumn = $categoryItems->slice($midPoint)->map(function ($item) {
                     Section::make('Approval Logistik')
                         ->schema([
                             TextInput::make('approver_name')
+                                ->required()
                                 ->label('Nama'),
                             TextInput::make('approver_telp')
+                                ->required()
                                 ->label('Telp.'),
                             Radio::make('approval_status')
-                                ->label('Status')
+                                ->required()
+                                ->label('Approval')
                                 ->options([
                                     'Approve' => 'Approve',
                                     'Decline' => 'Decline',
                                     'Pending' => 'Pending',
+                                ]),
+                            Radio::make('return_status')
+                                ->label('Status Pengembalian')
+                                ->required()
+                                ->options([
+                                    'Sudah Dikembalikan' => 'Sudah Dikembalikan',
+                                    'Belum Dikembalikan' => 'Belum Dikembalikan',
                                 ])
                         ])
                 ])->columnSpan('full'),
@@ -184,12 +212,19 @@ $rightColumn = $categoryItems->slice($midPoint)->map(function ($item) {
                         })->implode(', ');
                     }),
                 TextColumn::make('approval_status')
-                    ->label('Status')
+                    ->label('Approval')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'Approve' => 'success',
                         'Decline' => 'danger',
                         'Pending' => 'warning',
+                    }),
+                TextColumn::make('return_status')
+                    ->label('Status Pengembalian')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'Sudah Dikembalikan' => 'success',
+                        'Belum Dikembalikan' => 'warning',
                     }),
             ])
             ->filters([
@@ -202,6 +237,8 @@ $rightColumn = $categoryItems->slice($midPoint)->map(function ($item) {
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make()
+                        ->exporter(LoanItemExporter::class)
                 ]),
             ]);
     }
