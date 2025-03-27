@@ -21,6 +21,7 @@ use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Actions\ExportAction;
+use Illuminate\Database\Eloquent\Builder;
 
 class DailyReportResource extends Resource
 {
@@ -28,6 +29,11 @@ class DailyReportResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-chart-pie';
     protected static ?string $navigationGroup = 'Main Menu';
     protected static ?int $navigationSort = 1;
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where('user_id', auth()->id());
+    }
+
     public static function form(Form $form): Form
     {
         return $form

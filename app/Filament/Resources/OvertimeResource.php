@@ -20,13 +20,19 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Facades\Blade;
-
+use Illuminate\Database\Eloquent\Builder;
 class OvertimeResource extends Resource
 {
     protected static ?string $model = Overtime::class;
     protected static ?string $navigationIcon = 'heroicon-o-clock';
     protected static ?string $navigationGroup = 'Main Menu';
     protected static ?int $navigationSort = 1;
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where('user_id', auth()->id());
+    }
+
+
     public static function form(Form $form): Form
     {
         return $form

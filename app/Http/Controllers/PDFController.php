@@ -21,10 +21,14 @@ class PDFController extends Controller
         return $pdf->download('laporan-lembur.pdf');
     }
     public function userpdf($id) {
-        $overtime = Overtime::with('user')->where('id', $id)->get();
-        if($overtime->isEmpty()) {
-            return redirect()->back()->with('error', 'Record not found');
-        }
+        $overtime = Overtime::with('user')
+                ->where('id', $id)
+                ->where('user_id', Auth::user()->id)
+                ->get();
+    
+    if($overtime->isEmpty()) {
+        return redirect()->back()->with('error', 'Record not found or unauthorized access');
+    }
         
         $data = [
             'title' => 'Laporan Lembur Individual',
