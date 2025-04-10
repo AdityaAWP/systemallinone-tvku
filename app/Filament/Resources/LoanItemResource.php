@@ -35,7 +35,6 @@ class LoanItemResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'Peminjaman';
     
-
     public static function form(Form $form): Form
     {
         $user = Auth::user();
@@ -57,7 +56,7 @@ class LoanItemResource extends Resource
                             ->default($item->name)
                             ->columnSpan(1),
                         TextInput::make("left_item_{$item->id}_quantity")
-                            ->name("left_item_{$item->id}_quantity") // Add this line
+                            ->name("left_item_{$item->id}_quantity")
                             ->label('Quantity')
                             ->numeric()
                             ->minValue(0)
@@ -128,7 +127,9 @@ class LoanItemResource extends Resource
                             ->label('Tanggal Pengembalian'),
                         TextInput::make('user.division')
                             ->required()
-                            ->default($user->division['name'])
+                            ->default(function () use ($user) { 
+                                return $user?->division['name'] ?? '';
+                            })
                             ->label('Divisi'),
                     ]),
                     Section::make('Review')
