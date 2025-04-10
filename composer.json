@@ -17,6 +17,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "*",
         "laravel/tinker": "^2.9",
+        "laravel/ui": "^4.6",
         "saade/filament-fullcalendar": "^3.0",
         "spatie/laravel-permission": "^6.16"
     },
