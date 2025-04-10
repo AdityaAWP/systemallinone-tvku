@@ -5,6 +5,7 @@ namespace App\Filament\Resources\LeaveResource\Pages;
 use App\Filament\Resources\LeaveResource;
 use Filament\Actions;
 use App\Filament\Widgets\LeaveStatsWidget;
+use App\Filament\Widgets\ManagerLeaveReminderWidget;
 use Filament\Resources\Pages\ListRecords;
 
 class ListLeave extends ListRecords
@@ -14,6 +15,7 @@ class ListLeave extends ListRecords
     {
         return [
             LeaveStatsWidget::class,
+            ManagerLeaveReminderWidget::class,
         ];
     }
 

@@ -13,7 +13,7 @@ class SuperAdminSeeder extends Seeder
     {
         User::create([
             'name' => 'Super Admin',
-            'email' => 'admin1@example.com',
+            'email' => 'admin@example.com',
             'password' => Hash::make('password'),
             'gender' => 'Laki-laki',
             'phone' => '081234567890',

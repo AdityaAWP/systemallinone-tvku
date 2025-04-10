@@ -23,9 +23,8 @@ class ManagerLeaveReminderWidget extends Widget
             return collect();
         }
         
-        // Get staff who have this manager as their manager or in same division
-        $staffIds = User::where('manager_id', $manager->id)
-            ->orWhere('division_id', $manager->division_id)
+        // Get staff in the same division as the manager
+        $staffIds = User::where('division_id', $manager->division_id)
             ->pluck('id')
             ->toArray();
         
@@ -78,5 +77,10 @@ class ManagerLeaveReminderWidget extends Widget
     public static function canView(): bool
     {
         return Auth::user()->hasRole('manager');
+    }
+
+    public static function getSort(): int
+    {
+        return 2; // Ensures this widget is at the top
     }
 }

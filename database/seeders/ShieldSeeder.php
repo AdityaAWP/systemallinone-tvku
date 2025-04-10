@@ -39,10 +39,10 @@ class ShieldSeeder extends Seeder
             }
         }
 
-        // Create test users
-        $this->createUser('HRD User', 'hrd@example.com', 'password', $hrdRole);
-        $this->createUser('Manager User', 'manager@example.com', 'password', $managerRole);
-        $this->createUser('Staff User', 'staff@example.com', 'password', $staffRole);
+        // // Create test users
+        // $this->createUser('HRD User', 'hrd@example.com', 'password', $hrdRole);
+        // $this->createUser('Manager User', 'manager@example.com', 'password', $managerRole);
+        // $this->createUser('Staff User', 'staff@example.com', 'password', $staffRole);
     }
 
     private function createUser($name, $email, $password, $role)

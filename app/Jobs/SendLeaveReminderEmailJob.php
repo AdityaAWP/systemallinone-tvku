@@ -25,9 +25,8 @@ class SendLeaveReminderEmailJob implements ShouldQueue
 
     public function handle()
     {
-        // Get staff members under this manager
-        $staffIds = User::where('manager_id', $this->manager->id)
-            ->orWhere('division_id', $this->manager->division_id)
+        // Get staff members in the same division as the manager
+        $staffIds = User::where('division_id', $this->manager->division_id)
             ->pluck('id')
             ->toArray();
         
