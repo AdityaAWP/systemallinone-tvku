@@ -22,6 +22,7 @@ class LoanItem extends Model
         'crew_name',
         'crew_telp',
         'crew_division',
+        'approval_admin_logistics',
         'approver_name',
         'approver_telp',
         'approval_status',
@@ -33,6 +34,7 @@ class LoanItem extends Model
         'booking_date' => 'date',
         'return_date' => 'date',
         'start_booking' => 'datetime',
+        'approval_admin_logistics' => 'boolean',
     ];
 
     public function user(): BelongsTo
@@ -47,21 +49,18 @@ class LoanItem extends Model
             ->withTimestamps();
     }
     
-    // Add this method to handle stock changes when loan is approved
     public function processStockChanges($oldStatus, $newStatus)
     {
         if ($oldStatus === $newStatus) {
             return;
         }
         
-        // If status changed to Approve, decrease stock
         if ($newStatus === 'Approve' && $oldStatus !== 'Approve') {
             foreach ($this->items as $item) {
                 $item->decreaseStock($item->pivot->quantity);
             }
         }
         
-        // If status changed from Approve to something else, restore stock
         if ($oldStatus === 'Approve' && $newStatus !== 'Approve') {
             foreach ($this->items as $item) {
                 $item->increaseStock($item->pivot->quantity);
@@ -69,25 +68,33 @@ class LoanItem extends Model
         }
     }
     
-    // Add this method to handle return status changes
     public function processReturnStatusChanges($oldStatus, $newStatus)
     {
         if ($oldStatus === $newStatus) {
             return;
         }
         
-        // If status changed to "Sudah Dikembalikan", increase stock
         if ($newStatus === 'Sudah Dikembalikan' && $oldStatus !== 'Sudah Dikembalikan') {
             foreach ($this->items as $item) {
                 $item->increaseStock($item->pivot->quantity);
             }
         }
         
-        // If status changed from "Sudah Dikembalikan" to "Belum Dikembalikan", decrease stock
         if ($oldStatus === 'Sudah Dikembalikan' && $newStatus === 'Belum Dikembalikan') {
             foreach ($this->items as $item) {
                 $item->decreaseStock($item->pivot->quantity);
             }
+        }
+    }
+    
+    public function notifyLogisticsAdmin()
+    {
+        $logisticsAdmins = User::whereHas('roles', function($query) {
+            $query->where('name', 'admin_logistics');
+        })->get();
+        
+        foreach ($logisticsAdmins as $admin) {
+            $admin->notify(new \App\Notifications\LoanItemRequiresLogisticsApproval($this));
         }
     }
 }

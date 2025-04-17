@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Leave;
 use App\Models\LeaveQuota;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -11,7 +12,12 @@ use Illuminate\Support\Facades\Auth;
 
 class LeaveStatsWidget extends BaseWidget
 {
+
+
+    protected static ?string $title = 'Leave Statistics';
     protected static ?int $sort = 1;
+    use HasWidgetShield;
+
 
     public function getStats(): array
     {
@@ -56,12 +62,14 @@ class LeaveStatsWidget extends BaseWidget
 
     public static function canView(): bool
     {
+        // Keep your existing visibility logic
         $currentRoute = request()->route()?->getName();
-        return $currentRoute && str_contains($currentRoute, 'leave'); // Show only in "Leave" related routes
+        return $currentRoute && str_contains($currentRoute, 'leave');
     }
 
     public static function getSort(): int
     {
         return 1; // Ensures this widget is at the top
     }
+    
 }

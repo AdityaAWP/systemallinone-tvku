@@ -5,9 +5,11 @@ namespace App\Filament\Widgets;
 use Filament\Widgets\StatsOverviewWidget as Widget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class UserStatsWidget extends Widget
 {
+    use HasWidgetShield;
     protected function getStats(): array
     {
         $user = Auth::user();

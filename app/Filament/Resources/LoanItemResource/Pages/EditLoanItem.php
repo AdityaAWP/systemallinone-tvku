@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Filament\Resources\LoanItemResource\Pages;
-
 use App\Filament\Resources\LoanItemResource;
 use App\Models\Item;
 use Filament\Actions;
@@ -11,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 class EditLoanItem extends EditRecord
 {
     protected static string $resource = LoanItemResource::class;
-
+    
     protected function getHeaderActions(): array
     {
         return [
@@ -23,28 +21,19 @@ class EditLoanItem extends EditRecord
     {
         $loanItem = $this->getRecord()->load('user', 'items');
         
+        // Set user fields
         $data['user']['name'] = $loanItem->user->name;
         $data['user']['division'] = $loanItem->user->division['name'] ?? '';
         
+        // Set item quantities based on actual field names in your form
         $allItems = Item::all();
-        $itemsByCategory = $allItems->groupBy('category');
         
-        foreach ($itemsByCategory as $category => $categoryItems) {
-            $itemCount = $categoryItems->count();
-            $midPoint = ceil($itemCount / 2);
+        foreach ($allItems as $item) {
+            // Find if this item exists in the loan and get its quantity
+            $quantity = $loanItem->items->firstWhere('id', $item->id)?->pivot->quantity ?? 0;
             
-            $leftItems = $categoryItems->take($midPoint);
-            $rightItems = $categoryItems->slice($midPoint);
-            
-            foreach ($leftItems as $item) {
-                $quantity = $loanItem->items->firstWhere('id', $item->id)?->pivot->quantity ?? 0;
-                $data["left_item_{$item->id}_quantity"] = $quantity;
-            }
-            
-            foreach ($rightItems as $item) {
-                $quantity = $loanItem->items->firstWhere('id', $item->id)?->pivot->quantity ?? 0;
-                $data["right_item_{$item->id}_quantity"] = $quantity;
-            }
+            // Set the quantity using the format that matches your form fields
+            $data["item_{$item->id}_quantity"] = $quantity;
         }
         
         return $data;
@@ -53,12 +42,20 @@ class EditLoanItem extends EditRecord
     protected function beforeSave(): void
     {
         $oldLoanItem = $this->getRecord()->load('items');
-        $oldApprovalStatus = $oldLoanItem->approval_status;
+        $oldApprovalStatus = $oldLoanItem->approval_admin_logistics;
         $oldReturnStatus = $oldLoanItem->return_status;
         
         // Process approval status changes
-        if ($oldApprovalStatus !== $this->data['approval_status']) {
-            $this->getRecord()->processStockChanges($oldApprovalStatus, $this->data['approval_status']);
+        if ($oldApprovalStatus !== $this->data['approval_admin_logistics']) {
+            if ($this->data['approval_admin_logistics']) {
+                foreach ($this->record->items as $item) {
+                    $item->decreaseStock($item->pivot->quantity);
+                }
+            } else {
+                foreach ($this->record->items as $item) {
+                    $item->increaseStock($item->pivot->quantity);
+                }
+            }
         }
         
         // Process return status changes
@@ -71,8 +68,8 @@ class EditLoanItem extends EditRecord
     {
         $items = [];
         foreach ($this->data as $key => $value) {
-            if (str_contains($key, '_quantity') && $value > 0) {
-                $itemId = str_replace(['left_item_', 'right_item_', '_quantity'], '', $key);
+            if (preg_match('/item_(\d+)_quantity/', $key, $matches) && $value > 0) {
+                $itemId = $matches[1];
                 $items[$itemId] = ['quantity' => $value];
             }
         }

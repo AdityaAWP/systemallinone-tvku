@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Filament\Resources\LoanItemResource\Pages;
-
 use App\Filament\Resources\LoanItemResource;
 use App\Models\Item;
 use Filament\Actions;
@@ -21,28 +19,25 @@ class CreateLoanItem extends CreateRecord
     {
         $items = [];
         foreach ($this->data as $key => $value) {
-            if (str_contains($key, '_quantity') && $value > 0) {
-                $itemId = str_replace(['left_item_', 'right_item_', '_quantity'], '', $key);
-                
-                // Get the item
+            if (preg_match('/item_(\d+)_quantity/', $key, $matches) && $value > 0) {
+                $itemId = $matches[1];
                 $item = Item::find($itemId);
-                
-                // Validate stock
+                if (!$item) {
+                    continue;
+                }
                 if (!$item->hasStock($value)) {
                     throw new \Exception("Not enough stock for {$item->name}");
                 }
-                
                 $items[$itemId] = ['quantity' => $value];
             }
         }
-
-        $this->record->items()->sync($items);
         
-        // If approval status is Approve, decrease stock
-        if ($this->record->approval_status === 'Approve') {
-            foreach ($this->record->items as $item) {
-                $item->decreaseStock($item->pivot->quantity);
-            }
+        // Only sync items if we found valid ones
+        if (!empty($items)) {
+            $this->record->items()->sync($items);
         }
+        
+        // Notify logistics admin
+        $this->record->notifyLogisticsAdmin();
     }
 }
