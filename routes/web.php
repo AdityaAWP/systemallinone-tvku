@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\PDFController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LetterAttachmentController;
 
 Route::get('/', function () {
     return redirect()->route('filament.admin.pages.dashboard');
@@ -36,3 +37,11 @@ Route::get('/leave/approve/{leave}/{user}', [App\Http\Controllers\LeaveActionCon
 Route::get('/leave/reject/{leave}/{user}', [App\Http\Controllers\LeaveActionController::class, 'reject'])
     ->name('leave.reject')
     ->middleware('signed');
+
+Route::get('/attachment/{attachment}/download', [LetterAttachmentController::class, 'download'])
+    ->middleware(['auth'])
+    ->name('attachment.download');
+    
+Route::delete('/attachment/{attachment}/delete', [LetterAttachmentController::class, 'delete'])
+    ->middleware(['auth'])
+    ->name('attachment.delete');
