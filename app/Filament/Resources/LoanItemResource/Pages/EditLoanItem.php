@@ -1,5 +1,6 @@
 <?php
 namespace App\Filament\Resources\LoanItemResource\Pages;
+
 use App\Filament\Resources\LoanItemResource;
 use App\Models\Item;
 use Filament\Actions;
@@ -13,8 +14,20 @@ class EditLoanItem extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->visible(fn () => Auth::user()->hasRole(['admin_logistics', 'super_admin'])),
         ];
+    }
+    
+    // Check access before editing
+    protected function canEdit(): bool
+    {
+        $user = Auth::user();
+        $record = $this->getRecord();
+        
+        // Allow edit if user is admin_logistics, super_admin, or the owner
+        return $user->hasRole(['admin_logistics', 'super_admin']) || 
+               $record->user_id === $user->id;
     }
     
     protected function mutateFormDataBeforeFill(array $data): array
@@ -23,15 +36,15 @@ class EditLoanItem extends EditRecord
         
         // Set user fields
         $data['user']['name'] = $loanItem->user->name;
-        $data['user']['division'] = $loanItem->user->division['name'] ?? '';
+        
+        // Set division value directly from the loan item
+        // We don't need to retrieve it from user->division anymore
         
         // Set item quantities based on actual field names in your form
         $allItems = Item::all();
-        
         foreach ($allItems as $item) {
             // Find if this item exists in the loan and get its quantity
             $quantity = $loanItem->items->firstWhere('id', $item->id)?->pivot->quantity ?? 0;
-            
             // Set the quantity using the format that matches your form fields
             $data["item_{$item->id}_quantity"] = $quantity;
         }

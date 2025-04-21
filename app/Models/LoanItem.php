@@ -14,6 +14,7 @@ class LoanItem extends Model
         'user_id',
         'location',
         'program',
+        'division',
         'booking_date',
         'start_booking',
         'return_date',

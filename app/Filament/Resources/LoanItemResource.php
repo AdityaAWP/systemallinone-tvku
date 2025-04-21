@@ -29,7 +29,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
-
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Request;
 
 class LoanItemResource extends Resource
@@ -110,11 +110,16 @@ class LoanItemResource extends Resource
                         DatePicker::make('return_date')
                             ->required()
                             ->label('Tanggal Pengembalian'),
-                        TextInput::make('user.division')
+                        // Replace TextInput with Select for division
+                        Select::make('division')
+                            ->options([
+                                'produksi' => 'Produksi',
+                                'news' => 'News',
+                                'studio' => 'Studio',
+                                'marketing' => 'Marketing',
+                                'lain-lain' => 'Lain-lain',
+                            ])
                             ->required()
-                            ->default(function () use ($user) { 
-                                return $user?->division['name'] ?? '';
-                            })
                             ->label('Divisi'),
                     ]),
                     Section::make('Review')
@@ -198,7 +203,10 @@ class LoanItemResource extends Resource
                             return "{$item->name} (Qty: {$item->pivot->quantity})";
                         })->implode(', ');
                     }),
-                    TextColumn::make('approval_admin_logistics')
+                TextColumn::make('division')
+                    ->label('Divisi')
+                    ->searchable(),
+                TextColumn::make('approval_admin_logistics')
                     ->label('Logistics Approval')
                     ->formatStateUsing(fn ($state) => $state ? 'Approved' : 'Pending')
                     ->color(fn ($state) => $state ? 'success' : 'warning'),
@@ -214,18 +222,27 @@ class LoanItemResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(function ($record) {
+                        $user = Auth::user();
+                        // Allow edit if user is admin_logistics, super_admin, or the owner
+                        return $user->hasRole(['admin_logistics', 'super_admin']) || 
+                               $record->user_id === $user->id;
+                    }),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\DeleteAction::make()
+                    ->visible(fn ($record) => Auth::user()->hasRole(['admin_logistics', 'super_admin'])),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => Auth::user()->hasRole(['admin_logistics', 'super_admin'])),
                     ExportBulkAction::make()
                         ->exporter(LoanItemExporter::class)
                 ]),
             ]);
     }
+    
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist
@@ -247,7 +264,7 @@ class LoanItemResource extends Resource
                         TextEntry::make('return_date')
                             ->date()
                             ->label('Tanggal Pengembalian'),
-                        TextEntry::make('user.division')
+                        TextEntry::make('division')
                             ->label('Divisi'),
                     ])->columns(2),
                 ComponentsSection::make('Review')
@@ -301,9 +318,18 @@ class LoanItemResource extends Resource
             ]);
     }
 
-
-
-    // ... rest of the resource code remains the same
+    // Filter records to only show user's own loans unless they have special permissions
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        // If user is not admin_logistics or super_admin, only show their own loans
+        if (!Auth::user()->hasRole(['admin_logistics', 'super_admin'])) {
+            $query->where('user_id', Auth::id());
+        }
+        
+        return $query;
+    }
 
     public static function getRelations(): array
     {
@@ -311,29 +337,7 @@ class LoanItemResource extends Resource
             //
         ];
     }
-    public static function createRecord(Request $request)
-    {
-        dd($request->all());
-        $validatedData = $request->validate([
-           
-        ]);
     
-        // Create the loan item
-        $loanItem = LoanItem::create([
-          
-        ]);
-    
-        // Process the items
-        $itemsData = $request->except(array_keys($validatedData));
-        foreach ($itemsData as $key => $value) {
-            if (str_contains($key, '_quantity') && $value > 0) {
-                $itemId = str_replace(['left_item_', 'right_item_', '_quantity'], '', $key);
-                $loanItem->items()->attach($itemId, ['quantity' => $value]);
-            }
-        }
-    
-        return redirect()->route('filament.resources.loan-items.index');
-    }
     public static function getPages(): array
     {
         return [
