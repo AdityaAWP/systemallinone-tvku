@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\PDFController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LetterAttachmentController;
+use App\Http\Controllers\PDFLoanController;
 
 Route::get('/', function () {
     return redirect()->route('filament.admin.pages.dashboard');
@@ -24,6 +25,10 @@ Route::get('/login', function () {
 
 Route::get('download', [PDFController::class, 'downloadpdf'])->name('overtime.report');
 Route::get('download/{id}', [PDFController::class, 'userpdf'])->name('overtime.single');
+
+
+//Peminjaman
+Route::get('download/{id}', [PDFLoanController::class, 'userpdf'])->name('loanitem.single');
 
 // routes/web.php
 Route::get('/leave/action/{leave}/{user}/{action}', [App\Http\Controllers\LeaveActionController::class, 'handleAction'])
