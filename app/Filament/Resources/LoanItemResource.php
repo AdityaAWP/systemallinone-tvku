@@ -234,7 +234,8 @@ class LoanItemResource extends Resource
                     ->visible(fn ($record) => Auth::user()->hasRole(['admin_logistics', 'super_admin'])),
                 Tables\Actions\Action::make('download') 
                     ->url(fn(LoanItem $loanitem) => route('loanitem.single', $loanitem))
-                    ->openUrlInNewTab()
+                    ->openUrlInNewTab(),
+                
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
