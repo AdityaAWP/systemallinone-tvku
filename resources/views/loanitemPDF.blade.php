@@ -16,7 +16,7 @@
             margin-bottom: 20px;
             position: relative;
             /* Untuk penempatan logo */
-            padding-left: 90px;
+            padding-left: 50px;
             /* Ruang untuk logo */
             min-height: 80px;
             /* Minimal tinggi header untuk logo */
@@ -26,7 +26,7 @@
             position: absolute;
             left: 0;
             top: 0;
-            width: 80px;
+            width: 60px;
         }
 
         .title {
@@ -78,7 +78,7 @@
         }
 
         .checkbox.checked::before {
-            content: "v";
+            content: "✓";
             font-size: 14px;
             line-height: 15px;
         }
@@ -122,7 +122,7 @@
         }
 
         .signature-box .check.checked::before {
-            content: "v";
+            content: "✓";
         }
 
         .signature-box .title {
@@ -153,7 +153,7 @@
 
 <body>
     <div class="header">
-        <img src="{{ asset('images/tvku_logo.png') }}" class="logo" alt="TVKU Logo">
+        <img src="{{ public_path('images/tvku-logo.png') }}" class="logo" alt="TVKU Logo">
         <div class="title">TELEVISI KAMPUS UNIVERSITAS DIAN NUSWANTORO</div>
         <div class="address">Gedung E Lt.2 Kompleks UDINUS Jl. Nakula I/No.5-11 Semarang 50131</div>
         <div class="contact">Telp. (024)356-8491 Fax. (024)356-4645</div>

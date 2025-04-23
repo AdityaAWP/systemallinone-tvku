@@ -9,6 +9,9 @@ use App\Http\Controllers\PDFLoanController;
 Route::get('/', function () {
     return redirect()->route('filament.admin.pages.dashboard');
 });
+Route::get('/info', function() {
+    return gd_info();
+});
 
 // Google Auth Routes
 Route::get('auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
