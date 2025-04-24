@@ -12,6 +12,7 @@ use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Filament\Notifications\Notification as FilamentNotification;
 
 class CreateLeave extends CreateRecord
@@ -21,7 +22,7 @@ class CreateLeave extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['status'] = 'pending';
-        
+
         return $data;
     }
 
@@ -38,15 +39,15 @@ class CreateLeave extends CreateRecord
         $month = $fromDate->month;
         $year = $fromDate->year;
         $leaveType = $data['leave_type'];
-  
+
         if ($leaveType === 'maternity') {
             return;
         }
 
         $totalLeavesThisMonth = $this->countLeavesInMonth($user, $month, $year);
-     
+
         $specificTypeLeavesThisMonth = $this->countLeavesByTypeInMonth($user, $leaveType, $month, $year);
-      
+
         if ($specificTypeLeavesThisMonth == 1) {
             $leaveTypeName = $this->getLeaveTypeName($leaveType);
             FilamentNotification::make()
@@ -55,7 +56,7 @@ class CreateLeave extends CreateRecord
                 ->warning()
                 ->send();
         }
-      
+
         if ($specificTypeLeavesThisMonth >= 2) {
             $leaveTypeName = $this->getLeaveTypeName($leaveType);
             FilamentNotification::make()
@@ -64,10 +65,10 @@ class CreateLeave extends CreateRecord
                 ->danger()
                 ->persistent()
                 ->send();
-                
+
             $this->halt("Anda sudah mencapai batas maksimal 2 cuti {$leaveTypeName} dalam bulan ini.");
         }
-      
+
         if ($totalLeavesThisMonth >= 2) {
             FilamentNotification::make()
                 ->title("Batas Total Cuti Bulanan Tercapai")
@@ -75,7 +76,7 @@ class CreateLeave extends CreateRecord
                 ->danger()
                 ->persistent()
                 ->send();
-                
+
             $this->halt("Anda sudah mencapai batas maksimal 2 cuti dalam bulan ini. Anda hanya dapat mengajukan cuti melahirkan sekarang.");
         }
     }
@@ -83,9 +84,12 @@ class CreateLeave extends CreateRecord
     protected function handleRecordCreation(array $data): Model
     {
         $user = User::find($data['user_id']);
-       
+
         $this->validateLeaveApplication($user, $data);
-      
+
+        // Generate token unik
+        $data['approval_token'] = Str::random(64);
+
         $leave = parent::handleRecordCreation($data);
 
         if ($data['leave_type'] === 'casual') {
@@ -93,15 +97,15 @@ class CreateLeave extends CreateRecord
             $quota->casual_used += 1;
             $quota->save();
         }
-      
+
         $this->sendLeaveRequestNotifications($leave);
-      
+
         FilamentNotification::make()
             ->title('Permintaan cuti berhasil dibuat')
             ->body('Notifikasi telah dikirim ke HRD dan Manajer untuk ditinjau.')
             ->success()
             ->send();
-            
+
         return $leave;
     }
 
@@ -110,11 +114,11 @@ class CreateLeave extends CreateRecord
         $fromDate = Carbon::parse($data['from_date']);
         $month = $fromDate->month;
         $year = $fromDate->year;
-   
+
         if ($data['leave_type'] === 'casual') {
             $quota = LeaveQuota::getUserQuota($user->id);
             $days = $data['days'] ?? 1;
-            
+
             if (($quota->casual_used + $days) > $quota->casual_quota) {
                 $this->halt('Anda telah melebihi kuota cuti tahunan Anda untuk tahun ini.');
             }
@@ -157,7 +161,7 @@ class CreateLeave extends CreateRecord
     {
         $hrdUsers = User::role('hrd')->get();
         Notification::send($hrdUsers, new LeaveRequested($leave));
-        
+
         $managers = User::role('manager')->get();
         Notification::send($managers, new LeaveRequested($leave));
     }

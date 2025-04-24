@@ -9,7 +9,7 @@ use App\Http\Controllers\PDFLoanController;
 Route::get('/', function () {
     return redirect()->route('filament.admin.pages.dashboard');
 });
-Route::get('/info', function() {
+Route::get('/info', function () {
     return gd_info();
 });
 
@@ -33,11 +33,7 @@ Route::get('download/{id}', [PDFController::class, 'userpdf'])->name('overtime.s
 //Peminjaman
 Route::get('download/{id}', [PDFLoanController::class, 'userpdf'])->name('loanitem.single');
 
-// routes/web.php
-Route::get('/leave/action/{leave}/{user}/{action}', [App\Http\Controllers\LeaveActionController::class, 'handleAction'])
-    ->name('leave.action')
-    ->middleware('signed');
-
+// Leave Approval Routes
 Route::get('/leave/approve/{leave}/{user}', [App\Http\Controllers\LeaveActionController::class, 'approve'])
     ->name('leave.approve')
     ->middleware('signed');
@@ -46,10 +42,18 @@ Route::get('/leave/reject/{leave}/{user}', [App\Http\Controllers\LeaveActionCont
     ->name('leave.reject')
     ->middleware('signed');
 
+// Leave Routes Baru
+Route::get('/leave/approve-by-token/{token}', [App\Http\Controllers\LeaveTokenActionController::class, 'approve'])
+    ->name('leave.approve.token');
+    
+Route::get('/leave/reject-by-token/{token}', [App\Http\Controllers\LeaveTokenActionController::class, 'reject'])
+    ->name('leave.reject.token');
+
+// Letter Attachment Routes
 Route::get('/attachment/{attachment}/download', [LetterAttachmentController::class, 'download'])
     ->middleware(['auth'])
     ->name('attachment.download');
-    
+
 Route::delete('/attachment/{attachment}/delete', [LetterAttachmentController::class, 'delete'])
     ->middleware(['auth'])
     ->name('attachment.delete');

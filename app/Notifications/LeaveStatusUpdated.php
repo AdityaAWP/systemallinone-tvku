@@ -7,6 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 
 class LeaveStatusUpdated extends Notification implements ShouldQueue
 {
@@ -25,7 +26,8 @@ class LeaveStatusUpdated extends Notification implements ShouldQueue
     }
 
     public function toMail($notifiable)
-    {
+{
+    try {
         $url = route('filament.admin.resources.leaves.view', $this->leave->id);
 
         $status = $this->translateStatus($this->leave->status);
@@ -34,7 +36,8 @@ class LeaveStatusUpdated extends Notification implements ShouldQueue
         $mailMessage = (new MailMessage)
             ->subject('Status Permintaan Cuti: ' . $status)
             ->greeting('Halo ' . $notifiable->name)
-            ->line('Permintaan cuti ' . $leaveType . ' Anda dari ' . $this->leave->from_date->format('d M Y') . ' sampai ' . $this->leave->to_date->format('d M Y') . ' telah ' . $status . '.');
+            ->line('Permintaan cuti ' . $leaveType . ' Anda dari ' . $this->leave->from_date->format('d M Y') . 
+                  ' sampai ' . $this->leave->to_date->format('d M Y') . ' telah ' . $status . '.');
         
         if ($this->leave->isRejected() && $this->leave->rejection_reason) {
             $mailMessage->line('Alasan penolakan: ' . $this->leave->rejection_reason);
@@ -43,7 +46,14 @@ class LeaveStatusUpdated extends Notification implements ShouldQueue
         return $mailMessage
             ->action('Lihat Detail', $url)
             ->line('Terima kasih telah menggunakan sistem manajemen cuti kami.');
+    } catch (\Exception $e) {
+        Log::error('Error sending leave status update email: ' . $e->getMessage());
+        return (new MailMessage)
+            ->subject('Kesalahan Pengiriman Email')
+            ->line('Terjadi kesalahan saat mengirim pembaruan status cuti.')
+            ->line('Silakan periksa log untuk detail lebih lanjut.');
     }
+}
     
     private function translateStatus($status)
     {

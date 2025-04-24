@@ -22,7 +22,8 @@ class Leave extends Model
         'approval_hrd',
         'attachment',
         'status',
-        'rejection_reason'
+        'rejection_reason',
+        'approval_token'
     ];
 
     protected $casts = [

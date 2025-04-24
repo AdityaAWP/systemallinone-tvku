@@ -70,18 +70,16 @@ class IncomingLetterResource extends Resource
                             ->multiple()
                             ->maxSize(5120) // 5MB limit
                             ->directory('letters/incoming')
-                            ->storeFileNamesIn('original_filename')
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file, callable $get) {
-                                $filename = $file->getClientOriginalName();
-                                $path = $file->storeAs('letters/incoming', Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
+                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) {
+                                // Generate a unique filename
+                                $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
                                 
-                                return [
-                                    'path' => $path,
-                                    'filename' => $filename,
-                                    'mime_type' => $file->getMimeType(),
-                                    'size' => $file->getSize()
-                                ];
+                                // Store the file in the specified directory
+                                $file->storeAs('letters/incoming', $filename, 'public');
+                                
+                                // Return only the filename as a string
+                                return $filename;
                             })
                             ->columnSpanFull()
                             ->label('Attachments (Max 5MB each)'),
