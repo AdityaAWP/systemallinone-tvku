@@ -12,6 +12,7 @@ use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Filament\Notifications\Notification as FilamentNotification;
 
@@ -22,7 +23,12 @@ class CreateLeave extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['status'] = 'pending';
-
+        
+        // Generate token unik setiap kali membuat permintaan cuti baru
+        $data['approval_token'] = Str::random(64);
+        
+        Log::info('Token approval dibuat: ' . $data['approval_token']);
+        
         return $data;
     }
 
@@ -87,9 +93,6 @@ class CreateLeave extends CreateRecord
 
         $this->validateLeaveApplication($user, $data);
 
-        // Generate token unik
-        $data['approval_token'] = Str::random(64);
-
         $leave = parent::handleRecordCreation($data);
 
         if ($data['leave_type'] === 'casual') {
@@ -98,7 +101,10 @@ class CreateLeave extends CreateRecord
             $quota->save();
         }
 
+        // Kirim notifikasi dengan token di dalamnya
         $this->sendLeaveRequestNotifications($leave);
+
+        Log::info('Permintaan cuti dibuat dengan ID: ' . $leave->id . ' dan token: ' . $leave->approval_token);
 
         FilamentNotification::make()
             ->title('Permintaan cuti berhasil dibuat')

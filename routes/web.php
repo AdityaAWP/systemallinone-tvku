@@ -33,14 +33,14 @@ Route::get('download/{id}', [PDFController::class, 'userpdf'])->name('overtime.s
 //Peminjaman
 Route::get('download/{id}', [PDFLoanController::class, 'userpdf'])->name('loanitem.single');
 
-// Leave Approval Routes
-Route::get('/leave/approve/{leave}/{user}', [App\Http\Controllers\LeaveActionController::class, 'approve'])
-    ->name('leave.approve')
-    ->middleware('signed');
+// // Leave Approval Routes
+// Route::get('/leave/approve/{leave}/{user}', [App\Http\Controllers\LeaveActionController::class, 'approve'])
+//     ->name('leave.approve')
+//     ->middleware('signed');
 
-Route::get('/leave/reject/{leave}/{user}', [App\Http\Controllers\LeaveActionController::class, 'reject'])
-    ->name('leave.reject')
-    ->middleware('signed');
+// Route::get('/leave/reject/{leave}/{user}', [App\Http\Controllers\LeaveActionController::class, 'reject'])
+//     ->name('leave.reject')
+//     ->middleware('signed');
 
 // Leave Routes Baru
 Route::get('/leave/approve-by-token/{token}', [App\Http\Controllers\LeaveTokenActionController::class, 'approve'])

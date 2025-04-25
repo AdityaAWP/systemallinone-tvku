@@ -26,34 +26,39 @@ class LeaveStatusUpdated extends Notification implements ShouldQueue
     }
 
     public function toMail($notifiable)
-{
-    try {
-        $url = route('filament.admin.resources.leaves.view', $this->leave->id);
+    {
+        try {
+            // Gunakan config('app.url') untuk mendapatkan URL lengkap dengan port
+            $url = config('app.url') . '/admin/resources/leaves/' . $this->leave->id;
 
-        $status = $this->translateStatus($this->leave->status);
-        $leaveType = $this->translateLeaveType($this->leave->leave_type);
-        
-        $mailMessage = (new MailMessage)
-            ->subject('Status Permintaan Cuti: ' . $status)
-            ->greeting('Halo ' . $notifiable->name)
-            ->line('Permintaan cuti ' . $leaveType . ' Anda dari ' . $this->leave->from_date->format('d M Y') . 
-                  ' sampai ' . $this->leave->to_date->format('d M Y') . ' telah ' . $status . '.');
-        
-        if ($this->leave->isRejected() && $this->leave->rejection_reason) {
-            $mailMessage->line('Alasan penolakan: ' . $this->leave->rejection_reason);
+            $status = $this->translateStatus($this->leave->status);
+            $leaveType = $this->translateLeaveType($this->leave->leave_type);
+            
+            Log::info('Mengirim email update status cuti ke: ' . $notifiable->email);
+            Log::info('Status cuti: ' . $status);
+            Log::info('Link detail: ' . $url);
+            
+            $mailMessage = (new MailMessage)
+                ->subject('Status Permintaan Cuti: ' . $status)
+                ->greeting('Halo ' . $notifiable->name)
+                ->line('Permintaan cuti ' . $leaveType . ' Anda dari ' . $this->leave->from_date->format('d M Y') . 
+                      ' sampai ' . $this->leave->to_date->format('d M Y') . ' telah ' . $status . '.');
+            
+            if ($this->leave->isRejected() && $this->leave->rejection_reason) {
+                $mailMessage->line('Alasan penolakan: ' . $this->leave->rejection_reason);
+            }
+            
+            return $mailMessage
+                ->action('Lihat Detail', $url)
+                ->line('Terima kasih telah menggunakan sistem manajemen cuti kami.');
+        } catch (\Exception $e) {
+            Log::error('Error sending leave status update email: ' . $e->getMessage());
+            return (new MailMessage)
+                ->subject('Kesalahan Pengiriman Email')
+                ->line('Terjadi kesalahan saat mengirim pembaruan status cuti.')
+                ->line('Silakan periksa log untuk detail lebih lanjut.');
         }
-        
-        return $mailMessage
-            ->action('Lihat Detail', $url)
-            ->line('Terima kasih telah menggunakan sistem manajemen cuti kami.');
-    } catch (\Exception $e) {
-        Log::error('Error sending leave status update email: ' . $e->getMessage());
-        return (new MailMessage)
-            ->subject('Kesalahan Pengiriman Email')
-            ->line('Terjadi kesalahan saat mengirim pembaruan status cuti.')
-            ->line('Silakan periksa log untuk detail lebih lanjut.');
     }
-}
     
     private function translateStatus($status)
     {

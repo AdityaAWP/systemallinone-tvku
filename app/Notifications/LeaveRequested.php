@@ -7,7 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Log;
 
 class LeaveRequested extends Notification implements ShouldQueue
 {
@@ -27,11 +27,16 @@ class LeaveRequested extends Notification implements ShouldQueue
 
     public function toMail($notifiable)
     {
-        // URL dengan token sebagai parameter
-        $approveUrl = url('/leave/approve-by-token/' . $this->leave->approval_token);
-        $rejectUrl = url('/leave/reject-by-token/' . $this->leave->approval_token);
+        // Gunakan config('app.url') untuk mendapatkan URL lengkap dengan port
+        $baseUrl = config('app.url');
+        $approveUrl = $baseUrl . '/leave/approve-by-token/' . $this->leave->approval_token;
+        $rejectUrl = $baseUrl . '/leave/reject-by-token/' . $this->leave->approval_token;
 
         $leaveType = $this->translateLeaveType($this->leave->leave_type);
+
+        Log::info('Mengirim email permintaan cuti ke: ' . $notifiable->email);
+        Log::info('Link approve: ' . $approveUrl);
+        Log::info('Link reject: ' . $rejectUrl);
 
         return (new MailMessage)
             ->subject('Permintaan Cuti Baru dari ' . $this->leave->user->name)
