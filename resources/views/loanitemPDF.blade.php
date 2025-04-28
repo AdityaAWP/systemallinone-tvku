@@ -22,6 +22,10 @@
             /* Minimal tinggi header untuk logo */
         }
 
+        img {
+            margin-left: 100px;
+        }
+
         .logo {
             position: absolute;
             left: 0;
@@ -159,32 +163,32 @@
         <div class="contact">Telp. (024)356-8491 Fax. (024)356-4645</div>
     </div>
 
-    <div class="document-title">DOKUMEN PEMINJAMAN LOGISTIK (ID : {{ $loanitem[0]->id }})</div>
+    <div class="document-title">DOKUMEN PEMINJAMAN LOGISTIK (ID : {{ $loanitem->id }})</div>
 
     <table class="info">
         <tr>
             <td width="120">Pengembalian</td>
-            <td>{{ $loanitem[0]->return_status }}</td>
+            <td>{{ $loanitem->return_status }}</td>
             <td width="120">Tanggal Dibuat</td>
-            <td>{{ $loanitem[0]->created_at ? $loanitem[0]->created_at->format('d-m-Y H:i') : date('d-m-Y H:i') }}</td>
+            <td>{{ $loanitem->created_at ? $loanitem->created_at->format('d-m-Y H:i') : date('d-m-Y H:i') }}</td>
         </tr>
         <tr>
             <td>Program</td>
-            <td>{{ $loanitem[0]->program }}</td>
+            <td>{{ $loanitem->program }}</td>
             <td>Tanggal Booking</td>
-            <td>{{ \Carbon\Carbon::parse($loanitem[0]->booking_date)->format('d-m-Y') }}</td>
+            <td>{{ \Carbon\Carbon::parse($loanitem->booking_date)->format('d-m-Y') }}</td>
         </tr>
         <tr>
             <td>Lokasi</td>
-            <td>{{ $loanitem[0]->location }}</td>
+            <td>{{ $loanitem->location }}</td>
             <td>Jam Booking</td>
-            <td>{{ \Carbon\Carbon::parse($loanitem[0]->start_booking)->format('H:i') }}</td>
+            <td>{{ \Carbon\Carbon::parse($loanitem->start_booking)->format('H:i') }}</td>
         </tr>
     </table>
 
     <div style="margin-bottom: 10px;">
         @php
-        $division = $loanitem[0]->division;
+        $division = $loanitem->division;
         $isProduksi = $division === 'produksi';
         $isNews = $division === 'news';
         $isStudio = $division === 'studio';
@@ -198,15 +202,16 @@
         <span class="checkbox {{ $isLainlain ? 'checked' : '' }}"></span> Lain-lain
     </div>
 
+    <!-- Items Table with both individual items and category grouping -->
     <table class="items-table">
         @php
         // Group items by category
         $itemsByCategory = [];
-
         // Predefined categories
         $categories = ['Video', 'Audio', 'Lighting', 'Lain-lain'];
 
-        foreach ($loanitem[0]->items as $item) {
+        // Grouping items based on their category
+        foreach ($loanitem->items as $item) {
         $category = $item->category ?? 'Lain-lain';
         if (!isset($itemsByCategory[$category])) {
         $itemsByCategory[$category] = [];
@@ -215,6 +220,7 @@
         }
         @endphp
 
+        <!-- Loop through categories and display items -->
         @foreach ($categories as $category)
         <tr>
             <td class="category">{{ $category }}</td>
@@ -228,9 +234,16 @@
 
         <tr>
             <td class="category">Catatan</td>
-            <td>{{ $loanitem[0]->notes ?? 'Kebutuhan lainnya menyesuaikan' }}</td>
+            <td>{{ $loanitem->notes ?? 'Kebutuhan lainnya menyesuaikan' }}</td>
         </tr>
     </table>
+
+    <!-- Debug information (remove in production) -->
+    <div style="font-size: 8px; color: #999; margin: 5px 0;">
+        @foreach($loanitem->items as $item)
+        Item: {{ $item->name }}, Category: "{{ $item->category ?? 'NULL' }}", Quantity: {{ $item->pivot->quantity }}<br>
+        @endforeach
+    </div>
 
     <div class="section-title">Requested</div>
 
@@ -246,7 +259,7 @@
         </div>
 
         <div class="signature-box">
-            <div class="check {{ $loanitem[0]->approval_admin_logistics ? 'checked' : '' }}"></div>
+            <div class="check {{ $loanitem->approval_admin_logistics ? 'checked' : '' }}"></div>
             <div>Logistik</div>
         </div>
     </div>
@@ -254,19 +267,19 @@
     <table class="contact-table">
         <tr>
             <td width="60">Nama</td>
-            <td>{{ $loanitem[0]->producer_name }}</td>
+            <td>{{ $loanitem->producer_name }}</td>
             <td width="60">Nama</td>
-            <td>{{ $loanitem[0]->crew_name }}</td>
+            <td>{{ $loanitem->crew_name }}</td>
             <td width="60">Nama</td>
-            <td>{{ $loanitem[0]->approver_name }}</td>
+            <td>{{ $loanitem->approver_name }}</td>
         </tr>
         <tr>
             <td>HP</td>
-            <td>{{ $loanitem[0]->producer_telp }}</td>
+            <td>{{ $loanitem->producer_telp }}</td>
             <td>HP</td>
-            <td>{{ $loanitem[0]->crew_telp }}</td>
+            <td>{{ $loanitem->crew_telp }}</td>
             <td>HP</td>
-            <td>{{ $loanitem[0]->approver_telp }}</td>
+            <td>{{ $loanitem->approver_telp }}</td>
         </tr>
     </table>
 </body>
