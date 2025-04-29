@@ -14,11 +14,12 @@
                 text-align: center;
                 margin-bottom: 20px;
                 position: relative;
-                /* Untuk penempatan logo */
-                padding-left: 30px;
-                /* Ruang untuk logo */
+                padding-left: 50px;
                 min-height: 80px;
-                /* Minimal tinggi header untuk logo */
+            }
+
+            img {
+                margin-left: 100px;
             }
 
             .logo {
@@ -61,13 +62,10 @@
                 border: 1px solid #000;
                 padding: 5px;
             }
-            img {
-                background-color: red;
-                margin-left: 100px;
-            }
 
             .category-row td {
                 background-color: #e8e8e8;
+                font-weight: bold;
             }
 
             .checkbox {
@@ -89,16 +87,18 @@
             .items-table {
                 width: 100%;
                 border-collapse: collapse;
+                margin-bottom: 20px;
             }
 
             .items-table td {
                 border: 1px solid #000;
-                padding: 5px;
+                padding: 5px 8px;
+                vertical-align: top;
             }
 
             .items-table .category {
-                width: 80px;
                 font-weight: bold;
+                background-color: #e8e8e8;
             }
 
             .signatures {
@@ -114,8 +114,14 @@
                 vertical-align: top;
             }
 
+            .signature-box .signature-title {
+                font-weight: bold;
+                margin-bottom: 10px;
+                font-size: 14px;
+            }
+
             .signature-box .check {
-                border: 1px solid #000;
+                border: 2px solid #000;
                 width: 30px;
                 height: 30px;
                 margin: 0 auto 10px;
@@ -126,14 +132,6 @@
 
             .signature-box .check.checked::before {
                 content: "✓";
-            }
-
-            .signature-box .title {
-                margin-bottom: 10px;
-            }
-
-            .signature-box .name {
-                font-weight: bold;
             }
 
             .contact-table {
@@ -160,7 +158,6 @@
                 src="{{ public_path('images/tvku-logo.png') }}"
                 class="logo"
                 alt="TVKU Logo"
-                width="100"
             />
             <div class="title">TELEVISI KAMPUS UNIVERSITAS DIAN NUSWANTORO</div>
             <div class="address">
@@ -171,101 +168,141 @@
         </div>
 
         <div class="document-title">
-            DOKUMEN PEMINJAMAN LOGISTIK (ID : {{ $loanitem[0]->id }})
+            DOKUMEN PEMINJAMAN LOGISTIK (ID : {{ $loanitem->id }})
         </div>
 
         <table class="info">
             <tr>
                 <td width="120">Pengembalian</td>
-                <td>{{ $loanitem[0]->return_status }}</td>
+                <td>{{ $loanitem->return_status }}</td>
                 <td width="120">Tanggal Dibuat</td>
                 <td>
-                    {{ $loanitem[0]->created_at ?
-                    $loanitem[0]->created_at->format('d-m-Y H:i') : date('d-m-Y
+                    {{ $loanitem->created_at ?
+                    $loanitem->created_at->format('d-m-Y H:i') : date('d-m-Y
                     H:i') }}
                 </td>
             </tr>
             <tr>
                 <td>Program</td>
-                <td>{{ $loanitem[0]->program }}</td>
+                <td>{{ $loanitem->program }}</td>
                 <td>Tanggal Booking</td>
                 <td>
                     {{
-                    \Carbon\Carbon::parse($loanitem[0]->booking_date)->format('d-m-Y')
+                    \Carbon\Carbon::parse($loanitem->booking_date)->format('d-m-Y')
                     }}
                 </td>
             </tr>
             <tr>
                 <td>Lokasi</td>
-                <td>{{ $loanitem[0]->location }}</td>
+                <td>{{ $loanitem->location }}</td>
                 <td>Jam Booking</td>
                 <td>
                     {{
-                    \Carbon\Carbon::parse($loanitem[0]->start_booking)->format('H:i')
+                    \Carbon\Carbon::parse($loanitem->start_booking)->format('H:i')
                     }}
                 </td>
             </tr>
         </table>
 
         <div style="margin-bottom: 10px">
-            @php $division = $loanitem[0]->division; $isProduksi = $division ===
-            'produksi'; $isNews = $division === 'news'; $isStudio = $division
-            === 'studio'; $isMarketing = $division === 'marketing'; $isLainlain
-            = $division === 'lain-lain'; @endphp
-            <span class="checkbox {{ $isProduksi ? 'checked' : '' }}"></span>
-            Produksi
-            <span class="checkbox {{ $isNews ? 'checked' : '' }}"></span> News
-            <span class="checkbox {{ $isStudio ? 'checked' : '' }}"></span>
-            Studio
-            <span class="checkbox {{ $isMarketing ? 'checked' : '' }}"></span>
-            Marketing
-            <span class="checkbox {{ $isLainlain ? 'checked' : '' }}"></span>
-            Lain-lain
+            <div style="display: flex; justify-content: space-between">
+                <div>
+                    <span
+                        class="checkbox {{ $isProduksi ? 'checked' : '' }}"
+                    ></span>
+                    Produksi
+                </div>
+                <span class="checkbox {{ $isNews ? 'checked' : '' }}"></span>
+                News
+                <span class="checkbox {{ $isStudio ? 'checked' : '' }}"></span>
+                Studio
+                <span
+                    class="checkbox {{ $isMarketing ? 'checked' : '' }}"
+                ></span>
+                Marketing
+                <span
+                    class="checkbox {{ $isLainlain ? 'checked' : '' }}"
+                ></span>
+                Lain-lain
+            </div>
         </div>
 
+        <!-- Items Table with compact layout like the example -->
         <table class="items-table">
-            @php // Group items by category $itemsByCategory = []; // Predefined
-            categories $categories = ['Video', 'Audio', 'Lighting',
-            'Lain-lain']; foreach ($loanitem[0]->items as $item) { $category =
-            $item->category ?? 'Lain-lain'; if
-            (!isset($itemsByCategory[$category])) { $itemsByCategory[$category]
-            = []; } $itemsByCategory[$category][] = $item->name . ' (' .
-            $item->pivot->quantity . ')'; } @endphp @foreach ($categories as
-            $category)
             <tr>
-                <td class="category">{{ $category }}</td>
+                <td class="category" width="15%">Video</td>
                 <td>
-                    @if (isset($itemsByCategory[$category])) {{ implode(' , ',
-                    $itemsByCategory[$category]) }} @endif
+                    @php $videoItems = []; foreach ($loanitem->items as $item) {
+                    if (strtolower($item->category) == 'video') { $videoItems[]
+                    = $item->name . ' (' . $item->pivot->quantity . ')'; } }
+                    echo implode(' , ', $videoItems); @endphp
                 </td>
             </tr>
-            @endforeach
-
+            <tr>
+                <td class="category">Audio</td>
+                <td>
+                    @php $audioItems = []; foreach ($loanitem->items as $item) {
+                    if (strtolower($item->category) == 'audio') { $audioItems[]
+                    = $item->name . ' (' . $item->pivot->quantity . ')'; } }
+                    echo implode(' , ', $audioItems); @endphp
+                </td>
+            </tr>
+            <tr>
+                <td class="category">Lighting</td>
+                <td>
+                    @php $lightingItems = []; foreach ($loanitem->items as
+                    $item) { if (strtolower($item->category) == 'lighting') {
+                    $lightingItems[] = $item->name . ' (' .
+                    $item->pivot->quantity . ')'; } } echo implode(' , ',
+                    $lightingItems); @endphp
+                </td>
+            </tr>
+            <tr>
+                <td class="category">Lain-lain</td>
+                <td>
+                    @php $otherItems = []; foreach ($loanitem->items as $item) {
+                    if (!$item->category || strtolower($item->category) ==
+                    'lain-lain' || $item->category == 'NULL') { $otherItems[] =
+                    $item->name . ' (' . $item->pivot->quantity . ')'; } } echo
+                    implode(' , ', $otherItems); @endphp
+                </td>
+            </tr>
             <tr>
                 <td class="category">Catatan</td>
                 <td>
-                    {{ $loanitem[0]->notes ?? 'Kebutuhan lainnya menyesuaikan'
-                    }}
+                    {{ $loanitem->notes ?? 'Kebutuhan lainnya menyesuaikan' }}
                 </td>
             </tr>
         </table>
 
-        <div class="section-title">Requested</div>
+        <!-- Debug information - Keeping for reference but hidden in production -->
+        <div style="font-size: 8px; color: #999; margin: 5px 0; display: none">
+            @foreach($loanitem->items as $item) Item: {{ $item->name }},
+            Category: "{{ $item->category ?? 'NULL' }}", Quantity: {{
+            $item->pivot->quantity }}<br />
+            @endforeach
+        </div>
+
+        <!-- Remove section title as it's now in the signature boxes -->
+        <!--<div class="section-title">Requested</div>-->
 
         <div class="signatures">
             <div class="signature-box">
+                <div class="signature-title">Requested</div>
                 <div class="check checked"></div>
                 <div>Produser/Ass.</div>
             </div>
 
             <div class="signature-box">
+                <div class="signature-title">Crew</div>
                 <div class="check checked"></div>
                 <div>Campers</div>
             </div>
 
             <div class="signature-box">
+                <div class="signature-title">Approval</div>
                 <div
-                    class="check {{ $loanitem[0]->approval_admin_logistics ? 'checked' : '' }}"
+                    class="check {{ $loanitem->approval_admin_logistics ? 'checked' : '' }}"
                 ></div>
                 <div>Logistik</div>
             </div>
@@ -274,19 +311,19 @@
         <table class="contact-table">
             <tr>
                 <td width="60">Nama</td>
-                <td>{{ $loanitem[0]->producer_name }}</td>
+                <td>{{ $loanitem->producer_name }}</td>
                 <td width="60">Nama</td>
-                <td>{{ $loanitem[0]->crew_name }}</td>
+                <td>{{ $loanitem->crew_name }}</td>
                 <td width="60">Nama</td>
-                <td>{{ $loanitem[0]->approver_name }}</td>
+                <td>{{ $loanitem->approver_name }}</td>
             </tr>
             <tr>
                 <td>HP</td>
-                <td>{{ $loanitem[0]->producer_telp }}</td>
+                <td>{{ $loanitem->producer_telp }}</td>
                 <td>HP</td>
-                <td>{{ $loanitem[0]->crew_telp }}</td>
+                <td>{{ $loanitem->crew_telp }}</td>
                 <td>HP</td>
-                <td>{{ $loanitem[0]->approver_telp }}</td>
+                <td>{{ $loanitem->approver_telp }}</td>
             </tr>
         </table>
     </body>

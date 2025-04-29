@@ -4,6 +4,7 @@
 <head>
     <title>Dokumen Peminjaman Logistik</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link href="https://fonts.cdnfonts.com/css/dejavu-sans" rel="stylesheet">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -15,11 +16,8 @@
             text-align: center;
             margin-bottom: 20px;
             position: relative;
-            /* Untuk penempatan logo */
             padding-left: 50px;
-            /* Ruang untuk logo */
             min-height: 80px;
-            /* Minimal tinggi header untuk logo */
         }
 
         img {
@@ -69,6 +67,7 @@
 
         .category-row td {
             background-color: #e8e8e8;
+            font-weight: bold;
         }
 
         .checkbox {
@@ -82,24 +81,27 @@
         }
 
         .checkbox.checked::before {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 15;
             content: "✓";
-            font-size: 14px;
             line-height: 15px;
         }
 
         .items-table {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 20px;
         }
 
         .items-table td {
             border: 1px solid #000;
-            padding: 5px;
+            padding: 5px 8px;
+            vertical-align: top;
         }
 
         .items-table .category {
-            width: 80px;
             font-weight: bold;
+            background-color: #e8e8e8;
         }
 
         .signatures {
@@ -115,8 +117,14 @@
             vertical-align: top;
         }
 
+        .signature-box .signature-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
         .signature-box .check {
-            border: 1px solid #000;
+            border: 2px solid #000;
             width: 30px;
             height: 30px;
             margin: 0 auto 10px;
@@ -126,15 +134,9 @@
         }
 
         .signature-box .check.checked::before {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 30;
             content: "✓";
-        }
-
-        .signature-box .title {
-            margin-bottom: 10px;
-        }
-
-        .signature-box .name {
-            font-weight: bold;
         }
 
         .contact-table {
@@ -186,7 +188,7 @@
         </tr>
     </table>
 
-    <div style="margin-bottom: 10px;">
+    <div style="margin-bottom: 10px">
         @php
         $division = $loanitem->division;
         $isProduksi = $division === 'produksi';
@@ -202,63 +204,95 @@
         <span class="checkbox {{ $isLainlain ? 'checked' : '' }}"></span> Lain-lain
     </div>
 
-    <!-- Items Table with both individual items and category grouping -->
+    <!-- Items Table with compact layout like the example -->
     <table class="items-table">
-        @php
-        // Group items by category
-        $itemsByCategory = [];
-        // Predefined categories
-        $categories = ['Video', 'Audio', 'Lighting', 'Lain-lain'];
-
-        // Grouping items based on their category
-        foreach ($loanitem->items as $item) {
-        $category = $item->category ?? 'Lain-lain';
-        if (!isset($itemsByCategory[$category])) {
-        $itemsByCategory[$category] = [];
-        }
-        $itemsByCategory[$category][] = $item->name . ' (' . $item->pivot->quantity . ')';
-        }
-        @endphp
-
-        <!-- Loop through categories and display items -->
-        @foreach ($categories as $category)
         <tr>
-            <td class="category">{{ $category }}</td>
+            <td class="category" width="15%">Video</td>
             <td>
-                @if (isset($itemsByCategory[$category]))
-                {{ implode(' , ', $itemsByCategory[$category]) }}
-                @endif
+                @php
+                $videoItems = [];
+                foreach ($loanitem->items as $item) {
+                if (strtolower($item->category) == 'video') {
+                $videoItems[] = $item->name . ' (' . $item->pivot->quantity . ')';
+                }
+                }
+                echo implode(' , ', $videoItems);
+                @endphp
             </td>
         </tr>
-        @endforeach
-
+        <tr>
+            <td class="category">Audio</td>
+            <td>
+                @php
+                $audioItems = [];
+                foreach ($loanitem->items as $item) {
+                if (strtolower($item->category) == 'audio') {
+                $audioItems[] = $item->name . ' (' . $item->pivot->quantity . ')';
+                }
+                }
+                echo implode(' , ', $audioItems);
+                @endphp
+            </td>
+        </tr>
+        <tr>
+            <td class="category">Lighting</td>
+            <td>
+                @php
+                $lightingItems = [];
+                foreach ($loanitem->items as $item) {
+                if (strtolower($item->category) == 'lighting') {
+                $lightingItems[] = $item->name . ' (' . $item->pivot->quantity . ')';
+                }
+                }
+                echo implode(' , ', $lightingItems);
+                @endphp
+            </td>
+        </tr>
+        <tr>
+            <td class="category">Lain-lain</td>
+            <td>
+                @php
+                $otherItems = [];
+                foreach ($loanitem->items as $item) {
+                if (!$item->category || strtolower($item->category) == 'lain-lain' || $item->category == 'NULL') {
+                $otherItems[] = $item->name . ' (' . $item->pivot->quantity . ')';
+                }
+                }
+                echo implode(' , ', $otherItems);
+                @endphp
+            </td>
+        </tr>
         <tr>
             <td class="category">Catatan</td>
             <td>{{ $loanitem->notes ?? 'Kebutuhan lainnya menyesuaikan' }}</td>
         </tr>
     </table>
 
-    <!-- Debug information (remove in production) -->
-    <div style="font-size: 8px; color: #999; margin: 5px 0;">
+    <!-- Debug information - Keeping for reference but hidden in production -->
+    <div style="font-size: 8px; color: #999; margin: 5px 0; display: none;">
         @foreach($loanitem->items as $item)
         Item: {{ $item->name }}, Category: "{{ $item->category ?? 'NULL' }}", Quantity: {{ $item->pivot->quantity }}<br>
         @endforeach
     </div>
 
-    <div class="section-title">Requested</div>
+    <!-- Remove section title as it's now in the signature boxes -->
+    <!--<div class="section-title">Requested</div>-->
 
     <div class="signatures">
         <div class="signature-box">
+            <div class="signature-title">Requested</div>
             <div class="check checked"></div>
             <div>Produser/Ass.</div>
         </div>
 
         <div class="signature-box">
+            <div class="signature-title">Crew</div>
             <div class="check checked"></div>
             <div>Campers</div>
         </div>
 
         <div class="signature-box">
+            <div class="signature-title">Approval</div>
             <div class="check {{ $loanitem->approval_admin_logistics ? 'checked' : '' }}"></div>
             <div>Logistik</div>
         </div>
