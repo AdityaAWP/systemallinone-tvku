@@ -50,6 +50,7 @@ class LeaveStatusUpdated extends Notification implements ShouldQueue
             $mailMessage = (new MailMessage)
                 ->subject('Status Permintaan Cuti: ' . $status)
                 ->greeting('Halo ' . $notifiable->name)
+                ->line('Status permintaan cuti Anda telah diperbarui sebagai berikut:')
                 ->line('Permintaan cuti ' . $leaveType . ' Anda dari ' . $this->leave->from_date->format('d M Y') .
                     ' sampai ' . $this->leave->to_date->format('d M Y') . ' telah ' . $status . $approver . '.');
 
@@ -59,7 +60,8 @@ class LeaveStatusUpdated extends Notification implements ShouldQueue
 
             return $mailMessage
                 ->action('Lihat Detail', $url)
-                ->line('Terima kasih telah menggunakan sistem manajemen cuti kami.');
+                ->line('Terima kasih telah menggunakan sistem manajemen cuti kami.')
+                ->line('Jika ada pertanyaan, silakan hubungi HRD.');
         } catch (\Exception $e) {
             Log::error('Error sending leave status update email: ' . $e->getMessage());
             return (new MailMessage)

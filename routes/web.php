@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LetterAttachmentController;
 use App\Http\Controllers\PDFLoanController;
 use App\Http\Controllers\LeaveTokenActionController;
+use App\Http\Controllers\LeaveDetailController;
 
 Route::get('/', function () {
     return redirect()->route('filament.admin.pages.dashboard');
@@ -49,3 +50,8 @@ Route::get('/attachment/{attachment}/download', [LetterAttachmentController::cla
 Route::delete('/attachment/{attachment}/delete', [LetterAttachmentController::class, 'delete'])
     ->middleware(['auth'])
     ->name('attachment.delete');
+
+//lihat detail email staff
+Route::get('/leave/detail/{id}', [LeaveDetailController::class, 'show'])
+    ->name('leave.detail')
+    ->middleware('auth');

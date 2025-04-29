@@ -9,6 +9,7 @@ use Filament\Notifications\Notification as FilamentNotification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class EditLeave extends EditRecord
 {
@@ -60,25 +61,25 @@ class EditLeave extends EditRecord
 
         // Send notification if status changed
         if ($statusChanged && $updatedRecord->status !== $originalStatus) {
-            // Send email notification to the employee
-            $updatedRecord->user->notify(new LeaveStatusUpdated($updatedRecord));
-            
-            // If leave was rejected and was a casual leave, refund the quota
-            if ($updatedRecord->status === 'rejected' && $updatedRecord->leave_type === 'casual') {
-                $quota = $updatedRecord->user->getCurrentYearQuota();
-                $quota->casual_used = max(0, $quota->casual_used - 1);
-                $quota->save();
+            try {
+                // Kirim notifikasi ke staff yang mengajukan cuti
+                $updatedRecord->user->notify(new LeaveStatusUpdated($updatedRecord));
+                
+                Log::info('Notifikasi status cuti dikirim ke: ' . $updatedRecord->user->email);
+                
+                FilamentNotification::make()
+                    ->title('Notifikasi Terkirim')
+                    ->body('Email notifikasi telah dikirim ke ' . $updatedRecord->user->email)
+                    ->success()
+                    ->send();
+            } catch (\Exception $e) {
+                Log::error('Gagal mengirim notifikasi: ' . $e->getMessage());
+                FilamentNotification::make()
+                    ->title('Gagal Mengirim Notifikasi')
+                    ->body('Status cuti berhasil diupdate tetapi gagal mengirim email notifikasi')
+                    ->danger()
+                    ->send();
             }
-            
-            // Status message for UI notification
-            $statusMsg = $updatedRecord->status === 'approved' ? 'disetujui' : 'ditolak';
-            
-            // Show a notification in the UI
-            FilamentNotification::make()
-                ->title('Status cuti telah diperbarui')
-                ->body("Karyawan telah diberitahu melalui email bahwa permintaan cuti telah $statusMsg.")
-                ->success()
-                ->send();
         }
 
         return $updatedRecord;

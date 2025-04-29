@@ -13,7 +13,7 @@ class LeaveTokenActionController extends Controller
     public function approve($token)
     {
         Log::info('Mencoba menyetujui cuti dengan token: ' . $token);
-        
+
         $leave = Leave::where('approval_token', $token)->first();
 
         if (!$leave) {
@@ -24,14 +24,14 @@ class LeaveTokenActionController extends Controller
                 'status' => 'error'
             ]);
         }
-        
+
         // Cek parameter role dari URL
         $role = request()->query('role');
-        
+
         if ($role == 'manager') {
             $leave->approval_manager = true;
             $approverRole = 'Manager';
-            
+
             // Jika HRD sudah approve
             if ($leave->approval_hrd === true) {
                 $leave->status = 'approved';
@@ -40,7 +40,7 @@ class LeaveTokenActionController extends Controller
             // Default ke HRD jika tidak disebutkan
             $leave->approval_hrd = true;
             $approverRole = 'HRD';
-            
+
             // Jika Manager sudah approve
             if ($leave->approval_manager === true) {
                 $leave->status = 'approved';
@@ -56,9 +56,9 @@ class LeaveTokenActionController extends Controller
         if ($leave->status == 'approved') {
             try {
                 $leave->user->notify(new LeaveStatusUpdated($leave));
-                Log::info('Notifikasi status cuti terkirim ke: ' . $leave->user->email);
+                Log::info('Notifikasi persetujuan cuti terkirim ke staff: ' . $leave->user->email);
             } catch (\Exception $e) {
-                Log::error('Gagal mengirim notifikasi status cuti: ' . $e->getMessage());
+                Log::error('Gagal mengirim notifikasi ke staff: ' . $e->getMessage());
             }
         }
 
@@ -72,7 +72,7 @@ class LeaveTokenActionController extends Controller
     public function reject($token)
     {
         Log::info('Mencoba menolak cuti dengan token: ' . $token);
-        
+
         $leave = Leave::where('approval_token', $token)->first();
 
         if (!$leave) {
@@ -83,10 +83,10 @@ class LeaveTokenActionController extends Controller
                 'status' => 'error'
             ]);
         }
-        
+
         // Cek parameter role dari URL
         $role = request()->query('role');
-        
+
         if ($role == 'manager') {
             $leave->approval_manager = false;
             $leave->rejection_reason = 'Ditolak oleh Manager melalui email';
@@ -97,9 +97,9 @@ class LeaveTokenActionController extends Controller
             $leave->rejection_reason = 'Ditolak oleh HRD melalui email';
             $rejecterRole = 'HRD';
         }
-        
+
         $leave->status = 'rejected';
-        
+
         // Simpan perubahan
         $leave->save();
 
@@ -118,9 +118,9 @@ class LeaveTokenActionController extends Controller
         // Kirim notifikasi ke staff
         try {
             $leave->user->notify(new LeaveStatusUpdated($leave));
-            Log::info('Notifikasi status cuti terkirim ke: ' . $leave->user->email);
+            Log::info('Notifikasi penolakan cuti terkirim ke staff: ' . $leave->user->email);
         } catch (\Exception $e) {
-            Log::error('Gagal mengirim notifikasi status cuti: ' . $e->getMessage());
+            Log::error('Gagal mengirim notifikasi penolakan: ' . $e->getMessage());
         }
 
         return view('leave.action-response', [
