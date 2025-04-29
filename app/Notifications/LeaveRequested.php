@@ -29,12 +29,16 @@ class LeaveRequested extends Notification implements ShouldQueue
     {
         // Gunakan config('app.url') untuk mendapatkan URL lengkap dengan port
         $baseUrl = config('app.url');
-        $approveUrl = $baseUrl . '/leave/approve-by-token/' . $this->leave->approval_token;
-        $rejectUrl = $baseUrl . '/leave/reject-by-token/' . $this->leave->approval_token;
+
+        // Tentukan role dari notifiable
+        $role = $notifiable->hasRole('manager') ? 'manager' : 'hrd';
+
+        $approveUrl = $baseUrl . '/leave/approve-by-token/' . $this->leave->approval_token . '?role=' . $role;
+        $rejectUrl = $baseUrl . '/leave/reject-by-token/' . $this->leave->approval_token . '?role=' . $role;
 
         $leaveType = $this->translateLeaveType($this->leave->leave_type);
 
-        Log::info('Mengirim email permintaan cuti ke: ' . $notifiable->email);
+        Log::info('Mengirim email permintaan cuti ke: ' . $notifiable->email . ' sebagai ' . $role);
         Log::info('Link approve: ' . $approveUrl);
         Log::info('Link reject: ' . $rejectUrl);
 
@@ -45,11 +49,10 @@ class LeaveRequested extends Notification implements ShouldQueue
             ->line('Dari: ' . $this->leave->from_date->format('d M Y') . ' Sampai: ' . $this->leave->to_date->format('d M Y'))
             ->line('Alasan: ' . $this->leave->reason)
             ->action('Setujui', $approveUrl)
-            ->line('')
+            ->line('Atau')
             ->action('Tolak', $rejectUrl)
             ->line('Mohon tinjau permintaan ini secepatnya.');
     }
-
     public function toDatabase($notifiable)
     {
         return [

@@ -24,26 +24,42 @@ class LeaveTokenActionController extends Controller
                 'status' => 'error'
             ]);
         }
-
-        $leave->approval_hrd = true;
-
-        // Jika Manager sudah approve atau tidak perlu approval manager
-        if ($leave->approval_manager === true || $leave->approval_manager === null) {
-            $leave->status = 'approved';
+        
+        // Cek parameter role dari URL
+        $role = request()->query('role');
+        
+        if ($role == 'manager') {
+            $leave->approval_manager = true;
+            $approverRole = 'Manager';
+            
+            // Jika HRD sudah approve
+            if ($leave->approval_hrd === true) {
+                $leave->status = 'approved';
+            }
+        } else {
+            // Default ke HRD jika tidak disebutkan
+            $leave->approval_hrd = true;
+            $approverRole = 'HRD';
+            
+            // Jika Manager sudah approve
+            if ($leave->approval_manager === true) {
+                $leave->status = 'approved';
+            }
         }
 
-        // Invalidasi token setelah digunakan
-        $leave->approval_token = null;
+        // Simpan perubahan
         $leave->save();
 
-        Log::info('Cuti dengan ID ' . $leave->id . ' disetujui oleh HRD');
+        Log::info('Cuti dengan ID ' . $leave->id . ' disetujui oleh ' . $approverRole);
 
-        // Kirim notifikasi ke staff
-        try {
-            $leave->user->notify(new LeaveStatusUpdated($leave));
-            Log::info('Notifikasi status cuti terkirim ke: ' . $leave->user->email);
-        } catch (\Exception $e) {
-            Log::error('Gagal mengirim notifikasi status cuti: ' . $e->getMessage());
+        // Kirim notifikasi ke staff jika status berubah menjadi approved
+        if ($leave->status == 'approved') {
+            try {
+                $leave->user->notify(new LeaveStatusUpdated($leave));
+                Log::info('Notifikasi status cuti terkirim ke: ' . $leave->user->email);
+            } catch (\Exception $e) {
+                Log::error('Gagal mengirim notifikasi status cuti: ' . $e->getMessage());
+            }
         }
 
         return view('leave.action-response', [
@@ -67,16 +83,27 @@ class LeaveTokenActionController extends Controller
                 'status' => 'error'
             ]);
         }
-
-        $leave->approval_hrd = false;
+        
+        // Cek parameter role dari URL
+        $role = request()->query('role');
+        
+        if ($role == 'manager') {
+            $leave->approval_manager = false;
+            $leave->rejection_reason = 'Ditolak oleh Manager melalui email';
+            $rejecterRole = 'Manager';
+        } else {
+            // Default ke HRD jika tidak disebutkan
+            $leave->approval_hrd = false;
+            $leave->rejection_reason = 'Ditolak oleh HRD melalui email';
+            $rejecterRole = 'HRD';
+        }
+        
         $leave->status = 'rejected';
-        $leave->rejection_reason = 'Ditolak oleh HRD melalui email';
-
-        // Invalidasi token setelah digunakan
-        $leave->approval_token = null;
+        
+        // Simpan perubahan
         $leave->save();
 
-        Log::info('Cuti dengan ID ' . $leave->id . ' ditolak oleh HRD');
+        Log::info('Cuti dengan ID ' . $leave->id . ' ditolak oleh ' . $rejecterRole);
 
         // Jika cuti casual, kembalikan quota
         if ($leave->leave_type === 'casual') {

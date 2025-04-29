@@ -5,6 +5,7 @@ use App\Http\Controllers\PDFController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LetterAttachmentController;
 use App\Http\Controllers\PDFLoanController;
+use App\Http\Controllers\LeaveTokenActionController;
 
 Route::get('/', function () {
     return redirect()->route('filament.admin.pages.dashboard');
@@ -33,20 +34,11 @@ Route::get('downloadpdf/{id}', [PDFController::class, 'userpdf'])->name('overtim
 //Peminjaman
 Route::get('download/{id}', [PDFLoanController::class, 'userpdf'])->name('loanitem.single');
 
-// // Leave Approval Routes
-// Route::get('/leave/approve/{leave}/{user}', [App\Http\Controllers\LeaveActionController::class, 'approve'])
-//     ->name('leave.approve')
-//     ->middleware('signed');
-
-// Route::get('/leave/reject/{leave}/{user}', [App\Http\Controllers\LeaveActionController::class, 'reject'])
-//     ->name('leave.reject')
-//     ->middleware('signed');
-
 // Leave Routes Baru
-Route::get('/leave/approve-by-token/{token}', [App\Http\Controllers\LeaveTokenActionController::class, 'approve'])
+Route::get('/leave/approve-by-token/{token}', [LeaveTokenActionController::class, 'approve'])
     ->name('leave.approve.token');
     
-Route::get('/leave/reject-by-token/{token}', [App\Http\Controllers\LeaveTokenActionController::class, 'reject'])
+Route::get('/leave/reject-by-token/{token}', [LeaveTokenActionController::class, 'reject'])
     ->name('leave.reject.token');
 
 // Letter Attachment Routes

@@ -17,97 +17,121 @@ class RolesPermissionsSeeder extends Seeder
         $staffKeuanganRole = Role::create(['name' => 'staff_keuangan', 'guard_name' => 'web']);
         $adminUmumRole = Role::create(['name' => 'admin_umum', 'guard_name' => 'web']);
         
-        // Define permissions manually instead of using Utils::getResourcePermissionPrefixes()
-        $permissionPrefixes = ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'];
+        // Define permissions for each resource type
+        $resources = ['financial_assignment_letter', 'incoming_letter', 'outgoing_letter'];
+        $permissions = [];
         
-        $resourcePermissions = collect($permissionPrefixes)
-            ->flatMap(function ($prefix) {
-                return [
-                    "{$prefix}_financial_assignment_letter",
-                    "{$prefix}_incoming_letter",
-                    "{$prefix}_outgoing_letter",
-                ];
-            })
-            ->toArray();
-            
-        $permissions = collect($resourcePermissions)
-            ->map(function ($permission) {
-                return ['name' => $permission, 'guard_name' => 'web'];
-            })
-            ->toArray();
-            
+        foreach ($resources as $resource) {
+            $permissions = array_merge($permissions, [
+                ['name' => 'view_any_' . $resource, 'guard_name' => 'web'],
+                ['name' => 'view_' . $resource, 'guard_name' => 'web'],
+                ['name' => 'create_' . $resource, 'guard_name' => 'web'],
+                ['name' => 'update_' . $resource, 'guard_name' => 'web'],
+                ['name' => 'delete_' . $resource, 'guard_name' => 'web'],
+                ['name' => 'delete_any_' . $resource, 'guard_name' => 'web'],
+            ]);
+        }
+        
+        // Insert all permissions
         Permission::insert($permissions);
         
         // Assign permissions to roles
         
-        // Direktur Utama permissions
-        $direkturUtamaRole->givePermissionTo([
-            'view_any_financial_assignment_letter',
-            'view_financial_assignment_letter',
-            'create_financial_assignment_letter',
-            'update_financial_assignment_letter',
-            'delete_financial_assignment_letter',
-            'delete_any_financial_assignment_letter',
-        ]);
+        // Direktur Utama - Full access to all resources
+        $direkturUtamaRole->givePermissionTo(
+            Permission::whereIn('name', [
+                'view_any_financial_assignment_letter',
+                'view_financial_assignment_letter',
+                'create_financial_assignment_letter',
+                'update_financial_assignment_letter',
+                'delete_financial_assignment_letter',
+                'delete_any_financial_assignment_letter',
+                
+                'view_any_incoming_letter',
+                'view_incoming_letter',
+                'create_incoming_letter',
+                'update_incoming_letter',
+                'delete_incoming_letter',
+                'delete_any_incoming_letter',
+                
+                'view_any_outgoing_letter',
+                'view_outgoing_letter',
+                'create_outgoing_letter',
+                'update_outgoing_letter',
+                'delete_outgoing_letter',
+                'delete_any_outgoing_letter',
+            ])->pluck('name')->toArray()
+        );
         
-        // Manager Keuangan permissions
-        $managerKeuanganRole->givePermissionTo([
-            'view_any_financial_assignment_letter',
-            'view_financial_assignment_letter',
-            'create_financial_assignment_letter',
-            'update_financial_assignment_letter',
-            'delete_financial_assignment_letter',
-            'delete_any_financial_assignment_letter',
-        ]);
+        // Manager Keuangan - Full access to financial_assignment_letter only
+        $managerKeuanganRole->givePermissionTo(
+            Permission::whereIn('name', [
+                'view_any_financial_assignment_letter',
+                'view_financial_assignment_letter',
+                'create_financial_assignment_letter',
+                'update_financial_assignment_letter',
+                'delete_financial_assignment_letter',
+                'delete_any_financial_assignment_letter',
+            ])->pluck('name')->toArray()
+        );
         
-        // Staff Keuangan permissions
-        $staffKeuanganRole->givePermissionTo([
-            'view_any_financial_assignment_letter',
-            'view_financial_assignment_letter',
-            'create_financial_assignment_letter',
-            'update_financial_assignment_letter',
-            'delete_financial_assignment_letter',
-        ]);
+        // Staff Keuangan - Limited access to financial_assignment_letter (no delete_any)
+        $staffKeuanganRole->givePermissionTo(
+            Permission::whereIn('name', [
+                'view_any_financial_assignment_letter',
+                'view_financial_assignment_letter',
+                'create_financial_assignment_letter',
+                'update_financial_assignment_letter',
+                'delete_financial_assignment_letter',
+            ])->pluck('name')->toArray()
+        );
         
-        // Admin Umum permissions
-        $adminUmumRole->givePermissionTo([
-            'view_any_incoming_letter',
-            'view_incoming_letter',
-            'create_incoming_letter',
-            'update_incoming_letter',
-            'delete_incoming_letter',
-            'delete_any_incoming_letter',
-            'view_any_outgoing_letter',
-            'view_outgoing_letter',
-            'create_outgoing_letter',
-            'update_outgoing_letter',
-            'delete_outgoing_letter',
-            'delete_any_outgoing_letter',
-        ]);
+        // Admin Umum - Full access to incoming and outgoing letters only
+        $adminUmumRole->givePermissionTo(
+            Permission::whereIn('name', [
+                'view_any_incoming_letter',
+                'view_incoming_letter',
+                'create_incoming_letter',
+                'update_incoming_letter',
+                'delete_incoming_letter',
+                'delete_any_incoming_letter',
+                
+                'view_any_outgoing_letter',
+                'view_outgoing_letter',
+                'create_outgoing_letter',
+                'update_outgoing_letter',
+                'delete_outgoing_letter',
+                'delete_any_outgoing_letter',
+            ])->pluck('name')->toArray()
+        );
         
         // Create sample users for each role
-        User::create([
+        $direktur = User::create([
             'name' => 'Direktur Utama',
             'email' => 'direktur@example.com',
             'password' => bcrypt('password'),
-        ])->assignRole($direkturUtamaRole);
+        ]);
+        $direktur->assignRole($direkturUtamaRole);
         
-        User::create([
+        $manager = User::create([
             'name' => 'Manager Keuangan',
             'email' => 'manager@example.com',
             'password' => bcrypt('password'),
-        ])->assignRole($managerKeuanganRole);
+        ]);
+        $manager->assignRole($managerKeuanganRole);
         
-        User::create([
+        $staff = User::create([
             'name' => 'Staff Keuangan',
             'email' => 'staff@example.com',
             'password' => bcrypt('password'),
-        ])->assignRole($staffKeuanganRole);
+        ]);
+        $staff->assignRole($staffKeuanganRole);
         
-        User::create([
+        $admin = User::create([
             'name' => 'Admin Umum',
             'email' => 'adminumum@example.com',
             'password' => bcrypt('password'),
-        ])->assignRole($adminUmumRole);
+        ]);
+        $admin->assignRole($adminUmumRole);
     }
 }
