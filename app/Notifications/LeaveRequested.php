@@ -27,10 +27,8 @@ class LeaveRequested extends Notification implements ShouldQueue
 
     public function toMail($notifiable)
     {
-        // Gunakan config('app.url') untuk mendapatkan URL lengkap dengan port
         $baseUrl = config('app.url');
 
-        // Tentukan role dari notifiable
         $role = $notifiable->hasRole('manager') ? 'manager' : 'hrd';
 
         $approveUrl = $baseUrl . '/leave/approve-by-token/' . $this->leave->approval_token . '?role=' . $role;
@@ -42,17 +40,25 @@ class LeaveRequested extends Notification implements ShouldQueue
         Log::info('Link approve: ' . $approveUrl);
         Log::info('Link reject: ' . $rejectUrl);
 
+        // Gunakan view kustom modern dengan Tailwind dan font Poppins
         return (new MailMessage)
-            ->subject('Permintaan Cuti Baru dari ' . $this->leave->user->name)
-            ->greeting('Halo ' . $notifiable->name)
-            ->line($this->leave->user->name . ' telah mengajukan ' . $this->leave->days . ' hari cuti ' . $leaveType . '.')
-            ->line('Dari: ' . $this->leave->from_date->format('d M Y') . ' Sampai: ' . $this->leave->to_date->format('d M Y'))
-            ->line('Alasan: ' . $this->leave->reason)
-            ->action('Setujui', $approveUrl)
-            ->line('Atau')
-            ->action('Tolak', $rejectUrl)
-            ->line('Mohon tinjau permintaan ini secepatnya.');
+            ->subject('✉️ Permintaan Cuti dari ' . $this->leave->user->name)
+            ->view(
+                'emails.leave-request', 
+                [
+                    'name' => $notifiable->name,
+                    'requester' => $this->leave->user->name,
+                    'days' => $this->leave->days,
+                    'leaveType' => $leaveType,
+                    'fromDate' => $this->leave->from_date->format('d M Y'),
+                    'toDate' => $this->leave->to_date->format('d M Y'),
+                    'reason' => $this->leave->reason,
+                    'approveUrl' => $approveUrl,
+                    'rejectUrl' => $rejectUrl
+                ]
+            );
     }
+    
     public function toDatabase($notifiable)
     {
         return [
