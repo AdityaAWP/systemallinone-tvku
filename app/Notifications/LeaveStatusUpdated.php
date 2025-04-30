@@ -28,13 +28,11 @@ class LeaveStatusUpdated extends Notification implements ShouldQueue
     public function toMail($notifiable)
     {
         try {
-            // Gunakan config('app.url') untuk mendapatkan URL lengkap dengan port
-            $url = config('app.url') . '/admin/resources/leaves/' . $this->leave->id;
+            $url = route('leave.detail', ['id' => $this->leave->id]);
 
             $status = $this->translateStatus($this->leave->status);
             $leaveType = $this->translateLeaveType($this->leave->leave_type);
 
-            // Tambahkan informasi siapa yang melakukan approval/reject
             $approver = '';
             if ($this->leave->status != 'pending') {
                 if ($this->leave->approval_manager !== null) {
