@@ -30,7 +30,7 @@
         /* Header */
         .email-header {
             background: linear-gradient(to right, #1f2937, #3b82f6);
-            color: white;
+            color: #ffffff !important;
             padding: 20px;
             display: flex;
             align-items: center;
@@ -39,6 +39,7 @@
         .email-header h2 {
             font-size: 20px;
             font-weight: 600;
+            color: #ffffff !important;
             margin: 0;
             font-family: 'Poppins', sans-serif;
         }
@@ -120,11 +121,13 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             font-family: 'Poppins', sans-serif;
-            margin-right: 10px; /* Add spacing between buttons */
+            margin-right: 10px;
+            /* Add spacing between buttons */
         }
 
         .button-container .button:last-child {
-            margin-right: 0; /* Remove margin for the last button */
+            margin-right: 0;
+            /* Remove margin for the last button */
         }
 
         .button-approve {
@@ -177,8 +180,9 @@
             <h1 class="greeting">Halo, {{ $name }}</h1>
 
             <p class="text">
-                        <span class="text-primary font-semibold">{{ $requester }}</span> telah mengajukan cuti dan membutuhkan persetujuan Anda.
-                    </p>
+                <span class="text-primary font-semibold">{{ $requester }}</span> telah mengajukan cuti dan membutuhkan
+                persetujuan Anda.
+            </p>
 
             <h2 class="section-title">Detail Cuti</h2>
 
