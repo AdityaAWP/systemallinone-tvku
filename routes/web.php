@@ -7,6 +7,7 @@ use App\Http\Controllers\LetterAttachmentController;
 use App\Http\Controllers\PDFLoanController;
 use App\Http\Controllers\LeaveTokenActionController;
 use App\Http\Controllers\LeaveDetailController;
+use App\Http\Controllers\PDFAssignmentController;
 
 Route::get('/', function () {
     return redirect()->route('filament.admin.pages.dashboard');
@@ -34,6 +35,8 @@ Route::get('downloadpdf/{id}', [PDFController::class, 'userpdf'])->name('overtim
 
 //Peminjaman
 Route::get('download/{id}', [PDFLoanController::class, 'userpdf'])->name('loanitem.single');
+Route::get('downloadassignment/{id}', [PDFAssignmentController::class, 'generateSinglePDF'])->name('assignment.single');
+
 
 // Leave Routes Baru
 Route::get('/leave/approve-by-token/{token}', [LeaveTokenActionController::class, 'approve'])

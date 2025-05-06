@@ -269,6 +269,9 @@ class AssignmentResource extends Resource
                     ->hidden(fn(Assignment $record) =>
                     $record->approval_status !== Assignment::STATUS_PENDING ||
                         Auth::user()->hasRole('direktur_keuangan')),
+                    Tables\Actions\Action::make('download') 
+                        ->url(fn(Assignment $assignment) => route('assignment.single', $assignment))
+                        ->openUrlInNewTab()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
