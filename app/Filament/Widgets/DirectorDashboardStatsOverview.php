@@ -29,12 +29,6 @@ class DirectorDashboardStatsOverview extends BaseWidget
             ->whereBetween('approved_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
             ->count();
 
-        // Total assignment value this month (only paid type)
-        $totalValueThisMonth = Assignment::where('approval_status', Assignment::STATUS_APPROVED)
-            ->where('type', Assignment::TYPE_PAID)
-            ->whereBetween('approved_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
-            ->sum('amount');
-
         return [
             Stat::make('Pending Assignments', $pendingCount)
                 ->description('Awaiting your approval')
@@ -49,11 +43,6 @@ class DirectorDashboardStatsOverview extends BaseWidget
             Stat::make('Approved This Month', $approvedThisMonth)
                 ->description('Since ' . Carbon::now()->startOfMonth()->format('d M Y'))
                 ->descriptionIcon('heroicon-m-check-circle')
-                ->color('success'),
-
-            Stat::make('Monthly Value', 'Rp ' . number_format($totalValueThisMonth, 0, ',', '.'))
-                ->description('Total approved amount this month')
-                ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
         ];
     }

@@ -18,12 +18,13 @@ class Assignment extends Model
         'amount',
         'marketing_expense',
         'deadline',
-        'notes',
+        'production_notes',
         'type',
         'priority',
         'approval_status',
         'approved_by',
         'approved_at',
+        'created_date',
     ];
 
     protected $casts = [

@@ -21,7 +21,7 @@ class AssignmentResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
     protected static ?string $navigationLabel = 'Assignments';
-    
+
     protected static ?string $navigationGroup = 'Finance Management';
 
     public static function getNavigationBadge(): ?string
@@ -52,34 +52,40 @@ class AssignmentResource extends Resource
                                     ->required()
                                     ->live()
                                     ->default(Assignment::TYPE_FREE)
-                                    ->disabled(fn ($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+
+                                    Forms\Components\DatePicker::make('created_date')
+                                    ->required()
+                                    ->label('Created date'),
 
                                 Forms\Components\DatePicker::make('deadline')
                                     ->required()
                                     ->minDate(Carbon::now())
-                                    ->disabled(fn ($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
                                 Forms\Components\TextInput::make('client')
                                     ->required()
                                     ->maxLength(255)
-                                    ->disabled(fn ($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
                                 Forms\Components\TextInput::make('spp_number')
                                     ->label('SPP Number')
                                     ->required()
                                     ->maxLength(255)
-                                    ->disabled(fn ($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
                                 Forms\Components\TextInput::make('spk_number')
                                     ->label('SPK Number')
                                     ->maxLength(255)
-                                    ->hidden(fn (Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
-                                    ->disabled(fn ($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
                                 Forms\Components\Textarea::make('description')
                                     ->required()
                                     ->columnSpanFull()
-                                    ->disabled(fn ($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+
+
                             ]),
 
                         Forms\Components\Tabs\Tab::make('Financial Details')
@@ -89,24 +95,24 @@ class AssignmentResource extends Resource
                                     ->numeric()
                                     ->prefix('Rp')
                                     ->inputMode('decimal')
-                                    ->hidden(fn (Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
-                                    ->disabled(fn ($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
                                 Forms\Components\TextInput::make('marketing_expense')
                                     ->label('Marketing Expense')
                                     ->numeric()
                                     ->prefix('Rp')
                                     ->inputMode('decimal')
-                                    ->hidden(fn (Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
-                                    ->disabled(fn ($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
                             ])
-                            ->hidden(fn (Forms\Get $get) => $get('type') === Assignment::TYPE_FREE),
+                            ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE),
 
                         Forms\Components\Tabs\Tab::make('Additional Information')
                             ->schema([
-                                Forms\Components\Textarea::make('notes')
+                                Forms\Components\Textarea::make('production_notes')
                                     ->columnSpanFull()
-                                    ->disabled(fn ($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
                                 Forms\Components\Select::make('priority')
                                     ->label('Priority Level')
@@ -116,8 +122,8 @@ class AssignmentResource extends Resource
                                         Assignment::PRIORITY_VERY_IMPORTANT => 'Very Important',
                                     ])
                                     ->default(Assignment::PRIORITY_NORMAL)
-                                    ->hidden(fn (Forms\Get $get) => $get('type') !== Assignment::TYPE_PAID)
-                                    ->disabled(fn ($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->hidden(fn(Forms\Get $get) => $get('type') !== Assignment::TYPE_PAID)
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
                             ]),
 
                         Forms\Components\Tabs\Tab::make('Approval')
@@ -130,20 +136,20 @@ class AssignmentResource extends Resource
                                         Assignment::STATUS_DECLINED => 'Declined',
                                     ])
                                     ->default(Assignment::STATUS_PENDING)
-                                    ->disabled(fn () => !Auth::user()->hasRole('direktur_keuangan'))
-                                    ->hidden(fn (Forms\Get $get) => in_array($get('type'), [Assignment::TYPE_FREE, Assignment::TYPE_BARTER])),
+                                    ->disabled(fn() => !Auth::user()->hasRole('direktur_keuangan'))
+                                    ->hidden(fn(Forms\Get $get) => in_array($get('type'), [Assignment::TYPE_FREE, Assignment::TYPE_BARTER])),
 
                                 Forms\Components\Placeholder::make('approved_at')
                                     ->label('Approved/Declined At')
-                                    ->content(fn (Assignment $record): string => $record->approved_at ? $record->approved_at->format('d M Y H:i') : '-')
+                                    ->content(fn(Assignment $record): string => $record->approved_at ? $record->approved_at->format('d M Y H:i') : '-')
                                     ->hiddenOn('create'),
 
                                 Forms\Components\Placeholder::make('approver')
                                     ->label('Approved/Declined By')
-                                    ->content(fn (Assignment $record): string => $record->approver ? $record->approver->name : '-')
+                                    ->content(fn(Assignment $record): string => $record->approver ? $record->approver->name : '-')
                                     ->hiddenOn('create'),
                             ])
-                            ->hidden(fn ($context) => $context === 'create'),
+                            ->hidden(fn($context) => $context === 'create'),
                     ])
                     ->columnSpanFull(),
             ]);
@@ -156,58 +162,61 @@ class AssignmentResource extends Resource
                 Tables\Columns\TextColumn::make('client')
                     ->searchable()
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('spp_number')
                     ->label('SPP Number')
                     ->searchable(),
-                
+
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         Assignment::TYPE_FREE => 'gray',
                         Assignment::TYPE_PAID => 'success',
                         Assignment::TYPE_BARTER => 'info',
                         default => 'gray',
                     }),
-                
+
                 Tables\Columns\TextColumn::make('deadline')
                     ->date('d M Y')
                     ->sortable()
-                    ->color(fn (Assignment $record) => 
-                        $record->deadline->isPast() ? 'danger' : 
-                        ($record->deadline->isToday() ? 'warning' : 'success')),
-                
+                    ->color(fn(Assignment $record) =>
+                    $record->deadline->isPast() ? 'danger' : ($record->deadline->isToday() ? 'warning' : 'success')),
+
                 Tables\Columns\TextColumn::make('amount')
                     ->money('IDR')
                     ->sortable()
-                    ->hidden(fn () => Auth::user()->hasRole('direktur_keuangan')),
-                
-                Tables\Columns\IconColumn::make('priority')
-                    ->options([
-                        'heroicon-o-signal' => Assignment::PRIORITY_NORMAL,
-                        'heroicon-o-exclamation-triangle' => Assignment::PRIORITY_IMPORTANT,
-                        'heroicon-o-exclamation-circle' => Assignment::PRIORITY_VERY_IMPORTANT,
-                    ])
+                    ->hidden(fn() => Auth::user()->hasRole('direktur_keuangan')),
+
+                Tables\Columns\TextColumn::make('priority')
+                    ->badge()
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            Assignment::PRIORITY_NORMAL => 'Normal',
+                            Assignment::PRIORITY_IMPORTANT => 'Important',
+                            Assignment::PRIORITY_VERY_IMPORTANT => 'Very Important',
+                            default => $state,
+                        };
+                    })
                     ->colors([
                         'secondary' => Assignment::PRIORITY_NORMAL,
                         'warning' => Assignment::PRIORITY_IMPORTANT,
                         'danger' => Assignment::PRIORITY_VERY_IMPORTANT,
                     ])
-                    ->hidden(fn () => Auth::user()->hasRole('direktur_keuangan')),
-                
+                    ->hidden(fn() => Auth::user()->hasRole('direktur_keuangan')),
+
                 Tables\Columns\TextColumn::make('approval_status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         Assignment::STATUS_PENDING => 'warning',
                         Assignment::STATUS_APPROVED => 'success',
                         Assignment::STATUS_DECLINED => 'danger',
                         default => 'gray',
                     }),
-                
-                Tables\Columns\TextColumn::make('created_at')
+
+                Tables\Columns\TextColumn::make('created_date')
+                    ->label('Created Date')
                     ->date('d M Y')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
@@ -216,14 +225,14 @@ class AssignmentResource extends Resource
                         Assignment::TYPE_PAID => 'Paid',
                         Assignment::TYPE_BARTER => 'Barter',
                     ]),
-                
+
                 Tables\Filters\SelectFilter::make('approval_status')
                     ->options([
                         Assignment::STATUS_PENDING => 'Pending',
                         Assignment::STATUS_APPROVED => 'Approved',
                         Assignment::STATUS_DECLINED => 'Declined',
                     ]),
-                
+
                 Tables\Filters\Filter::make('deadline')
                     ->form([
                         Forms\Components\DatePicker::make('deadline_from'),
@@ -233,11 +242,11 @@ class AssignmentResource extends Resource
                         return $query
                             ->when(
                                 $data['deadline_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('deadline', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('deadline', '>=', $date),
                             )
                             ->when(
                                 $data['deadline_to'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('deadline', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('deadline', '<=', $date),
                             );
                     }),
             ])
@@ -246,28 +255,30 @@ class AssignmentResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->mutateRecordDataUsing(function (Model $record, array $data): array {
                         // Set approver data when updating approval status
-                        if (Auth::user()->hasRole('direktur_keuangan') && 
+                        if (
+                            Auth::user()->hasRole('direktur_keuangan') &&
                             $record->approval_status !== $data['approval_status'] &&
-                            in_array($data['approval_status'], [Assignment::STATUS_APPROVED, Assignment::STATUS_DECLINED])) {
+                            in_array($data['approval_status'], [Assignment::STATUS_APPROVED, Assignment::STATUS_DECLINED])
+                        ) {
                             $data['approved_by'] = Auth::id();
                             $data['approved_at'] = now();
                         }
                         return $data;
                     }),
                 Tables\Actions\DeleteAction::make()
-                    ->hidden(fn (Assignment $record) => 
-                        $record->approval_status !== Assignment::STATUS_PENDING || 
+                    ->hidden(fn(Assignment $record) =>
+                    $record->approval_status !== Assignment::STATUS_PENDING ||
                         Auth::user()->hasRole('direktur_keuangan')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->hidden(fn () => Auth::user()->hasRole('direktur_keuangan')),
+                        ->hidden(fn() => Auth::user()->hasRole('direktur_keuangan')),
                 ]),
             ])
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make()
-                    ->hidden(fn () => Auth::user()->hasRole('direktur_keuangan')),
+                    ->hidden(fn() => Auth::user()->hasRole('direktur_keuangan')),
             ])
             ->defaultSort('created_at', 'desc');
     }
@@ -288,7 +299,7 @@ class AssignmentResource extends Resource
             'edit' => Pages\EditAssignment::route('/{record}/edit'),
         ];
     }
-    
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery();
