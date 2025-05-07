@@ -36,7 +36,7 @@ Route::get('downloadpdf/{id}', [PDFController::class, 'userpdf'])->name('overtim
 //Peminjaman
 Route::get('download/{id}', [PDFLoanController::class, 'userpdf'])->name('loanitem.single');
 Route::get('downloadassignment/{id}', [PDFAssignmentController::class, 'generateSinglePDF'])->name('assignment.single');
-
+Route::get('/debug', [PDFAssignmentController::class, 'debug'])->name('debug');
 
 // Leave Routes Baru
 Route::get('/leave/approve-by-token/{token}', [LeaveTokenActionController::class, 'approve'])
@@ -58,3 +58,4 @@ Route::delete('/attachment/{attachment}/delete', [LetterAttachmentController::cl
 Route::get('/leave/detail/{id}', [LeaveDetailController::class, 'show'])
     ->name('leave.detail')
     ->middleware('auth');
+

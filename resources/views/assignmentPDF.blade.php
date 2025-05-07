@@ -1,15 +1,205 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>Surat Perintah Penugasan</title>
+    <link href="https://fonts.cdnfonts.com/css/dejavu-sans" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif, sans-serif;
+            margin: 0;
+            padding: 20px;
+            font-size: 12px;
+        }
+
+        .header {
+            position: relative;
+            padding-left: 50px;
+        }
+
+        .logo {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 60px;
+        }
+
+        .company-info {
+            font-weight: bold;
+            font-size: 14px;
+            margin-left: 20px;
+        }
+
+        .sub-info {
+            font-size: 12px;
+            font-weight: normal;
+        }
+
+        .document-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            text-decoration: underline;
+            margin: 20px 0 0px;
+        }
+
+        .document-number {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .content {
+            text-align: justify;
+            line-height: 1.5;
+            font-size: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid black;
+        }
+
+        th,
+        td {
+            padding: 8px;
+        }
+
+        .checkboxes {
+            margin: 15px 0;
+        }
+
+        .checkbox-item {
+            margin-bottom: 5px;
+        }
+
+        .checkbox {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 1px solid black;
+            margin-right: 5px;
+            position: relative;
+        }
+
+        .checked::after {
+            font-family: 'DejaVu Sans', sans-serif;
+            content: "✓";
+            position: absolute;
+            top: -12px;
+            left: 1px;
+        }
+
+        .footer {
+            margin-top: 30px;
+        }
+
+        .signature {
+            margin-top: 50px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .qr-code {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 10px;
+        }
+
+        .sign-note {
+            font-size: 10px;
+            color: blue;
+            margin-bottom: 5px;
+        }
+
+        .cc-list {
+            margin-top: 30px;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>This is Assigment PDF placeholder</h1>
+    <div class="header">
+        <img class="logo" src="{{ public_path('images/tvku-logo.png') }}" alt="TVKU Logo">
+        <div class="company-info">
+            PT. TELEVISI KAMPUS UNIVERSITAS DIAN NUSWANTORO<br>
+            <span class="sub-info"> JL.Nakula I No.5-11 Semarang</span>
+        </div>
+    </div>
+
+    <div class="document-title">SURAT PERINTAH PENUGASAN</div>
+    <div class="document-number">{{ $assignment->spp_number }}</div>
+
+    <div class="content">
+        <div>Berdasarkan :</div>
+        <p>SPK Nomor 0032/SPK/XI/TVKU/2021 (Fasilkom Udinus - Produksi Live Canon Semarang Photo Marathon)</p>
+        <p>Invoice Nomor I-158/KEU/TVKU/XI/2021</p>
+
+        <p>Dengan ini menugaskan Direktur Operasional untuk melakukan produksi maupun penayangan dengan ketentuan
+            sebagai berikut:</p>
+
+        <table>
+            <tr>
+                <td>Deadline Pengerjaan</td>
+                <td>26 November 2021</td>
+            </tr>
+            <tr>
+                <td>Info Waktu Produksi/Penayangan</td>
+                <td>
+                    Produksi Live<br>
+                    Pukul 08.00 WIB
+                </td>
+            </tr>
+        </table>
+
+        <div>Status Prioritas :</div>
+        <div class="checkboxes">
+            <div class="checkbox-item">
+                <span class="checkbox"></span>Sangat Penting
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"></span>Penting
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox checked"></span>Biasa
+            </div>
+        </div>
+
+        <p>Agar dilaksanakan sebaik-baiknya dengan penuh tanggung jawab</p>
+
+        <p>Dokumen ini telah ditandatangani secara elektronik sehingga tidak diperlukan tanda tangan basah pada dokumen
+            ini.</p>
+
+        <div class="footer">
+            <div style="text-align: left;">
+                Semarang, 24 November 2021
+                <div>
+                    Direktur Utama<br>
+                    PT. Televisi Kampus Udinus
+                </div>
+
+                <div class="signature">
+                    <div>Dr. Guruh Fajar Shidik, S.Kom, M.CS</div>
+                </div>
+            </div>
+
+            <div class="cc-list">
+                <div>Tembusan :</div>
+                <ol>
+                    <li>Manager Operasional</li>
+                    <li>Manager Teknik</li>
+                    <li>Manager Marketing</li>
+                </ol>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

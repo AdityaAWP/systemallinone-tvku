@@ -25,5 +25,11 @@ class PDFAssignmentController extends Controller
         // Jika ingin menampilkan PDF di browser tanpa download:
         // return $pdf->stream($filename);
     }
+    public function debug(Assignment $assignment) {
+        $assignment = Assignment::find(1); 
+        dd($assignment->description);  // This will show the description of the fetched assignment
+        return view('debug')->with('assignment', $assignment); 
+    }
+    
 
 }

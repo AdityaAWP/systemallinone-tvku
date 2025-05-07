@@ -7,7 +7,7 @@
     <link href="https://fonts.cdnfonts.com/css/dejavu-sans" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Times New Roman', Times, serif, sans-serif;
             font-size: 12px;
             line-height: 1.5;
         }
