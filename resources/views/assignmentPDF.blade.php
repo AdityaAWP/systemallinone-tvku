@@ -139,7 +139,7 @@
 
     <div class="content">
         <div>Berdasarkan :</div>
-        <p>SPK Nomor 0032/SPK/XI/TVKU/2021 (Fasilkom Udinus - Produksi Live Canon Semarang Photo Marathon)</p>
+        <p>SPK Nomor {{ $assignment->spk_number }}</p>
         <p>Invoice Nomor I-158/KEU/TVKU/XI/2021</p>
 
         <p>Dengan ini menugaskan Direktur Operasional untuk melakukan produksi maupun penayangan dengan ketentuan
@@ -148,13 +148,12 @@
         <table>
             <tr>
                 <td>Deadline Pengerjaan</td>
-                <td>26 November 2021</td>
+                <td>{{ \Carbon\Carbon::parse($assignment->deadline)->format('d F Y')}}</td>
             </tr>
             <tr>
                 <td>Info Waktu Produksi/Penayangan</td>
                 <td>
-                    Produksi Live<br>
-                    Pukul 08.00 WIB
+                    {{$assignment->production_notes}}
                 </td>
             </tr>
         </table>
@@ -179,14 +178,15 @@
 
         <div class="footer">
             <div style="text-align: left;">
-                Semarang, 24 November 2021
+                Semarang, {{ \Carbon\Carbon::parse($assignment->created_date)->format('d F Y') }}
                 <div>
                     Direktur Utama<br>
                     PT. Televisi Kampus Udinus
                 </div>
 
                 <div class="signature">
-                    <div>Dr. Guruh Fajar Shidik, S.Kom, M.CS</div>
+                    <div>{{ $assignment->approver ? $assignment->approver->name : 'Dr. Guruh Fajar Shidik, S.Kom, M.CS'
+                        }}</div>
                 </div>
             </div>
 

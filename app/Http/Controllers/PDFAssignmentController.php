@@ -4,32 +4,38 @@ namespace App\Http\Controllers;
 
 use App\Models\Assignment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use PDF;
 
 class PDFAssignmentController extends Controller
 {
-    public function generateSinglePDF(Assignment $assignment)
+    public function single($id)
     {
-        // Load the PDF view
-        $pdf = PDF::loadView('assignmentPDF', compact('assignment'));
-        
-        // Set paper size ke A4
-        $pdf->setPaper('a4', 'portrait');
-        
-        // Nama file PDF yang akan di-download
-        $filename = 'SPP-'.$assignment->spp_number.'.pdf';
-        
-        // Mengembalikan file PDF untuk di-download
-        return $pdf->download($filename);
-        
-        // Jika ingin menampilkan PDF di browser tanpa download:
-        // return $pdf->stream($filename);
-    }
-    public function debug(Assignment $assignment) {
-        $assignment = Assignment::find(1); 
-        dd($assignment->description);  // This will show the description of the fetched assignment
-        return view('debug')->with('assignment', $assignment); 
-    }
-    
+        // Find the assignment
+        $assignment = Assignment::with(['approver'])
+            ->where('id', $id)
+            ->first();
 
+        // Check if assignment exists
+        if (!$assignment) {
+            return redirect()->back()->with('error', 'Assignment not found');
+        }
+
+        // Log for debugging
+        Log::info('Assignment PDF debug:', [
+            'assignment' => $assignment->toArray()
+        ]);
+
+        $data = [
+            'title' => 'Assignment Report',
+            'assignment' => $assignment
+        ];
+
+        $pdf = PDF::loadView('assignmentPDF', $data);
+        
+        return response($pdf->output())
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="assignment-'.$id.'.pdf"');
+    }
 }

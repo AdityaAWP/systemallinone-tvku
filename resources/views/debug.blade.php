@@ -9,7 +9,8 @@
 </head>
 
 <body>
-    <h1>{{ $assignment->description }}</h1>
+    <?= $assignment?>
+    <h1>{{ $assignment->spp_number }}</h1>
 </body>
 
 </html>
