@@ -18,9 +18,10 @@ class EditAssignment extends EditRecord
         return [
             Actions\ViewAction::make(),
             Actions\DeleteAction::make()
-                ->hidden(fn (Assignment $record) => 
-                    $record->approval_status !== Assignment::STATUS_PENDING || 
-                    Auth::user()->hasRole('direktur_keuangan')),
+                ->hidden(fn ($record) => 
+                    $record->approval_status !== $record::STATUS_PENDING || 
+                    Auth::user()->hasRole('direktur_keuangan') || 
+                    (Auth::user()->hasRole('staff_keuangan') && $record->created_by !== Auth::id())),
         ];
     }
 

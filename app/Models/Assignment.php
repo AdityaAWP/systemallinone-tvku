@@ -25,6 +25,7 @@ class Assignment extends Model
         'approved_by',
         'approved_at',
         'created_date',
+        'created_by',
     ];
 
     protected $casts = [

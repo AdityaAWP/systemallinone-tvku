@@ -26,12 +26,19 @@ class AssignmentResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
+        // For staff_keuangan, only show pending items they created
+        if (Auth::user()->hasRole('staff_keuangan')) {
+            return static::getModel()::where('approval_status', Assignment::STATUS_PENDING)
+                ->where('created_by', Auth::id())
+                ->count();
+        }
+
         return static::getModel()::where('approval_status', Assignment::STATUS_PENDING)->count();
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return static::getNavigationBadge() > 0 ? 'warning' : null;
+        return static::getNavigationBadge() > 0 ? 'primary' : null;
     }
 
     public static function form(Form $form): Form
@@ -54,9 +61,10 @@ class AssignmentResource extends Resource
                                     ->default(Assignment::TYPE_FREE)
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
-                                    Forms\Components\DatePicker::make('created_date')
+                                Forms\Components\DatePicker::make('created_date')
                                     ->required()
-                                    ->label('Created date'),
+                                    ->label('Created Date')
+                                    ->default(Carbon::now()),
 
                                 Forms\Components\DatePicker::make('deadline')
                                     ->required()
@@ -152,6 +160,11 @@ class AssignmentResource extends Resource
                             ->hidden(fn($context) => $context === 'create'),
                     ])
                     ->columnSpanFull(),
+
+                // Hidden field to store the creator's ID
+                Forms\Components\Hidden::make('created_by')
+                    ->default(fn() => Auth::id())
+                    ->dehydrated(fn($context) => $context === 'create'),
             ]);
     }
 
@@ -159,15 +172,13 @@ class AssignmentResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('client')
-                    ->searchable()
+                Tables\Columns\TextColumn::make('created_date')
+                    ->label('Tanggal Dibuat')
+                    ->date('d M Y')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('spp_number')
-                    ->label('SPP Number')
-                    ->searchable(),
-
                 Tables\Columns\TextColumn::make('type')
+                    ->label('Jenis')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         Assignment::TYPE_FREE => 'gray',
@@ -176,18 +187,33 @@ class AssignmentResource extends Resource
                         default => 'gray',
                     }),
 
+                Tables\Columns\TextColumn::make('spp_number')
+                    ->label('No.SPP')
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('spk_number')
+                    ->label('No.SPK')
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('client')
+                    ->label('Klien')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('amount')
+                    ->label('Nominal')
+                    ->money('IDR')
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('deadline')
                     ->date('d M Y')
                     ->sortable()
                     ->color(fn(Assignment $record) =>
                     $record->deadline->isPast() ? 'danger' : ($record->deadline->isToday() ? 'warning' : 'success')),
 
-                Tables\Columns\TextColumn::make('amount')
-                    ->money('IDR')
-                    ->sortable()
-                    ->hidden(fn() => Auth::user()->hasRole('direktur_keuangan')),
 
                 Tables\Columns\TextColumn::make('priority')
+                    ->label('Prioritas')
                     ->badge()
                     ->formatStateUsing(function ($state) {
                         return match ($state) {
@@ -201,10 +227,10 @@ class AssignmentResource extends Resource
                         'secondary' => Assignment::PRIORITY_NORMAL,
                         'warning' => Assignment::PRIORITY_IMPORTANT,
                         'danger' => Assignment::PRIORITY_VERY_IMPORTANT,
-                    ])
-                    ->hidden(fn() => Auth::user()->hasRole('direktur_keuangan')),
+                    ]),
 
                 Tables\Columns\TextColumn::make('approval_status')
+                    ->label('Approval')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         Assignment::STATUS_PENDING => 'warning',
@@ -213,44 +239,10 @@ class AssignmentResource extends Resource
                         default => 'gray',
                     }),
 
-                Tables\Columns\TextColumn::make('created_date')
-                    ->label('Created Date')
-                    ->date('d M Y')
-                    ->sortable(),
-            ])
-            ->filters([
-                Tables\Filters\SelectFilter::make('type')
-                    ->options([
-                        Assignment::TYPE_FREE => 'Free',
-                        Assignment::TYPE_PAID => 'Paid',
-                        Assignment::TYPE_BARTER => 'Barter',
-                    ]),
 
-                Tables\Filters\SelectFilter::make('approval_status')
-                    ->options([
-                        Assignment::STATUS_PENDING => 'Pending',
-                        Assignment::STATUS_APPROVED => 'Approved',
-                        Assignment::STATUS_DECLINED => 'Declined',
-                    ]),
-
-                Tables\Filters\Filter::make('deadline')
-                    ->form([
-                        Forms\Components\DatePicker::make('deadline_from'),
-                        Forms\Components\DatePicker::make('deadline_to'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['deadline_from'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('deadline', '>=', $date),
-                            )
-                            ->when(
-                                $data['deadline_to'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('deadline', '<=', $date),
-                            );
-                    }),
             ])
             ->actions([
+
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
                     ->mutateRecordDataUsing(function (Model $record, array $data): array {
@@ -268,10 +260,11 @@ class AssignmentResource extends Resource
                 Tables\Actions\DeleteAction::make()
                     ->hidden(fn(Assignment $record) =>
                     $record->approval_status !== Assignment::STATUS_PENDING ||
-                        Auth::user()->hasRole('direktur_keuangan')),
-                    Tables\Actions\Action::make('download') 
-                        ->url(fn(Assignment $assignment) => route('assignment.single', $assignment))
-                        ->openUrlInNewTab()
+                        Auth::user()->hasRole('direktur_keuangan') ||
+                        (Auth::user()->hasRole('staff_keuangan') && $record->created_by !== Auth::id())),
+                Tables\Actions\Action::make('download')
+                    ->url(fn(Assignment $assignment) => route('assignment.single', $assignment))
+                    ->openUrlInNewTab()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -298,13 +291,37 @@ class AssignmentResource extends Resource
         return [
             'index' => Pages\ListAssignments::route('/'),
             'create' => Pages\CreateAssignment::route('/create'),
-            'view' => Pages\ViewAssignment::route('/{record}'),
+            'view' => Pages\ViewAssignments::route('/{record}'),
             'edit' => Pages\EditAssignment::route('/{record}/edit'),
         ];
     }
-
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery();
+        $query = parent::getEloquentQuery();
+
+        // Get filter values from request
+        $year = request('year');
+        $statusFilter = request('status');
+
+        // Apply year filter if selected
+        if ($year) {
+            $query->whereYear('created_date', $year);
+        }
+
+        // Apply status filter for direktur_keuangan
+        if (Auth::user()->hasRole('direktur_keuangan')) {
+            if ($statusFilter === 'pending') {
+                $query->where('approval_status', Assignment::STATUS_PENDING);
+            } elseif ($statusFilter === 'responded') {
+                $query->whereIn('approval_status', [Assignment::STATUS_APPROVED, Assignment::STATUS_DECLINED]);
+            }
+        }
+
+        // If user is staff_keuangan, only show assignments they created
+        if (Auth::user()->hasRole('staff_keuangan')) {
+            $query->where('created_by', Auth::id());
+        }
+
+        return $query;
     }
 }
