@@ -12,20 +12,13 @@ class PDFAssignmentController extends Controller
 {
     public function single($id)
     {
-        // Find the assignment
         $assignment = Assignment::with(['approver'])
             ->where('id', $id)
             ->first();
 
-        // Check if assignment exists
         if (!$assignment) {
             return redirect()->back()->with('error', 'Assignment not found');
         }
-
-        // Log for debugging
-        Log::info('Assignment PDF debug:', [
-            'assignment' => $assignment->toArray()
-        ]);
 
         $data = [
             'title' => 'Assignment Report',
