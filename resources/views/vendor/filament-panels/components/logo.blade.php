@@ -1,1 +1,1 @@
-<img src="{{ asset('images/tvku-logo.png') }}" alt="" width="80" height="80">
+<img src="{{ asset('images/tvku-logo.png') }}" alt="" width="80" height="80" style="margin-bottom: 10px; margin-top: 10px;">

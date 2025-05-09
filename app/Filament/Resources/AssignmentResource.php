@@ -20,9 +20,11 @@ class AssignmentResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationLabel = 'Assignments';
+    protected static ?string $navigationLabel = 'Penugasan Keuangan';
 
-    protected static ?string $navigationGroup = 'Finance Management';
+    protected static ?string $label = 'Penugasan Keuangan';
+
+    protected static ?string $navigationGroup = 'Administrasi';
 
     public static function getNavigationBadge(): ?string
     {
@@ -47,13 +49,13 @@ class AssignmentResource extends Resource
             ->schema([
                 Forms\Components\Tabs::make('Assignment')
                     ->tabs([
-                        Forms\Components\Tabs\Tab::make('Basic Information')
+                        Forms\Components\Tabs\Tab::make('Informasi Dasar')
                             ->schema([
                                 Forms\Components\Select::make('type')
-                                    ->label('Assignment Type')
+                                    ->label('Jenis Penugasan')
                                     ->options([
                                         Assignment::TYPE_FREE => 'Free',
-                                        Assignment::TYPE_PAID => 'Paid',
+                                        Assignment::TYPE_PAID => 'Berbayar',
                                         Assignment::TYPE_BARTER => 'Barter',
                                     ])
                                     ->required()
@@ -63,43 +65,44 @@ class AssignmentResource extends Resource
 
                                 Forms\Components\DatePicker::make('created_date')
                                     ->required()
-                                    ->label('Created Date')
+                                    ->label('Tanggal Dibuat')
                                     ->default(Carbon::now()),
 
                                 Forms\Components\DatePicker::make('deadline')
                                     ->required()
                                     ->minDate(Carbon::now())
+                                    ->label('Batas Waktu')
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
                                 Forms\Components\TextInput::make('client')
                                     ->required()
+                                    ->label('Klien')
                                     ->maxLength(255)
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
                                 Forms\Components\TextInput::make('spp_number')
-                                    ->label('SPP Number')
+                                    ->label('Nomor SPP')
                                     ->required()
                                     ->maxLength(255)
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
                                 Forms\Components\TextInput::make('spk_number')
-                                    ->label('SPK Number')
+                                    ->label('Nomor SPK')
                                     ->maxLength(255)
                                     ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
                                 Forms\Components\Textarea::make('description')
                                     ->required()
+                                    ->label('Deskripsi')
                                     ->columnSpanFull()
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
-
-
                             ]),
 
-                        Forms\Components\Tabs\Tab::make('Financial Details')
+                        Forms\Components\Tabs\Tab::make('Detail Keuangan')
                             ->schema([
                                 Forms\Components\TextInput::make('amount')
-                                    ->label('Nominal Amount')
+                                    ->label('Jumlah Nominal')
                                     ->numeric()
                                     ->prefix('Rp')
                                     ->inputMode('decimal')
@@ -107,7 +110,7 @@ class AssignmentResource extends Resource
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
                                 Forms\Components\TextInput::make('marketing_expense')
-                                    ->label('Marketing Expense')
+                                    ->label('Biaya Pemasaran')
                                     ->numeric()
                                     ->prefix('Rp')
                                     ->inputMode('decimal')
@@ -116,44 +119,45 @@ class AssignmentResource extends Resource
                             ])
                             ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE),
 
-                        Forms\Components\Tabs\Tab::make('Additional Information')
+                        Forms\Components\Tabs\Tab::make('Informasi Tambahan')
                             ->schema([
                                 Forms\Components\Textarea::make('production_notes')
+                                    ->label('Catatan Produksi')
                                     ->columnSpanFull()
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
 
                                 Forms\Components\Select::make('priority')
-                                    ->label('Priority Level')
+                                    ->label('Tingkat Prioritas')
                                     ->options([
                                         Assignment::PRIORITY_NORMAL => 'Normal',
-                                        Assignment::PRIORITY_IMPORTANT => 'Important',
-                                        Assignment::PRIORITY_VERY_IMPORTANT => 'Very Important',
+                                        Assignment::PRIORITY_IMPORTANT => 'Penting',
+                                        Assignment::PRIORITY_VERY_IMPORTANT => 'Sangat Penting',
                                     ])
                                     ->default(Assignment::PRIORITY_NORMAL)
                                     ->hidden(fn(Forms\Get $get) => $get('type') !== Assignment::TYPE_PAID)
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
                             ]),
 
-                        Forms\Components\Tabs\Tab::make('Approval')
+                        Forms\Components\Tabs\Tab::make('Persetujuan')
                             ->schema([
                                 Forms\Components\Select::make('approval_status')
-                                    ->label('Status')
+                                    ->label('Status Persetujuan')
                                     ->options([
-                                        Assignment::STATUS_PENDING => 'Pending',
-                                        Assignment::STATUS_APPROVED => 'Approved',
-                                        Assignment::STATUS_DECLINED => 'Declined',
+                                        Assignment::STATUS_PENDING => 'Menunggu',
+                                        Assignment::STATUS_APPROVED => 'Disetujui',
+                                        Assignment::STATUS_DECLINED => 'Ditolak',
                                     ])
                                     ->default(Assignment::STATUS_PENDING)
                                     ->disabled(fn() => !Auth::user()->hasRole('direktur_keuangan'))
                                     ->hidden(fn(Forms\Get $get) => in_array($get('type'), [Assignment::TYPE_FREE, Assignment::TYPE_BARTER])),
 
                                 Forms\Components\Placeholder::make('approved_at')
-                                    ->label('Approved/Declined At')
+                                    ->label('Tanggal Persetujuan/Penolakan')
                                     ->content(fn(Assignment $record): string => $record->approved_at ? $record->approved_at->format('d M Y H:i') : '-')
                                     ->hiddenOn('create'),
 
                                 Forms\Components\Placeholder::make('approver')
-                                    ->label('Approved/Declined By')
+                                    ->label('Disetujui/Ditolak Oleh')
                                     ->content(fn(Assignment $record): string => $record->approver ? $record->approver->name : '-')
                                     ->hiddenOn('create'),
                             ])
@@ -185,6 +189,14 @@ class AssignmentResource extends Resource
                         Assignment::TYPE_PAID => 'success',
                         Assignment::TYPE_BARTER => 'info',
                         default => 'gray',
+                    })
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            Assignment::TYPE_FREE => 'Free',
+                            Assignment::TYPE_PAID => 'Berbayar',
+                            Assignment::TYPE_BARTER => 'Barter',
+                            default => $state,
+                        };
                     }),
 
                 Tables\Columns\TextColumn::make('spp_number')
@@ -218,8 +230,8 @@ class AssignmentResource extends Resource
                     ->formatStateUsing(function ($state) {
                         return match ($state) {
                             Assignment::PRIORITY_NORMAL => 'Normal',
-                            Assignment::PRIORITY_IMPORTANT => 'Important',
-                            Assignment::PRIORITY_VERY_IMPORTANT => 'Very Important',
+                            Assignment::PRIORITY_IMPORTANT => 'Penting',
+                            Assignment::PRIORITY_VERY_IMPORTANT => 'Sangat Penting',
                             default => $state,
                         };
                     })
@@ -230,7 +242,7 @@ class AssignmentResource extends Resource
                     ]),
 
                 Tables\Columns\TextColumn::make('approval_status')
-                    ->label('Approval')
+                    ->label('Approval Direktur')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         Assignment::STATUS_PENDING => 'warning',

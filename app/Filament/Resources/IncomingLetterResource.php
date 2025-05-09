@@ -16,76 +16,75 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 class IncomingLetterResource extends Resource
 {
     protected static ?string $model = IncomingLetter::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-inbox';
-
-    protected static ?string $navigationGroup = 'Letter Management';
+    protected static ?string $label = 'Surat Masuk';
+    protected static ?string $navigationGroup = 'Administrasi';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Letter Information')
+                Forms\Components\Section::make('Informasi Surat')
                     ->schema([
                         Forms\Components\Select::make('type')
                             ->options([
                                 'internal' => 'Internal',
-                                'general' => 'General (Umum)',
+                                'general' => 'Umum',
                             ])
                             ->required()
-                            ->label('Letter Type')
-                            ->helperText('Internal for company letters, General for external letters'),
+                            ->label('Jenis Surat')
+                            ->helperText('Internal untuk surat perusahaan, Umum untuk surat eksternal'),
                         Forms\Components\TextInput::make('reference_number')
                             ->disabled()
                             ->dehydrated(false)
-                            ->label('Reference Number')
-                            ->helperText('Will be automatically generated after saving'),
+                            ->label('Nomor Referensi')
+                            ->helperText('Akan otomatis dihasilkan setelah disimpan'),
                         Forms\Components\TextInput::make('sender')
                             ->required()
                             ->maxLength(255)
-                            ->label('Sender'),
+                            ->label('Pengirim'),
                         Forms\Components\TextInput::make('subject')
                             ->required()
                             ->maxLength(255)
-                            ->label('Subject'),
+                            ->label('Subjek'),
                         Forms\Components\DatePicker::make('letter_date')
                             ->required()
-                            ->label('Letter Date'),
+                            ->label('Tanggal Surat'),
                         Forms\Components\DatePicker::make('received_date')
                             ->required()
                             ->default(now())
-                            ->label('Received Date'),
+                            ->label('Tanggal Diterima'),
                         Forms\Components\RichEditor::make('content')
                             ->columnSpanFull()
-                            ->label('Letter Content'),
+                            ->label('Isi Surat'),
                         Forms\Components\Textarea::make('notes')
                             ->maxLength(65535)
                             ->columnSpanFull()
-                            ->label('Notes'),
+                            ->label('Catatan'),
                     ]),
-                
-                Forms\Components\Section::make('Attachments')
+
+                Forms\Components\Section::make('Lampiran')
                     ->schema([
                         Forms\Components\FileUpload::make('attachments')
                             ->multiple()
-                            ->maxSize(5120) // 5MB limit
+                            ->maxSize(5120) // Batas 5MB
                             ->directory('letters/incoming')
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
                             ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) {
-                                // Generate a unique filename
+                                // Buat nama file unik
                                 $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
-                                
-                                // Store the file in the specified directory
+
+                                // Simpan file di direktori yang ditentukan
                                 $file->storeAs('letters/incoming', $filename, 'public');
-                                
-                                // Return only the filename as a string
+
+                                // Kembalikan hanya nama file sebagai string
                                 return $filename;
                             })
                             ->columnSpanFull()
-                            ->label('Attachments (Max 5MB each)'),
+                            ->label('Lampiran (Maks 5MB per file)'),
                     ]),
             ]);
-    }  
+    }
 
     public static function table(Table $table): Table
     {
@@ -94,75 +93,90 @@ class IncomingLetterResource extends Resource
                 Tables\Columns\TextColumn::make('reference_number')
                     ->searchable()
                     ->sortable()
-                    ->label('Reference Number'),
+                    ->label('Nomor Referensi'),
                 Tables\Columns\BadgeColumn::make('type')
                     ->colors([
                         'primary' => 'internal',
                         'success' => 'general',
                     ])
-                    ->label('Type'),
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            'internal' => 'Internal',
+                            'general' => 'Umum',
+                        };
+                    })
+                    ->label('Jenis Surat'),
                 Tables\Columns\TextColumn::make('sender')
                     ->searchable()
-                    ->label('Sender'),
+                    ->label('Pengirim'),
                 Tables\Columns\TextColumn::make('subject')
                     ->searchable()
                     ->limit(30)
-                    ->label('Subject'),
+                    ->label('Subjek'),
                 Tables\Columns\TextColumn::make('letter_date')
                     ->date()
                     ->sortable()
-                    ->label('Letter Date'),
+                    ->label('Tanggal Surat'),
                 Tables\Columns\TextColumn::make('received_date')
                     ->date()
                     ->sortable()
-                    ->label('Received Date'),
+                    ->label('Tanggal Diterima'),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->date()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->hidden()
+                    ->label('Dibuat Pada'),
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
+                    ->date()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->hidden()
+                    ->label('Diperbarui Pada'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
                     ->options([
                         'internal' => 'Internal',
-                        'general' => 'General (Umum)',
-                    ]),
+                        'general' => 'Umum',
+                    ])
+                    ->label('Jenis Surat'),
                 Tables\Filters\Filter::make('letter_date')
                     ->form([
-                        Forms\Components\DatePicker::make('letter_date_from'),
-                        Forms\Components\DatePicker::make('letter_date_until'),
+                        Forms\Components\DatePicker::make('letter_date_from')
+                            ->label('Tanggal Surat Dari'),
+                        Forms\Components\DatePicker::make('letter_date_until')
+                            ->label('Tanggal Surat Sampai'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
                             ->when(
                                 $data['letter_date_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('letter_date', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('letter_date', '>=', $date),
                             )
                             ->when(
                                 $data['letter_date_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('letter_date', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('letter_date', '<=', $date),
                             );
-                    }),
+                    })
+                    ->label('Tanggal Surat'),
                 Tables\Filters\Filter::make('received_date')
                     ->form([
-                        Forms\Components\DatePicker::make('received_date_from'),
-                        Forms\Components\DatePicker::make('received_date_until'),
+                        Forms\Components\DatePicker::make('received_date_from')
+                            ->label('Tanggal Diterima Dari'),
+                        Forms\Components\DatePicker::make('received_date_until')
+                            ->label('Tanggal Diterima Sampai'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
                             ->when(
                                 $data['received_date_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('received_date', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('received_date', '>=', $date),
                             )
                             ->when(
                                 $data['received_date_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('received_date', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('received_date', '<=', $date),
                             );
-                    }),
+                    })
+                    ->label('Tanggal Diterima'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

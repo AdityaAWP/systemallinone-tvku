@@ -16,64 +16,55 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 class OutgoingLetterResource extends Resource
 {
     protected static ?string $model = OutgoingLetter::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-paper-airplane';
-
-    protected static ?string $navigationGroup = 'Letter Management';
+    protected static ?string $label = 'Surat Keluar';
+    protected static ?string $navigationGroup = 'Administrasi';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Letter Information')
+                Forms\Components\Section::make('Informasi Surat')
                     ->schema([
                         Forms\Components\TextInput::make('reference_number')
                             ->disabled()
                             ->dehydrated(false)
-                            ->label('Reference Number')
-                            ->helperText('Will be automatically generated after saving'),
+                            ->label('Nomor Referensi')
+                            ->helperText('Akan otomatis dihasilkan setelah disimpan'),
                         Forms\Components\TextInput::make('recipient')
                             ->required()
                             ->maxLength(255)
-                            ->label('Recipient'),
+                            ->label('Penerima'),
                         Forms\Components\TextInput::make('subject')
                             ->required()
                             ->maxLength(255)
-                            ->label('Subject'),
+                            ->label('Perihal'),
                         Forms\Components\DatePicker::make('letter_date')
                             ->required()
                             ->default(now())
-                            ->label('Letter Date'),
+                            ->label('Tanggal Surat'),
                         Forms\Components\RichEditor::make('content')
                             ->columnSpanFull()
-                            ->label('Letter Content'),
+                            ->label('Isi Surat'),
                         Forms\Components\Textarea::make('notes')
                             ->maxLength(65535)
                             ->columnSpanFull()
-                            ->label('Notes'),
+                            ->label('Catatan'),
                     ]),
                     
-                Forms\Components\Section::make('Attachments')
+                Forms\Components\Section::make('Lampiran')
                     ->schema([
                         Forms\Components\FileUpload::make('attachments')
                             ->multiple()
-                            ->maxSize(5120) // 5MB limit
+                            ->maxSize(5120) // Batas 5MB
                             ->directory('letters/outgoing')
                             ->storeFileNamesIn('original_filename')
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file, callable $get) {
-                                $filename = $file->getClientOriginalName();
-                                $path = $file->storeAs('letters/outgoing', Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
-                                
-                                return [
-                                    'path' => $path,
-                                    'filename' => $filename,
-                                    'mime_type' => $file->getMimeType(),
-                                    'size' => $file->getSize()
-                                ];
+                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) {
+                                return $file->storeAs('letters/outgoing', Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
                             })
                             ->columnSpanFull()
-                            ->label('Attachments (Max 5MB each)'),
+                            ->label('Lampiran (Maksimal 5MB per file)'),
                     ]),
             ]);
     }
@@ -85,32 +76,36 @@ class OutgoingLetterResource extends Resource
                 Tables\Columns\TextColumn::make('reference_number')
                     ->searchable()
                     ->sortable()
-                    ->label('Reference Number'),
+                    ->label('Nomor Referensi'),
                 Tables\Columns\TextColumn::make('recipient')
                     ->searchable()
-                    ->label('Recipient'),
+                    ->label('Penerima'),
                 Tables\Columns\TextColumn::make('subject')
                     ->searchable()
                     ->limit(30)
-                    ->label('Subject'),
+                    ->label('Perihal'),
                 Tables\Columns\TextColumn::make('letter_date')
                     ->date()
                     ->sortable()
-                    ->label('Letter Date'),
+                    ->label('Tanggal Surat'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->hidden()
+                    ->label('Dibuat Pada'),
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->hidden()
+                    ->label('Diperbarui Pada'),
             ])
             ->filters([
                 Tables\Filters\Filter::make('letter_date')
                     ->form([
-                        Forms\Components\DatePicker::make('letter_date_from'),
-                        Forms\Components\DatePicker::make('letter_date_until'),
+                        Forms\Components\DatePicker::make('letter_date_from')
+                            ->label('Tanggal Surat Dari'),
+                        Forms\Components\DatePicker::make('letter_date_until')
+                            ->label('Tanggal Surat Hingga'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query

@@ -37,6 +37,8 @@ class LoanItemResource extends Resource
     protected static ?string $model = LoanItem::class;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'Peminjaman';
+    protected static ?string $title = 'Peminjaman';
+    protected static ?string $label = 'Peminjaman';
     
     public static function form(Form $form): Form
     {

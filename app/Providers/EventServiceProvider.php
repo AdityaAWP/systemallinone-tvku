@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Models\FinancialAssignmentLetter;
 use App\Models\IncomingLetter;
 use App\Models\OutgoingLetter;
 use App\Models\LetterAttachment;
@@ -28,16 +27,7 @@ class EventServiceProvider extends ServiceProvider
      * Register any events for your application.
      */
     public function boot(): void
-    {
-        // Handle saving attachments for Financial Assignment Letters
-        FinancialAssignmentLetter::created(function (FinancialAssignmentLetter $letter) {
-            $this->saveAttachments($letter);
-        });
-        
-        FinancialAssignmentLetter::updated(function (FinancialAssignmentLetter $letter) {
-            $this->saveAttachments($letter);
-        });
-        
+    {   
         // Handle saving attachments for Incoming Letters
         IncomingLetter::created(function (IncomingLetter $letter) {
             $this->saveAttachments($letter);

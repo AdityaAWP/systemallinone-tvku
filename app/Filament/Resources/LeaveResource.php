@@ -23,9 +23,10 @@ class LeaveResource extends Resource
 {
     protected static ?string $model = Leave::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-calendar';
-    protected static ?string $navigationLabel = 'Leave';
-    protected static ?string $title = 'Leave';
+    protected static ?string $navigationIcon = 'heroicon-o-briefcase';
+    protected static ?string $navigationLabel = 'Cuti';
+    protected static ?string $title = 'Cuti';
+    protected static ?string $label = 'cuti';
     
     protected function getHeaderWidgets(): array
     {
@@ -40,19 +41,18 @@ class LeaveResource extends Resource
         $isStaff = $user->hasRole('staff');
         $isCreating = $form->getOperation() === 'create';
 
-        // Get user's quota if staff member
-        $casualQuotaRemaining = 0;
+        $sisaKuotaCuti = 0;
         if ($isStaff) {
             $quota = LeaveQuota::getUserQuota($user->id);
-            $casualQuotaRemaining = $quota->remaining_casual_quota;
+            $sisaKuotaCuti = $quota->remaining_casual_quota;
         }
 
         return $form
             ->schema([
-                Forms\Components\Section::make('Leave Request Details')
+                Forms\Components\Section::make('Detail Permohonan Cuti')
                     ->schema([
                         Forms\Components\Select::make('user_id')
-                            ->label('Employee')
+                            ->label('Karyawan')
                             ->relationship('user', 'name')
                             ->searchable()
                             ->preload()
@@ -65,27 +65,27 @@ class LeaveResource extends Resource
                             ->visible($isStaff),
 
                         Forms\Components\Select::make('leave_type')
-                            ->label('Leave Type')
+                            ->label('Jenis Cuti')
                             ->options([
-                                'casual' => 'Casual Leave',
-                                'medical' => 'Medical Leave',
-                                'maternity' => 'Maternity Leave',
-                                'other' => 'Other Leave',
+                                'casual' => 'Cuti Tahunan',
+                                'medical' => 'Cuti Sakit',
+                                'maternity' => 'Cuti Melahirkan',
+                                'other' => 'Cuti Lainnya',
                             ])
                             ->required()
                             ->reactive()
                             ->disabled(!$isCreating && !$isStaff)
-                            ->helperText(fn(?string $state) => $state === 'casual' && $isStaff ? "You have {$casualQuotaRemaining} casual leaves remaining this year." : null),
+                            ->helperText(fn(?string $state) => $state === 'casual' && $isStaff ? "Anda memiliki {$sisaKuotaCuti} hari cuti tahunan tersisa tahun ini." : null),
 
                         Forms\Components\DatePicker::make('from_date')
-                            ->label('From Date')
+                            ->label('Tanggal Mulai')
                             ->required()
                             ->disabled(!$isCreating && !$isStaff)
                             ->minDate(fn() => Carbon::now())
                             ->reactive(),
 
                         Forms\Components\DatePicker::make('to_date')
-                            ->label('To Date')
+                            ->label('Tanggal Selesai')
                             ->required()
                             ->disabled(!$isCreating && !$isStaff)
                             ->minDate(fn(callable $get) => Carbon::parse($get('from_date')))
@@ -100,41 +100,42 @@ class LeaveResource extends Resource
                             }),
 
                         Forms\Components\TextInput::make('days')
-                            ->label('Number of Days')
+                            ->label('Jumlah Hari')
                             ->numeric()
                             ->disabled()
                             ->required(),
 
                         Forms\Components\Textarea::make('reason')
-                            ->label('Reason')
+                            ->label('Alasan')
                             ->required()
                             ->maxLength(500)
                             ->disabled(!$isCreating && !$isStaff),
 
                         Forms\Components\FileUpload::make('attachment')
-                            ->label('Attachment (if any)')
-                            ->directory('leave-attachments')
+                            ->label('Lampiran (jika ada)')
+                            ->directory('lampiran-cuti')
+                            ->directory('lampiran-cuti')
                             ->disabled(!$isCreating && !$isStaff)
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Approval Section')
+                Forms\Components\Section::make('Bagian Persetujuan')
                     ->schema([
                         Forms\Components\Toggle::make('approval_manager')
-                            ->label('Manager Approval')
-                            ->helperText('Approve or reject this leave request')
+                            ->label('Persetujuan Manager')
+                            ->helperText('Setujui atau tolak permohonan cuti ini')
                             ->visible(fn() => $user->hasRole('manager') && !$isCreating)
                             ->reactive(),
 
                         Forms\Components\Toggle::make('approval_hrd')
-                            ->label('HRD Approval')
-                            ->helperText('Approve or reject this leave request')
+                            ->label('Persetujuan HRD')
+                            ->helperText('Setujui atau tolak permohonan cuti ini')
                             ->visible(fn() => $user->hasRole('hrd') && !$isCreating)
                             ->reactive(),
 
                         Forms\Components\Textarea::make('rejection_reason')
-                            ->label('Rejection Reason')
+                            ->label('Alasan Penolakan')
                             ->maxLength(500)
                             ->visible(function (callable $get) use ($user, $isCreating) {
                                 if ($isCreating) return false;
@@ -163,14 +164,14 @@ class LeaveResource extends Resource
                     ])
                     ->visible(!$isCreating),
 
-                Forms\Components\Section::make('Status Information')
+                Forms\Components\Section::make('Informasi Status')
                     ->schema([
                         Forms\Components\Select::make('status')
-                            ->label('Current Status')
+                            ->label('Status Saat Ini')
                             ->options([
-                                'pending' => 'Pending',
-                                'approved' => 'Approved',
-                                'rejected' => 'Rejected',
+                                'pending' => 'Menunggu',
+                                'approved' => 'Disetujui',
+                                'rejected' => 'Ditolak',
                             ])
                             ->disabled()
                             ->default('pending')
@@ -187,40 +188,46 @@ class LeaveResource extends Resource
 
         return $table
             ->headerActions([
-                // Only show export for HRD
                 ExportAction::make()
                     ->exporter(LeaveExporter::class)
                     ->visible(fn() => $user->hasRole('hrd')),
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Employee')
+                    ->label('Nama Karyawan')
                     ->searchable()
                     ->sortable()
                     ->visible(!$isStaff),
 
                 Tables\Columns\TextColumn::make('leave_type')
-                    ->label('Leave Type')
+                    ->label('Jenis Cuti')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'casual' => 'success',
                         'medical' => 'warning',
                         'maternity' => 'info',
                         default => 'gray',
+                    })
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'casual' => 'Cuti Tahunan',
+                        'medical' => 'Cuti Sakit',
+                        'maternity' => 'Cuti Melahirkan',
+                        'other' => 'Cuti Lainnya',
+                        default => 'Tidak Diketahui',
                     }),
 
                 Tables\Columns\TextColumn::make('from_date')
-                    ->label('From')
+                    ->label('Dari Tanggal')
                     ->date('d M Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('to_date')
-                    ->label('To')
+                    ->label('Sampai Tanggal')
                     ->date('d M Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('days')
-                    ->label('Days')
+                    ->label('Jumlah Hari')
                     ->alignCenter(),
 
                 Tables\Columns\IconColumn::make('approval_manager')
@@ -249,26 +256,26 @@ class LeaveResource extends Resource
                     ]),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Requested On')
-                    ->dateTime('d M Y H:i')
+                    ->label('Diajukan Pada')
+                    ->dateTime('d M Y')
                     ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('leave_type')
-                    ->label('Leave Type')
+                    ->label('Jenis Cuti')
                     ->options([
-                        'casual' => 'Casual Leave',
-                        'medical' => 'Medical Leave',
-                        'maternity' => 'Maternity Leave',
-                        'other' => 'Other Leave',
+                        'casual' => 'Cuti Tahunan',
+                        'medical' => 'Cuti Sakit',
+                        'maternity' => 'Cuti Melahirkan',
+                        'other' => 'Cuti Lainnya',
                     ]),
 
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Status')
                     ->options([
-                        'pending' => 'Pending',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
+                        'pending' => 'Menunggu',
+                        'approved' => 'Disetujui',
+                        'rejected' => 'Ditolak',
                     ]),
 
                 Tables\Filters\Filter::make('date_range')
@@ -295,15 +302,14 @@ class LeaveResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()->hasRole('hrd')),
+                        ->visible(fn() => Auth::user()->hasRole('hrd')),
 
-                    // Modify bulk export to only be visible for HRD
                     Tables\Actions\ExportAction::make()
                         ->exporter(LeaveExporter::class)
                         ->label('Ekspor')
                         ->color('success')
                         ->icon('heroicon-o-document-download')
-                        ->visible(fn() => auth()->user()->hasRole('hrd')),
+                        ->visible(fn() => Auth::user()->hasRole('hrd')),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
