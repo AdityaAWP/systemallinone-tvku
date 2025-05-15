@@ -21,12 +21,15 @@ use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Database\Eloquent\Builder;
+
 class OvertimeResource extends Resource
 {
     protected static ?string $model = Overtime::class;
     protected static ?string $navigationIcon = 'heroicon-o-clock';
-    protected static ?string $navigationGroup = 'Main Menu';
-    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationGroup = 'Menu Karyawan';
+    protected static ?string $label = 'Lembur';
+    protected static ?int $navigationSort = -1;
+    
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->where('user_id', auth()->id());
@@ -111,22 +114,25 @@ class OvertimeResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('tanggal_overtime')
+                    ->label('Tanggal Lembur')
                     ->searchable()
                     ->date('d F Y')
                     ->sortable(),
                 TextColumn::make('check_in')
+                    ->label('Waktu Check-in')
                     ->searchable()
                     ->dateTime('H:i'),
                 TextColumn::make('check_out')
+                    ->label('Waktu Check-out')
                     ->searchable()
                     ->dateTime('H:i'),
                 TextColumn::make('overtime_formatted')
                     ->searchable()
-                    ->label('Durasi Overtime')
+                    ->label('Durasi Lembur')
                     ->state(fn(Overtime $record): string => "{$record->overtime_hours} jam {$record->overtime_minutes} menit"),
                 TextColumn::make('description')
                     ->searchable()
-                    ->label('Description'),
+                    ->label('Deskripsi'),
             ])
             ->filters([
                 //
@@ -134,7 +140,7 @@ class OvertimeResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-                Tables\Actions\Action::make('download') 
+                Tables\Actions\Action::make('download')
                     ->url(fn(Overtime $overtime) => route('overtime.single', $overtime))
                     ->openUrlInNewTab()
             ])

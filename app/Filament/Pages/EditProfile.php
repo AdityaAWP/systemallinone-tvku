@@ -18,11 +18,11 @@ class EditProfile extends Page
 {
     use InteractsWithForms, InteractsWithActions;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user';
-    protected static ?string $navigationGroup = 'User Management';
-    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationIcon = 'heroicon-o-cog';
+    protected static ?string $navigationGroup = 'Manajemen Pengguna';
+    protected static ?int $navigationSort = 4;
     protected static string $view = 'filament.pages.edit-profile';
-    protected static ?string $title = 'My Profile';
+    protected static ?string $title = 'Setting Akun';
 
     protected function getHeaderWidgets(): array
     {

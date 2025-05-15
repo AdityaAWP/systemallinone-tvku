@@ -6,6 +6,7 @@ use App\Filament\Resources\LeaveResource;
 use Filament\Actions;
 use App\Filament\Widgets\LeaveStatsWidget;
 use App\Filament\Widgets\ManagerLeaveReminderWidget;
+use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 
 class ListLeave extends ListRecords
@@ -19,14 +20,21 @@ class ListLeave extends ListRecords
         ];
     }
 
+    // public function getTabs(): array
+    // {
+    //     return [
+    //         'All' => Tab::make(),
+    //     ];
+    // }
+
     protected function getHeaderActions(): array
-{
-    return [
-        Actions\CreateAction::make(),
-        // Actions\Action::make('report')
-        //     ->label('Generate Report')
-        //     ->url(static::getResource()::getUrl('report'))
-        //     ->visible(fn () => auth()->user()->can('generate_leave_report')),
-    ];
-}
+    {
+        return [
+            Actions\CreateAction::make(),
+            // Actions\Action::make('report')
+            //     ->label('Generate Report')
+            //     ->url(static::getResource()::getUrl('report'))
+            //     ->visible(fn () => auth()->user()->can('generate_leave_report')),
+        ];
+    }
 }

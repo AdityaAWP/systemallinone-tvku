@@ -27,8 +27,10 @@ class DailyReportResource extends Resource
 {
     protected static ?string $model = DailyReport::class;
     protected static ?string $navigationIcon = 'heroicon-o-chart-pie';
-    protected static ?string $navigationGroup = 'Main Menu';
+    protected static ?string $navigationGroup = 'Menu Karyawan';
+    protected static ?string $label = 'Laporan Harian';
     protected static ?int $navigationSort = 1;
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->where('user_id', auth()->id());
@@ -120,9 +122,11 @@ class DailyReportResource extends Resource
                     ->date('d F Y')
                     ->sortable(),
                 TextColumn::make('check_in')
+                ->label('Waktu Check-in')
                     ->searchable()
                     ->dateTime('H:i'),
                 TextColumn::make('check_out')
+                    ->label('Waktu Check-out')
                     ->searchable()
                     ->dateTime('H:i'),
                 TextColumn::make('hours_formatted')
@@ -131,7 +135,7 @@ class DailyReportResource extends Resource
                     ->state(fn(DailyReport $record): string => "{$record->work_hours_component} jam {$record->work_minutes_component} menit"),
                 TextColumn::make('description')
                     ->searchable()
-                    ->label('Description'),
+                    ->label('Deskripsi'),
             ])
             ->filters([
                 //

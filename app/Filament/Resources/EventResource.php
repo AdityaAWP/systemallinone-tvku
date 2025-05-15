@@ -25,9 +25,10 @@ class EventResource extends Resource
     protected static ?string $model = Event::class;
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
     protected static ?string $navigationGroup = 'Main Menu';
-    protected static ?string $navigationLabel = 'Calendar';
-    protected static ?int $navigationSort = 3;
-    protected static ?string $label = 'Calendar';
+    protected static ?string $navigationLabel = 'Kalender';
+    protected static ?string $label = 'Kalender';
+    protected static ?int $navigationSort = -2;
+
 
     public static function form(Form $form): Form
     {
@@ -38,14 +39,14 @@ class EventResource extends Resource
                     ->required()
                     ->maxLength(255),
                 TextInput::make('description')
-                    ->label('Description')
+                    ->label('Deskripsi')
                     ->nullable()
                     ->maxLength(255),
                 DateTimePicker::make('starts_at')
-                    ->label('Starts At')
+                    ->label('Mulai Pada')
                     ->required(),
                 DateTimePicker::make('ends_at')
-                    ->label('Ends At')
+                    ->label('Berakhir Pada')
                     ->required(),
             ]);
     }
@@ -58,12 +59,15 @@ class EventResource extends Resource
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('description')
+                ->label('Deskripsi')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('starts_at')
+                ->label('Mulai Pada')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('ends_at')
+                    ->label('Berakhir Pada')
                     ->searchable()
                     ->sortable(),
             ])
@@ -73,6 +77,7 @@ class EventResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

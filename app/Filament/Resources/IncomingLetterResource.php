@@ -18,7 +18,8 @@ class IncomingLetterResource extends Resource
     protected static ?string $model = IncomingLetter::class;
     protected static ?string $navigationIcon = 'heroicon-o-inbox';
     protected static ?string $label = 'Surat Masuk';
-    protected static ?string $navigationGroup = 'Administrasi';
+    protected static ?string $navigationGroup = 'Administrasi Surat';
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {

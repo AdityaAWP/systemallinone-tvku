@@ -18,11 +18,10 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class DivisionResource extends Resource
 {
     protected static ?string $model = Division::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-briefcase';
-    protected static ?string $navigationGroup = 'User Management';
-    protected static ?int $navigationSort = 3;
-
+    protected static ?string $navigationGroup = 'Manajemen Pengguna';
+    protected static ?string $label = 'Divisi';
+    protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
     {

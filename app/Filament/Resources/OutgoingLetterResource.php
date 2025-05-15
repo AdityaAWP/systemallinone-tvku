@@ -18,7 +18,9 @@ class OutgoingLetterResource extends Resource
     protected static ?string $model = OutgoingLetter::class;
     protected static ?string $navigationIcon = 'heroicon-o-paper-airplane';
     protected static ?string $label = 'Surat Keluar';
-    protected static ?string $navigationGroup = 'Administrasi';
+    protected static ?string $navigationGroup = 'Administrasi Surat';
+    protected static ?int $navigationSort = 2;
+
 
     public static function form(Form $form): Form
     {

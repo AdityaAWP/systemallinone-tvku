@@ -24,7 +24,9 @@ class AssignmentResource extends Resource
 
     protected static ?string $label = 'Penugasan Keuangan';
 
-    protected static ?string $navigationGroup = 'Administrasi';
+    protected static ?string $navigationGroup = 'Administrasi Surat';
+
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationBadge(): ?string
     {

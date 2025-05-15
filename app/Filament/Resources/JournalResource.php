@@ -27,12 +27,17 @@ class JournalResource extends Resource
     protected static ?string $model = Journal::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
+    protected static ?string $navigationGroup = 'Menu Magang';
+    protected static ?string $navigationLabel = 'Jurnal';
+    protected static ?string $title = 'Jurnal';
+    protected static ?string $label = 'Jurnal';
+    protected static ?int $navigationSort = 0;
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Hidden::make('user_id')
-                    ->default(fn () => Auth::id()),
+                    ->default(fn() => Auth::id()),
                 DatePicker::make('entry_date')
                     ->label('Tanggal')
                     ->required()
@@ -49,22 +54,22 @@ class JournalResource extends Resource
                 TimePicker::make('start_time')
                     ->label('Waktu Mulai')
                     ->seconds(false)
-                    ->required(fn (Forms\Get $get): bool => in_array($get('status'), ['Hadir'])),
+                    ->required(fn(Forms\Get $get): bool => in_array($get('status'), ['Hadir'])),
                 TimePicker::make('end_time')
                     ->label('Waktu Selesai')
-                    ->required(fn (Forms\Get $get): bool => in_array($get('status'), ['Hadir']))
+                    ->required(fn(Forms\Get $get): bool => in_array($get('status'), ['Hadir']))
                     ->seconds(false),
                 Textarea::make('activity')
                     ->label('Aktivitas')
-                    ->required(fn (Forms\Get $get): bool => in_array($get('status'), ['Hadir'])),
+                    ->required(fn(Forms\Get $get): bool => in_array($get('status'), ['Hadir'])),
                 FileUpload::make('image')
                     ->image()
                     ->directory('journal-images')
                     ->preserveFilenames()
                     ->nullable(),
                 Textarea::make('reason_of_absence')
-                    ->visible(fn (Forms\Get $get): bool => in_array($get('status'), ['Izin', 'Sakit']))
-                    ->required(fn (Forms\Get $get): bool => in_array($get('status'), ['Izin', 'Sakit']))
+                    ->visible(fn(Forms\Get $get): bool => in_array($get('status'), ['Izin', 'Sakit']))
+                    ->required(fn(Forms\Get $get): bool => in_array($get('status'), ['Izin', 'Sakit']))
                     ->placeholder('Please provide reason for absence'),
             ]);
     }
@@ -93,7 +98,7 @@ class JournalResource extends Resource
                     }),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'Hadir' => 'success',
                         'Izin' => 'warning',
                         'Sakit' => 'danger',

@@ -36,6 +36,8 @@ class LoanItemResource extends Resource
 {
     protected static ?string $model = LoanItem::class;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $navigationGroup = 'Administrasi Umum';
+    protected static ?int $navigationSort = 1;
     protected static ?string $navigationLabel = 'Peminjaman';
     protected static ?string $title = 'Peminjaman';
     protected static ?string $label = 'Peminjaman';

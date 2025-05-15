@@ -22,12 +22,13 @@ use App\Filament\Exports\LeaveExporter;
 class LeaveResource extends Resource
 {
     protected static ?string $model = Leave::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-briefcase';
+    protected static ?string $navigationGroup = 'Menu Karyawan';
+    protected static ?int $navigationSort = -1;
     protected static ?string $navigationLabel = 'Cuti';
     protected static ?string $title = 'Cuti';
-    protected static ?string $label = 'cuti';
-    
+    protected static ?string $label = 'Cuti';
+
     protected function getHeaderWidgets(): array
     {
         return [

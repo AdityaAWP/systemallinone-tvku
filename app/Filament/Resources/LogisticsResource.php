@@ -22,12 +22,10 @@ class LogisticsResource extends Resource
 {
     protected static ?string $model = Item::class;
     protected static ?string $navigationIcon = 'heroicon-o-cube';
-    protected static ?string $navigationGroup = 'Main Menu';
-    protected static ?string $navigationLabel = 'Logistics';
-    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationGroup = 'Administrasi Umum';
+    protected static ?string $navigationLabel = 'Logistik';
     protected static ?string $label = 'Logistics';
-
-    
+     protected static ?int $navigationSort = 1;
     
     public static function form(Form $form): Form
     {
@@ -59,8 +57,10 @@ class LogisticsResource extends Resource
                 TextColumn::make('name')
                     ->searchable(),
                 TextColumn::make('stock')
+                    ->label('Stok')
                     ->searchable(),
                 TextColumn::make('category')
+                    ->label('Kategori')
                     ->searchable()
                     ->formatStateUsing(fn (string $state): string => ucfirst($state)),
             ])

@@ -31,11 +31,11 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'nav.group' => 'Pelindung',
-    'nav.role.label' => 'Peran',
+    'nav.group' => 'Admin Panel',
+    'nav.role.label' => 'Roles & Permissions',
     'nav.role.icon' => 'heroicon-o-shield-check',
-    'resource.label.role' => 'Peran',
-    'resource.label.roles' => 'Peran',
+    'resource.label.role' => 'Roles & Permissions',
+    'resource.label.roles' => 'Roles & Permissions',
 
     /*
     |--------------------------------------------------------------------------
