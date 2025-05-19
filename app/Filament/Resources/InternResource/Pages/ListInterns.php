@@ -5,7 +5,7 @@ namespace App\Filament\Resources\InternResource\Pages;
 use App\Filament\Resources\InternResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
-use Filament\Resources\Pages\ListRecords\Tab; // Perbaiki namespace ini
+use Filament\Resources\Pages\ListRecords\Tab; 
 
 class ListInterns extends ListRecords
 {

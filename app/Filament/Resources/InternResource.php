@@ -16,15 +16,12 @@ use Illuminate\Database\Eloquent\Builder;
 class InternResource extends Resource
 {
     protected static ?string $model = Intern::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
-
     protected static ?string $navigationLabel = 'Data Anak Magang';
-
     protected static ?string $modelLabel = 'Anak Magang';
-
     protected static ?string $pluralModelLabel = 'Daftar Anak Magang';
-
+    protected static ?string $navigationGroup = 'Manajemen Magang';
+    protected static ?int $navigationSort = 5;
     public static function form(Form $form): Form
     {
         return $form
@@ -140,7 +137,7 @@ class InternResource extends Resource
                         }
                     })
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'Active' => 'success',
                         'Datang' => 'warning',
                         'Hampir' => 'danger',
