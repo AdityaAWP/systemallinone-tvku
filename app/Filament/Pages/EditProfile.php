@@ -20,7 +20,7 @@ class EditProfile extends Page
 
     protected static ?string $navigationIcon = 'heroicon-o-cog';
     protected static ?string $navigationGroup = 'Manajemen Pengguna';
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 5;
     protected static string $view = 'filament.pages.edit-profile';
     protected static ?string $title = 'Setting Akun';
 
