@@ -125,71 +125,26 @@ class InternResource extends Resource
                     ->label('Status')
                     ->getStateUsing(function (Intern $record): string {
                         $now = Carbon::now();
-                        if ($now->between($record->start_date, $record->end_date)) {
+                        $start = Carbon::parse($record->start_date);
+                        $end = Carbon::parse($record->end_date);
+                        $hampirStart = $end->copy()->subMonth();
+
+                        if ($now->lessThan($start)) {
+                            return 'Datang';
+                        } elseif ($now->greaterThanOrEqualTo($hampirStart) && $now->lessThanOrEqualTo($end)) {
+                            return 'Hampir';
+                        } elseif ($now->between($start, $hampirStart->subSecond())) {
                             return 'Active';
-                        } elseif ($now->lessThan($record->start_date)) {
-                            return 'Pending';
                         } else {
-                            return 'Completed';
+                            return 'Selesai';
                         }
                     })
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'Active' => 'success',
-                        'Pending' => 'warning',
-                        'Completed' => 'gray',
-                    }),
-            ])
-            ->filters([
-                Tables\Filters\SelectFilter::make('division')
-                    ->label('Divisi')
-                    ->options([
-                        'IT' => 'IT',
-                        'Produksi' => 'Produksi',
-                        'DINUS FM' => 'DINUS FM',
-                        'TS' => 'TS',
-                        'MCR' => 'MCR',
-                        'DMO' => 'DMO',
-                        'Wardrobe' => 'Wardrobe',
-                        'News' => 'News',
-                        'Humas dan Marketing' => 'Humas dan Marketing',
-                    ]),
-                Tables\Filters\SelectFilter::make('school_type')
-                    ->label('Kategori Sekolah')
-                    ->options([
-                        'Perguruan Tinggi' => 'Perguruan Tinggi',
-                        'SMA/SMK' => 'SMA/SMK',
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['value'],
-                                function (Builder $query, $value): Builder {
-                                    return $query->whereHas('school', function (Builder $query) use ($value) {
-                                        $query->where('type', $value);
-                                    });
-                                }
-                            );
-                    }),
-                Tables\Filters\Filter::make('status')
-                    ->form([
-                        Forms\Components\Select::make('status')
-                            ->options([
-                                'active' => 'Active',
-                                'pending' => 'Pending',
-                                'completed' => 'Completed',
-                            ])
-                            ->placeholder('Select Status'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        $now = Carbon::now();
-                        return $query->when($data['status'] === 'active', function (Builder $query) use ($now) {
-                            return $query->where('start_date', '<=', $now)->where('end_date', '>=', $now);
-                        })->when($data['status'] === 'pending', function (Builder $query) use ($now) {
-                            return $query->where('start_date', '>', $now);
-                        })->when($data['status'] === 'completed', function (Builder $query) use ($now) {
-                            return $query->where('end_date', '<', $now);
-                        });
+                        'Datang' => 'warning',
+                        'Hampir' => 'danger',
+                        'Selesai' => 'gray',
                     }),
             ])
             ->actions([
@@ -208,24 +163,21 @@ class InternResource extends Resource
                     ->label('Cetak PDF Semua Pengguna')
                     ->color('primary')
                     ->icon('heroicon-o-document')
-                    ->url(route('admin.interns.pdf')),
+                    ->url(route('admin.interns.pdf'))
+                    ->openUrlInNewTab(),
                 Tables\Actions\Action::make('export_excel')
                     ->label('Download Excel')
                     ->color('success')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(route('admin.interns.excel')),
-                Tables\Actions\Action::make('buka_excel')
-                    ->label('Buka di Excel')
-                    ->color('primary')
-                    ->icon('heroicon-o-table-cells')
-                    ->url(route('admin.interns.excel.view')),
+                    ->url(route('admin.interns.excel'))
+                    ->openUrlInNewTab(),
                 Tables\Actions\Action::make('pre_register')
                     ->label('Pre-Register Anak Magang')
                     ->color('primary')
                     ->icon('heroicon-o-user-plus')
                     ->modalHeading('Pre-Register Anak Magang')
                     ->modalWidth('md')
-                    ->modalForm([
+                    ->form([
                         Forms\Components\TextInput::make('username')
                             ->label('Username')
                             ->required(),
