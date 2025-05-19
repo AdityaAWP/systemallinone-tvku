@@ -3,12 +3,10 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
-use App\Filament\Pages\Auth\Register;
-use App\Filament\Widgets\UserStatsWidget;
 use Filament\Http\Middleware\Authenticate;
-use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Pages\Auth\Register;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -20,19 +18,18 @@ use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
-class AdminPanelProvider extends PanelProvider
+class InternPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->default()
+            ->id('intern')
+            ->path('intern')
             ->brandLogo(asset('images/tvku-logo.png'))
-            ->id('admin')
-            ->path('admin')
             ->login(Login::class)
             ->registration(Register::class)
             ->colors([
-                'primary' => Color::Blue,
+                'primary' => Color::Amber,
                 'secondary' => Color::Gray,
                 'error' => Color::Red,
                 'warning' => Color::Yellow,
@@ -40,31 +37,12 @@ class AdminPanelProvider extends PanelProvider
                 'info' => Color::Blue,
                 'dark' => Color::Gray,
             ])
-            ->plugin(
-                FilamentFullCalendarPlugin::make()
-                    ->schedulerLicenseKey('')
-                    ->selectable(true)
-                    ->editable()
-                    ->timezone(config('app.timezone'))
-                    ->locale(config('app.locale'))
-                    ->plugins([
-                        'dayGrid',
-                        'timeGrid',
-                    ])
-                    ->config([])
-            )
-            ->databaseNotifications()
-            ->databaseNotificationsPolling('5s')
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            ->discoverResources(in: app_path('Filament/InternResources'), for: 'App\\Filament\\InternResources')
+            ->discoverPages(in: app_path('Filament/InternPages'), for: 'App\\Filament\\InternPages')
             ->pages([
                 \Filament\Pages\Dashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
-            ->widgets([
-                UserStatsWidget::class,
-                \App\Filament\Widgets\ManagerLeaveReminderWidget::class,
-            ])
+            ->discoverWidgets(in: app_path('Filament/InternWidgets'), for: 'App\\Filament\\InternWidgets')
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -79,9 +57,7 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->plugins([
-                \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make()
-            ])
+            ->authGuard('intern')
             ->spa()
             ->sidebarCollapsibleOnDesktop();
     }
