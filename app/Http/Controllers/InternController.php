@@ -10,15 +10,51 @@ use App\Filament\Exports\InternsExport;
 
 class InternController extends Controller
 {
-    public function generatePdf()
+    public function generatePdf(Request $request)
     {
-        $interns = Intern::with('school')->get();
-        $pdf = PDF::loadView('interns-pdf', compact('interns'));
-        return $pdf->download('daftar-anak-magang.pdf');
+        $type = $request->query('type', 'all');
+        
+        $query = Intern::with('school');
+        
+        // Filter berdasarkan tipe institusi
+        if ($type !== 'all') {
+            $query->whereHas('school', function ($q) use ($type) {
+                $q->where('type', $type);
+            });
+        }
+        
+        $interns = $query->get();
+        
+        // Menyesuaikan judul PDF
+        $title = match($type) {
+            'Perguruan Tinggi' => 'Daftar Anak Magang Perguruan Tinggi',
+            'SMA/SMK' => 'Daftar Anak Magang SMA/SMK',
+            default => 'Daftar Anak Magang'
+        };
+        
+        $pdf = PDF::loadView('interns-pdf', compact('interns', 'title'));
+        
+        // Menyesuaikan nama file
+        $filename = match($type) {
+            'Perguruan Tinggi' => 'daftar-anak-magang-perguruan-tinggi.pdf',
+            'SMA/SMK' => 'daftar-anak-magang-smk.pdf',
+            default => 'daftar-anak-magang.pdf'
+        };
+        
+        return $pdf->download($filename);
     }
 
-    public function downloadExcel()
+    public function downloadExcel(Request $request)
     {
-        return Excel::download(new InternsExport, 'daftar-anak-magang.xlsx');
+        $type = $request->query('type', 'all');
+        
+        // Menyesuaikan nama file
+        $filename = match($type) {
+            'Perguruan Tinggi' => 'daftar-anak-magang-perguruan-tinggi.xlsx',
+            'SMA/SMK' => 'daftar-anak-magang-smk.xlsx',
+            default => 'daftar-anak-magang.xlsx'
+        };
+        
+        return Excel::download(new InternsExport($type), $filename);
     }
 }
