@@ -36,12 +36,12 @@ class Register extends BaseRegister
                         'intern' => 'Intern',
                     ])
                     ->required()
-                    ->reactive(), // Enable conditional UI
+                    ->reactive(), 
 
                 Select::make('role')
                     ->label('Role')
                     ->options(function () {
-                        return Role::pluck('name', 'name')->toArray(); // Get roles from DB
+                        return Role::pluck('name', 'name')->toArray(); 
                     })
                     ->required()
                     ->visible(fn ($get) => $get('user_type') === 'staff'),
@@ -89,12 +89,24 @@ class Register extends BaseRegister
                 'password' => Hash::make($data['password']),
             ]);
 
+            // Assign role jika ada
+            if (!empty($data['role'])) {
+                // Pastikan guard_name role adalah 'web'
+                $role = \Spatie\Permission\Models\Role::where('name', $data['role'])->first();
+                if ($role && $role->guard_name !== 'web') {
+                    $role->guard_name = 'web';
+                    $role->save();
+                }
+                $user->assignRole($data['role']);
+            }
+
             event(new Registered($user));
 
-            Auth::login($user);
+            // Pastikan login pakai guard 'web'
+            Auth::guard('web')->login($user);
 
             // Redirect to staff features
-            return $this->getRegistrationResponse();
+            return app(RegistrationResponse::class);
         } elseif ($token === 'TVKU-INTERN') {
             // Create intern user
             $intern = Intern::create([
