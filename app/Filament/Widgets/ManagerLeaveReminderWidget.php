@@ -23,8 +23,9 @@ class ManagerLeaveReminderWidget extends Widget
             return collect();
         }
         
-        // Get staff in the same division as the manager
+        // Get staff in the same division as the manager, and only those with a division_id
         $staffIds = User::where('division_id', $manager->division_id)
+            ->whereNotNull('division_id')
             ->pluck('id')
             ->toArray();
         
