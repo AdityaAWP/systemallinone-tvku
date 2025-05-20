@@ -22,6 +22,7 @@ class InternResource extends Resource
     protected static ?string $pluralModelLabel = 'Daftar Anak Magang';
     protected static ?string $navigationGroup = 'Manajemen Magang';
     protected static ?int $navigationSort = 5;
+    
     public static function form(Form $form): Form
     {
         return $form
@@ -37,11 +38,35 @@ class InternResource extends Resource
                             ->email()
                             ->required()
                             ->maxLength(255),
+                        Forms\Components\DatePicker::make('birth_date')
+                            ->label('Tanggal Lahir')
+                            ->required(),
+                        Forms\Components\TextInput::make('nis_nim')
+                            ->label('NIS/NIM')
+                            ->maxLength(50),
+                        // Menambahkan pemilihan tipe institusi terlebih dahulu
+                        Forms\Components\Select::make('institution_type')
+                            ->label('Tipe Institusi')
+                            ->options([
+                                'Perguruan Tinggi' => 'Perguruan Tinggi',
+                                'SMA/SMK' => 'SMA/SMK',
+                            ])
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(fn (Forms\Set $set) => $set('school_id', null)),
+                        // School selector yang bergantung pada tipe institusi yang dipilih
                         Forms\Components\Select::make('school_id')
                             ->label('Sekolah/Instansi')
-                            ->relationship('school', 'name')
-                            ->preload()
+                            ->options(function (Forms\Get $get) {
+                                $type = $get('institution_type');
+                                if (!$type) return [];
+                                
+                                return InternSchool::where('type', $type)
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            })
                             ->searchable()
+                            ->preload()
                             ->required(),
                         Forms\Components\Select::make('division')
                             ->label('Divisi')
@@ -157,17 +182,49 @@ class InternResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\Action::make('cetak_pdf')
-                    ->label('Cetak PDF Semua Pengguna')
+                    ->label('Cetak PDF')
                     ->color('primary')
                     ->icon('heroicon-o-document')
-                    ->url(route('admin.interns.pdf'))
-                    ->openUrlInNewTab(),
+                    ->form([
+                        Forms\Components\Select::make('institution_type')
+                            ->label('Pilih Tipe Institusi')
+                            ->options([
+                                'all' => 'Semua',
+                                'Perguruan Tinggi' => 'Perguruan Tinggi',
+                                'SMA/SMK' => 'SMA/SMK',
+                            ])
+                            ->default('all')
+                            ->required(),
+                    ])
+                    ->action(function (array $data): void {
+                        // Redirect dengan parameter filter
+                        redirect()->route('admin.interns.pdf', [
+                            'type' => $data['institution_type'],
+                        ]);
+                    }),
+                    
                 Tables\Actions\Action::make('export_excel')
                     ->label('Download Excel')
                     ->color('success')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(route('admin.interns.excel'))
-                    ->openUrlInNewTab(),
+                    ->form([
+                        Forms\Components\Select::make('institution_type')
+                            ->label('Pilih Tipe Institusi')
+                            ->options([
+                                'all' => 'Semua',
+                                'Perguruan Tinggi' => 'Perguruan Tinggi',
+                                'SMA/SMK' => 'SMA/SMK',
+                            ])
+                            ->default('all')
+                            ->required(),
+                    ])
+                    ->action(function (array $data): void {
+                        // Redirect dengan parameter filter
+                        redirect()->route('admin.interns.excel', [
+                            'type' => $data['institution_type'],
+                        ]);
+                    }),
+                    
                 Tables\Actions\Action::make('pre_register')
                     ->label('Pre-Register Anak Magang')
                     ->color('primary')
@@ -178,11 +235,24 @@ class InternResource extends Resource
                         Forms\Components\TextInput::make('username')
                             ->label('Username')
                             ->required(),
+                        Forms\Components\Select::make('institution_type')
+                            ->label('Tipe Institusi')
+                            ->options([
+                                'Perguruan Tinggi' => 'Perguruan Tinggi',
+                                'SMA/SMK' => 'SMA/SMK',
+                            ])
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(fn (Forms\Set $set) => $set('school_id', null)),
                         Forms\Components\Select::make('school_id')
-                            ->label('Pilih Perguruan Tinggi')
-                            ->options(function () {
-                                return InternSchool::where('type', 'Perguruan Tinggi')
-                                    ->pluck('name', 'id');
+                            ->label('Pilih Institusi')
+                            ->options(function (Forms\Get $get) {
+                                $type = $get('institution_type');
+                                if (!$type) return [];
+                                
+                                return InternSchool::where('type', $type)
+                                    ->pluck('name', 'id')
+                                    ->toArray();
                             })
                             ->searchable()
                             ->preload()
