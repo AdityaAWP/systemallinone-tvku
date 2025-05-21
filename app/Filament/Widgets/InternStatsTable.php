@@ -7,11 +7,18 @@ use App\Models\InternSchool;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class InternStatsTable extends Widget
 {
     protected static string $view = 'filament.widgets.intern-stats-table';
     protected int|string|array $columnSpan = 'full';
+    
+    public static function canView(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->hasRole('admin_magang');
+    }
 
     public function getInternData()
     {
