@@ -24,12 +24,7 @@ class EditProfile extends Page
     protected static string $view = 'filament.pages.edit-profile';
     protected static ?string $title = 'Akun Karyawan';
 
-    protected function getHeaderWidgets(): array
-    {
-        return [
-            ProfileWidget::class,
-        ];
-    }
+    
     
     public function getEditAction(): Action
     {
