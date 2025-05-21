@@ -28,7 +28,7 @@
             </div>
         </div>
 
-        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        {{-- <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <dl class="border-b border-gray-200">
                     <div class="text-1lg flex font-semibold py-1">Personal Information</div>
@@ -68,6 +68,6 @@
                     <dd class="text-2xs">{{ $user->created_at->format('d F Y') }}</dd>
                 </div>
             </div>
-        </div>
+        </div> --}}
     </x-filament::card>
 </x-filament::widget>
