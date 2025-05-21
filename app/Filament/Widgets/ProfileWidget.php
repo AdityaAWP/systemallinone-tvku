@@ -22,7 +22,7 @@ class ProfileWidget extends Widget
     
     protected int | string | array $columnSpan = 'full';
     
-    protected static ?int $sort = 1;
+    protected static ?int $sort = 0;
     
     public ?User $user = null;
     
@@ -56,6 +56,6 @@ class ProfileWidget extends Widget
 
     public static function getSort(): int
     {
-        return 2; // Ensures this widget is at the top
+        return 1; // Ensures this widget is at the top
     }
 }
