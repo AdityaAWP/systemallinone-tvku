@@ -40,4 +40,8 @@ class CreateLoanItem extends CreateRecord
         // Notify logistics admin
         $this->record->notifyLogisticsAdmin();
     }
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
+    }
 }

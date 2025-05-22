@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\MarkdownEditor;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Form;
@@ -23,6 +24,7 @@ use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Actions\ExportAction;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class DailyReportResource extends Resource
 {
@@ -102,7 +104,7 @@ class DailyReportResource extends Resource
                             ->disabled()
                             ->numeric()
                             ->columnSpan(1),
-                        MarkdownEditor::make('description')
+                        RichEditor::make('description')
                             ->label('Deskripsi')
                             ->required()
                             ->columnSpan(3),
@@ -136,6 +138,7 @@ class DailyReportResource extends Resource
                     ->state(fn(DailyReport $record): string => "{$record->work_hours_component} jam {$record->work_minutes_component} menit"),
                 TextColumn::make('description')
                     ->searchable()
+                    ->formatStateUsing(fn (string $state): HtmlString => new HtmlString($state))
                     ->label('Deskripsi'),
             ])
             ->filters([

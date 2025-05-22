@@ -33,6 +33,8 @@ Route::get('/login', function () {
 Route::get('download', [PDFController::class, 'downloadpdf'])->name('overtime.report');
 Route::get('downloadpdf/{id}', [PDFController::class, 'userpdf'])->name('overtime.single');
 
+Route::get('download/monthly', [PDFController::class, 'downloadMonthlyPdf'])
+    ->name('overtime.monthly');
 
 //Peminjaman
 Route::get('download/{id}', [PDFLoanController::class, 'userpdf'])->name('loanitem.single');

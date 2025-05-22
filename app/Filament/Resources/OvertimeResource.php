@@ -144,6 +144,64 @@ class OvertimeResource extends Resource
                     ->url(fn(Overtime $overtime) => route('overtime.single', $overtime))
                     ->openUrlInNewTab()
             ])
+            // Tambahkan ini di bagian actions pada table() method di OvertimeResource
+
+            ->headerActions([
+                // Action untuk download semua data
+                Tables\Actions\Action::make('downloadAll')
+                    ->label('Download Semua')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->url(fn() => route('overtime.report'))
+                    ->openUrlInNewTab(),
+                
+                // Action untuk download berdasarkan bulan
+                Tables\Actions\Action::make('downloadMonthly')
+                    ->label('Download Bulanan')
+                    ->icon('heroicon-o-calendar')
+                    ->color('primary')
+                    ->form([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Select::make('month')
+                                    ->label('Bulan')
+                                    ->options([
+                                        1 => 'Januari',
+                                        2 => 'Februari', 
+                                        3 => 'Maret',
+                                        4 => 'April',
+                                        5 => 'Mei',
+                                        6 => 'Juni',
+                                        7 => 'Juli',
+                                        8 => 'Agustus',
+                                        9 => 'September',
+                                        10 => 'Oktober',
+                                        11 => 'November',
+                                        12 => 'Desember',
+                                    ])
+                                    ->default(Carbon::now()->month)
+                                    ->required(),
+                                
+                                Forms\Components\TextInput::make('year')
+                                    ->label('Tahun')
+                                    ->numeric()
+                                    ->default(Carbon::now()->year)
+                                    ->minValue(2020)
+                                    ->maxValue(2030)
+                                    ->required(),
+                            ])
+                    ])
+                    ->action(function (array $data) {
+                        // Buat URL dengan parameter
+                        $url = route('overtime.monthly') . '?' . http_build_query([
+                            'month' => $data['month'],
+                            'year' => $data['year']
+                        ]);
+                        
+                        // Redirect ke URL dengan membuka tab baru
+                        return redirect()->away($url);
+                    }),
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

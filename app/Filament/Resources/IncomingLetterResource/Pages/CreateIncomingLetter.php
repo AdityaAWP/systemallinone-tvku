@@ -9,4 +9,8 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateIncomingLetter extends CreateRecord
 {
     protected static string $resource = IncomingLetterResource::class;
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
+    }
 }

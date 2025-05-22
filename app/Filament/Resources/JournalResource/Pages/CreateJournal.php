@@ -14,4 +14,8 @@ class CreateJournal extends CreateRecord
     {
         return [...$data, 'user_id' => Auth::id()];
     }
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
+    }
 }

@@ -2,33 +2,72 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Overtime;
-use App\Models\User;
 use Illuminate\Http\Request;
+use App\Models\Overtime;
 use Illuminate\Support\Facades\Auth;
 use PDF;
+use Carbon\Carbon;
 
 class PDFController extends Controller
 {
+    // Download semua PDF (existing function)
     public function downloadpdf() {
-        $overtime = Overtime::with('user')->where('user_id', Auth::user()->id)->get();
-
+        $overtime = Overtime::with('user')
+            ->where('user_id', Auth::user()->id)
+            ->get();
+        
         $data = [
             'title' => 'Laporan Lembur',
             'overtime' => $overtime
         ];
+        
         $pdf = PDF::loadview('overtimePDF', $data);
         return $pdf->download('laporan-lembur.pdf');
     }
+
+    // Download PDF berdasarkan bulan dan tahun
+    public function downloadMonthlyPdf(Request $request) {
+        $month = $request->input('month', Carbon::now()->month);
+        $year = $request->input('year', Carbon::now()->year);
+        
+        $overtime = Overtime::with('user')
+            ->where('user_id', Auth::user()->id)
+            ->whereMonth('tanggal_overtime', $month)
+            ->whereYear('tanggal_overtime', $year)
+            ->orderBy('tanggal_overtime', 'asc')
+            ->get();
+        
+        // Format nama bulan dalam bahasa Indonesia
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        
+        $monthName = $monthNames[$month] . ' ' . $year;
+        
+        $data = [
+            'title' => 'Surat Permohonan Ijin Lembur - ' . $monthName,
+            'overtime' => $overtime,
+            'period' => $monthName
+        ];
+        
+        $pdf = PDF::loadview('overtimePDF', $data);
+        $filename = 'surat-lembur-' . strtolower(str_replace(' ', '-', $monthName)) . '.pdf';
+        
+        return $pdf->download($filename);
+    }
+
+    // Download PDF individual (existing function)
     public function userpdf($id) {
         $overtime = Overtime::with('user')
                 ->where('id', $id)
                 ->where('user_id', Auth::user()->id)
                 ->get();
     
-    if($overtime->isEmpty()) {
-        return redirect()->back()->with('error', 'Record not found or unauthorized access');
-    }
+        if($overtime->isEmpty()) {
+            return redirect()->back()->with('error', 'Record not found or unauthorized access');
+        }
         
         $data = [
             'title' => 'Laporan Lembur Individual',
