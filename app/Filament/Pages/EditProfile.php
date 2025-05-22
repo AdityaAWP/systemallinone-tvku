@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Pages;
 
 use App\Filament\Widgets\ProfileWidget;
@@ -22,28 +23,25 @@ class EditProfile extends Page
     protected static ?string $navigationGroup = 'Manajemen Karyawan';
     protected static ?int $navigationSort = 5;
     protected static string $view = 'filament.pages.edit-profile';
-    protected static ?string $title = 'Akun Karyawan';
-
-    
-    
+    protected static ?string $title = 'Edit Profile';
     public function getEditAction(): Action
     {
         $user = Auth::user();
 
         return Action::make('edit')
             ->label('Edit Profile')
-            ->icon('heroicon-o-pencil')
+            ->icon('heroicon-o-pencil-square')
             ->modalHeading('Edit Profile Information')
             ->modalWidth('xl')
             ->modalSubmitActionLabel('Save Changes')
             ->form([
-                FileUpload::make('avatar')
-                    ->label('Profile Picture')
-                    ->image()
-                    ->directory('profile-photos')
-                    ->avatar()
-                    ->imageEditor()
-                    ->default($user->avatar),
+                // FileUpload::make('avatar')
+                //     ->label('Profile Picture')
+                //     ->image()
+                //     ->directory('profile-photos')
+                //     ->avatar()
+                //     ->imageEditor()
+                //     ->default($user->avatar),
 
                 TextInput::make('name')
                     ->required()
@@ -64,11 +62,10 @@ class EditProfile extends Page
 
                 Select::make('gender')
                     ->options([
-                        'Laki-laki' => 'Laki-laki', // Match the ENUM values in the database
-                        'Perempuan' => 'Perempuan', // Match the ENUM values in the database
+                        'Laki-laki' => 'Laki-laki',
+                        'Perempuan' => 'Perempuan',
                     ])
-                    ->default($user->gender), // Use the value directly from the database
-
+                    ->default($user->gender),
                 TextInput::make('phone')
                     ->tel()
                     ->maxLength(20)
@@ -99,12 +96,12 @@ class EditProfile extends Page
             ])
             ->action(function (array $data): void {
                 $user = User::find(Auth::id());
-                
+
                 // Handle empty values
                 $data = array_map(function ($value) {
                     return $value === '' ? null : $value;
                 }, $data);
-                
+
                 $user->update($data);
 
                 Notification::make()
@@ -113,7 +110,7 @@ class EditProfile extends Page
                     ->send();
             });
     }
-    
+
     protected function getHeaderActions(): array
     {
         return [
@@ -121,5 +118,3 @@ class EditProfile extends Page
         ];
     }
 }
-
-
