@@ -11,7 +11,7 @@ class ListLogistics extends ListRecords
 {
     protected static string $resource = LogisticsResource::class;
 
-    protected static ?string $title = "Logistics";
+    protected static ?string $title = "Daftar Barang";
     protected static ?string $navigationBadgeTooltip = "Logistics";
 
 

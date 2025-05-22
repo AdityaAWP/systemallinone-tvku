@@ -12,6 +12,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Form;
@@ -46,11 +47,11 @@ class DailyReportResource extends Resource
                             ->label('Tanggal Kerja')
                             ->required(),
                         TimePicker::make('check_in')
-                            ->label('Waktu Check-in')
+                            ->label('Waktu Mulai Bekerja')
                             ->seconds(false)
                             ->required(),
                         TimePicker::make('check_out')
-                            ->label('Waktu Check-out')
+                            ->label('Waktu Berakhir Bekerja')
                             ->seconds(false)
                             ->required()
                             ->live()
@@ -101,7 +102,7 @@ class DailyReportResource extends Resource
                             ->disabled()
                             ->numeric()
                             ->columnSpan(1),
-                        TextInput::make('description')
+                        MarkdownEditor::make('description')
                             ->label('Deskripsi')
                             ->required()
                             ->columnSpan(3),

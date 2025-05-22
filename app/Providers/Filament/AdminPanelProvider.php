@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Auth\Register;
+use App\Filament\Pages\Auth\RequestPasswordReset;
 use App\Filament\Widgets\UserStatsWidget;
 use Filament\Http\Middleware\Authenticate;
 use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
@@ -30,7 +31,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(Login::class)
-            ->registration(Register::class)
+            ->passwordReset()
             ->colors([
                 'primary' => Color::Blue,
                 'secondary' => Color::Gray,

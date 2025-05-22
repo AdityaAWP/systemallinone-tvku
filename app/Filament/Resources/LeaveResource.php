@@ -107,7 +107,7 @@ class LeaveResource extends Resource
                             ->required(),
 
                         Forms\Components\Textarea::make('reason')
-                            ->label('Alasan')
+                            ->label('Keterangan')
                             ->required()
                             ->maxLength(500)
                             ->disabled(!$isCreating && !$isStaff),

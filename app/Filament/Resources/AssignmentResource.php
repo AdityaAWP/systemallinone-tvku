@@ -96,7 +96,7 @@ class AssignmentResource extends Resource
 
                                 Forms\Components\Textarea::make('description')
                                     ->required()
-                                    ->label('Deskripsi')
+                                    ->label('Keterangan')
                                     ->columnSpanFull()
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
                             ]),

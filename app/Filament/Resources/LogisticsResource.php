@@ -23,9 +23,9 @@ class LogisticsResource extends Resource
     protected static ?string $model = Item::class;
     protected static ?string $navigationIcon = 'heroicon-o-cube';
     protected static ?string $navigationGroup = 'Administrasi Umum';
-    protected static ?string $navigationLabel = 'Logistik';
-    protected static ?string $label = 'Logistics';
-     protected static ?int $navigationSort = 1;
+    protected static ?string $navigationLabel = 'Daftar Barang';
+    protected static ?string $label = 'Daftar Barang';
+    protected static ?int $navigationSort = 1;
     
     public static function form(Form $form): Form
     {

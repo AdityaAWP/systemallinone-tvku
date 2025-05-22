@@ -2,24 +2,17 @@
 
 namespace App\Filament\Pages\Auth;
 
-use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
-use DanHarrin\LivewireRateLimiting\WithRateLimiting;
-use Filament\Facades\Filament;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\View;
 use Filament\Forms\Form;
-use Filament\Http\Responses\Auth\Contracts\LoginResponse;
-use Filament\Notifications\Notification;
 use Filament\Pages\Auth\Login as BaseLogin;
 use Illuminate\Contracts\Support\Htmlable;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
+use Filament\Forms\Components\View;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 
 class Login extends BaseLogin
 {
-    use WithRateLimiting;
-
     public function getTitle(): string|Htmlable
     {
         return 'Login Admin Panel';
@@ -29,15 +22,17 @@ class Login extends BaseLogin
     {
         return parent::form($form)
             ->schema([
-                // Tambahkan flash message view dan tombol login Google
                 View::make('filament.pages.auth.flash-message'),
+                
                 $this->getEmailFormComponent(),
                 $this->getPasswordFormComponent(),
                 $this->getRememberFormComponent(),
+                $this->getResetPasswordComponent(),
+                
                 View::make('filament.pages.auth.google-button'),
             ]);
     }
-
+    
     protected function getEmailFormComponent(): Component
     {
         return TextInput::make('email')
@@ -48,73 +43,19 @@ class Login extends BaseLogin
             ->autofocus()
             ->extraAttributes(['tabindex' => 1]);
     }
-
-    public function authenticate(): ?LoginResponse
+    
+    protected function getPasswordFormComponent(): Component
     {
-        try {
-            $this->rateLimit(5);
-        } catch (TooManyRequestsException $exception) {
-            Notification::make()
-                ->title(__('filament-panels::pages/auth/login.notifications.throttled.title', [
-                    'seconds' => $exception->secondsUntilAvailable,
-                    'minutes' => ceil($exception->secondsUntilAvailable / 60),
-                ]))
-                ->body(__('filament-panels::pages/auth/login.notifications.throttled.body', [
-                    'seconds' => $exception->secondsUntilAvailable,
-                    'minutes' => ceil($exception->secondsUntilAvailable / 60),
-                ]))
-                ->danger()
-                ->send();
-
-            return null;
-        }
-
-        $data = $this->form->getState();
-
-        // Autentikasi sebagai staff (default guard)
-        if (Auth::attempt([
-            'email' => $data['email'],
-            'password' => $data['password'],
-        ], $data['remember'] ?? false)) {
-            if (Filament::getCurrentPanel()->getId() === 'admin') {
-                return app(LoginResponse::class);
-            }
-
-            Auth::logout();
-
-            $this->throwValidationException(
-                'email',
-                __('filament-panels::pages/auth/login.messages.failed'),
-            );
-        }
-
-        // Autentikasi sebagai intern
-        if (Auth::guard('intern')->attempt([
-            'email' => $data['email'],
-            'password' => $data['password'],
-        ], $data['remember'] ?? false)) {
-            if (Filament::getCurrentPanel()->getId() === 'intern') {
-                return app(LoginResponse::class);
-            }
-
-            Auth::guard('intern')->logout();
-
-            $this->throwValidationException(
-                'email',
-                __('filament-panels::pages/auth/login.messages.failed'),
-            );
-        }
-
-        $this->throwValidationException(
-            'email',
-            __('filament-panels::pages/auth/login.messages.failed'),
-        );
+        return TextInput::make('password')
+            ->label('Password')
+            ->password()
+            ->required()
+            ->autocomplete('current-password')
+            ->extraAttributes(['tabindex' => 2]);
     }
-
-    protected function throwValidationException(string $field, string $message): never
+    
+    protected function getResetPasswordComponent(): Component
     {
-        throw ValidationException::withMessages([
-            $field => $message,
-        ]);
+        return View::make('filament.pages.auth.reset-password-link');
     }
 }

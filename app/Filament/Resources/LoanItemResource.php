@@ -173,6 +173,7 @@ class LoanItemResource extends Resource
                             Radio::make('return_status')
                                 ->label('Status Pengembalian')
                                 ->required()
+                                ->hidden(fn () => !auth()->user()->hasRole('admin_logistics'))
                                 ->options([
                                     'Sudah Dikembalikan' => 'Sudah Dikembalikan',
                                     'Belum Dikembalikan' => 'Belum Dikembalikan',
