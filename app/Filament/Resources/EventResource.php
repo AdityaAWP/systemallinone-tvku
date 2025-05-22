@@ -9,16 +9,11 @@ use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
+use Illuminate\Support\Carbon;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Facades\Date;
-
-use function Laravel\Prompts\text;
+use Filament\Resources\Resource;
 
 class EventResource extends Resource
 {
@@ -29,28 +24,6 @@ class EventResource extends Resource
     protected static ?string $label = 'Kalender';
     protected static ?int $navigationSort = -2;
 
-
-    public static function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                TextInput::make('name')
-                    ->label('Name')
-                    ->required()
-                    ->maxLength(255),
-                TextInput::make('description')
-                    ->label('Deskripsi')
-                    ->nullable()
-                    ->maxLength(255),
-                DateTimePicker::make('starts_at')
-                    ->label('Mulai Pada')
-                    ->required(),
-                DateTimePicker::make('ends_at')
-                    ->label('Berakhir Pada')
-                    ->required(),
-            ]);
-    }
-
     public static function table(Table $table): Table
     {
         return $table
@@ -59,11 +32,11 @@ class EventResource extends Resource
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('description')
-                ->label('Deskripsi')
+                    ->label('Deskripsi')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('starts_at')
-                ->label('Mulai Pada')
+                    ->label('Mulai Pada')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('ends_at')
@@ -75,8 +48,75 @@ class EventResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat')
+                    ->icon('heroicon-o-eye')
+                    ->modalHeading('Detail Event')
+                    ->modalWidth('xl')
+                    ->url(null)
+                    ->openUrlInNewTab(false)
+                    ->form(fn($record) => [
+                        TextInput::make('name')
+                            ->label('Name')
+                            ->disabled()
+                            ->default($record->name),
+
+                        TextInput::make('description')
+                            ->label('Deskripsi')
+                            ->disabled()
+                            ->default($record->description ?? '-'),
+
+                        DateTimePicker::make('starts_at')
+                            ->label('Mulai Pada')
+                            ->disabled()
+                            ->default(Carbon::parse($record['starts_at'])->format('Y-m-d H:i:s')),
+
+                        DateTimePicker::make('ends_at')
+                            ->label('Berakhir Pada')
+                            ->disabled()
+                            ->default(Carbon::parse($record['ends_at'])->format('Y-m-d H:i:s')),
+                    ])
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Tutup'),
+
+                Tables\Actions\Action::make('edit')
+                    ->label('Edit')
+                    ->icon('heroicon-o-pencil-square')
+                    ->modalHeading('Edit Event')
+                    ->modalWidth('xl')
+                    ->form([
+                        TextInput::make('name')
+                            ->label('Name')
+                            ->required()
+                            ->maxLength(255),
+                        TextInput::make('description')
+                            ->label('Deskripsi')
+                            ->nullable()
+                            ->maxLength(255),
+                        DateTimePicker::make('starts_at')
+                            ->label('Mulai Pada')
+                            ->required(),
+                        DateTimePicker::make('ends_at')
+                            ->label('Berakhir Pada')
+                            ->required(),
+                    ])
+                    ->fillForm(function ($record) {
+                        return [
+                            'name' => $record->name,
+                            'description' => $record->description,
+                            'starts_at' => $record->starts_at,
+                            'ends_at' => $record->ends_at,
+                        ];
+                    })
+                    ->action(function (array $data, $record) {
+                        $record->update($data);
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Event berhasil diupdate')
+                            ->success()
+                            ->send();
+                    }),
+
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
@@ -97,7 +137,6 @@ class EventResource extends Resource
     {
         return [
             'index' => Pages\ListEvents::route('/'),
-            'create' => Pages\CreateEvent::route('/create'),
             'view' => Pages\ViewEvent::route('/{record}'),
             'edit' => Pages\EditEvent::route('/{record}/edit'),
         ];
