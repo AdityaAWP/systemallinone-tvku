@@ -3,11 +3,11 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Event;
-use App\Filament\Resources\EventResource;
 use Filament\Forms\Form;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Textarea;
 use Illuminate\Database\Eloquent\Model;
 use Saade\FilamentFullCalendar\Data\EventData;
 use Saade\FilamentFullCalendar\Actions\EditAction;
@@ -17,6 +17,7 @@ use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
 class CalendarWidget extends FullCalendarWidget
 {
     public Model | string | null $model = Event::class;
+
     public function fetchEvents(array $fetchInfo): array
     {
         return Event::query()
@@ -24,15 +25,11 @@ class CalendarWidget extends FullCalendarWidget
             ->where('ends_at', '<=', $fetchInfo['end'])
             ->get()
             ->map(
-                fn (Event $event) => EventData::make()
+                fn(Event $event) => EventData::make()
                     ->id($event->id)
                     ->title($event->name)
                     ->start($event->starts_at)
                     ->end($event->ends_at)
-                    ->url(
-                        url: EventResource::getUrl(name: 'view', parameters: ['record' => $event]),
-                        shouldOpenUrlInNewTab: true
-                    )
             )
             ->toArray();
     }
@@ -41,14 +38,26 @@ class CalendarWidget extends FullCalendarWidget
     {
         return [
             TextInput::make('name')
-                ->required(),
-            TextInput::make('description')
-                ->nullable(),
-            Grid::make()
-                ->schema([
-                    DateTimePicker::make('starts_at'),
-                    DateTimePicker::make('ends_at'),
-                ]),
+                ->label('Nama Event')
+                ->required()
+                ->maxLength(255)
+                ->columnSpan('full'),
+             Grid::make(2)
+                        ->schema([
+                    DateTimePicker::make('starts_at')
+                        ->label('Mulai')
+                        ->required(),
+                    DateTimePicker::make('ends_at')
+                        ->label('Berakhir')
+                        ->required(),
+                ])
+                ->columnSpan('full'),
+            Textarea::make('description')
+                ->label('Deskripsi')
+                ->nullable()
+                ->rows(5)
+                ->maxLength(255)
+                ->columnSpan('full'),
         ];
     }
 
@@ -56,22 +65,25 @@ class CalendarWidget extends FullCalendarWidget
     {
         return [
             EditAction::make()
-                ->mountUsing(
-                    function (Event $record, Form $form, array $arguments) {
-                        $form->fill([
-                            'name' => $record->name,
-                            'description' => $record->description,
-                            'starts_at' => $arguments['event']['start'] ?? $record->starts_at,
-                            'ends_at' => $arguments['event']['end'] ?? $record->ends_at
-                        ]);
-                    }
-                ),
-            DeleteAction::make(),
+                ->label('Update')
+                ->mountUsing(function (Event $record, Form $form, array $arguments) {
+                    $form->fill([
+                        'name' => $record->name,
+                        'description' => $record->description,
+                        'starts_at' => $arguments['event']['start'] ?? $record->starts_at,
+                        'ends_at' => $arguments['event']['end'] ?? $record->ends_at,
+                    ]);
+                }),
+
+            DeleteAction::make()
+                ->label('Hapus')
+                ->requiresConfirmation()
+                ->successNotificationTitle('Event berhasil dihapus'),
         ];
     }
 
     public static function getSort(): int
     {
-        return 3; // Ensures this widget is at the top
+        return 3;
     }
 }
