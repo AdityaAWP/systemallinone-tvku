@@ -7,7 +7,9 @@ use App\Filament\Resources\EventResource\RelationManagers;
 use App\Models\Event;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Support\Carbon;
 use Filament\Tables;
@@ -52,29 +54,36 @@ class EventResource extends Resource
                     ->label('Lihat')
                     ->icon('heroicon-o-eye')
                     ->modalHeading('Detail Event')
-                    ->modalWidth('xl')
+                    ->modalWidth('4xl')
                     ->url(null)
                     ->openUrlInNewTab(false)
                     ->form(fn($record) => [
                         TextInput::make('name')
                             ->label('Name')
                             ->disabled()
-                            ->default($record->name),
+                            ->default($record->name)
+                            ->columnSpan('full'),
 
-                        TextInput::make('description')
+                        Grid::make(2)
+                            ->schema([
+                                DateTimePicker::make('starts_at')
+                                    ->label('Mulai Pada')
+                                    ->disabled()
+                                    ->default(Carbon::parse($record['starts_at'])->format('Y-m-d H:i:s')),
+
+                                DateTimePicker::make('ends_at')
+                                    ->label('Berakhir Pada')
+                                    ->disabled()
+                                    ->default(Carbon::parse($record['ends_at'])->format('Y-m-d H:i:s')),
+                            ])
+                            ->columnSpan('full'),
+
+                        Textarea::make('description')
                             ->label('Deskripsi')
                             ->disabled()
-                            ->default($record->description ?? '-'),
-
-                        DateTimePicker::make('starts_at')
-                            ->label('Mulai Pada')
-                            ->disabled()
-                            ->default(Carbon::parse($record['starts_at'])->format('Y-m-d H:i:s')),
-
-                        DateTimePicker::make('ends_at')
-                            ->label('Berakhir Pada')
-                            ->disabled()
-                            ->default(Carbon::parse($record['ends_at'])->format('Y-m-d H:i:s')),
+                            ->rows(5)
+                            ->default($record->description ?? '-')
+                            ->columnSpan('full'),
                     ])
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Tutup'),
@@ -83,22 +92,30 @@ class EventResource extends Resource
                     ->label('Edit')
                     ->icon('heroicon-o-pencil-square')
                     ->modalHeading('Edit Event')
-                    ->modalWidth('xl')
+                    ->modalWidth('4xl')
                     ->form([
+
                         TextInput::make('name')
                             ->label('Name')
                             ->required()
-                            ->maxLength(255),
-                        TextInput::make('description')
+                            ->maxLength(255)
+                            ->columnSpan('full'),
+                        Grid::make(2)
+                            ->schema([
+                                DateTimePicker::make('starts_at')
+                                    ->label('Mulai Pada')
+                                    ->required(),
+                                DateTimePicker::make('ends_at')
+                                    ->label('Berakhir Pada')
+                                    ->required(),
+                            ])
+                            ->columnSpan('full'),
+                        Textarea::make('description')
                             ->label('Deskripsi')
                             ->nullable()
-                            ->maxLength(255),
-                        DateTimePicker::make('starts_at')
-                            ->label('Mulai Pada')
-                            ->required(),
-                        DateTimePicker::make('ends_at')
-                            ->label('Berakhir Pada')
-                            ->required(),
+                            ->rows(5)
+                            ->maxLength(255)
+                            ->columnSpan('full'),
                     ])
                     ->fillForm(function ($record) {
                         return [
