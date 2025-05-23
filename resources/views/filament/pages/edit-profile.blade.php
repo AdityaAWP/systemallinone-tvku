@@ -9,6 +9,10 @@
                     <span class="font-medium text-gray-900 dark:text-white">{{ Auth::user()->name }}</span>
                 </div>
                 <div class="py-3 flex justify-between">
+                    <span class="text-gray-800 dark:text-gray-300">NPP</span>
+                    <span class="font-medium text-gray-900 dark:text-white">{{ Auth::user()->npp }}</span>
+                </div>
+                <div class="py-3 flex justify-between">
                     <span class="text-gray-800 dark:text-gray-300">Email</span>
                     <span class="font-medium text-gray-900 dark:text-white">{{ Auth::user()->email }}</span>
                 </div>
@@ -22,7 +26,7 @@
                 </div>
                 <div class="py-3 flex justify-between">
                     <span class="text-gray-800 dark:text-gray-300">No. Telepon</span>
-                    <span class="font-medium text-gray-900 dark:text-white">{{ Auth::user()->phone }}</span>
+                    <span class="font-medium text-gray-900 dark:text-white">{{ Auth::user()->no_phone }}</span>
                 </div>
                 <div class="py-3 flex justify-between">
                     <span class="text-gray-800 dark:text-gray-300">No. KTP</span>
