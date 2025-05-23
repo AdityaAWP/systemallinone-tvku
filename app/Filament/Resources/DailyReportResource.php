@@ -116,7 +116,7 @@ class DailyReportResource extends Resource
     {
         return $table
             ->headerActions([
-                ExportAction::make()->exporter(DailyReportExporter::class),
+                ExportAction::make()->exporter(DailyReportExporter::class)->label('Ekspor Excel'),
             ])
             ->columns([
                 TextColumn::make('entry_date')
