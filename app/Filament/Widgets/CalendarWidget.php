@@ -8,6 +8,7 @@ use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\RichEditor;
 use Illuminate\Database\Eloquent\Model;
 use Saade\FilamentFullCalendar\Data\EventData;
 use Saade\FilamentFullCalendar\Actions\EditAction;
@@ -42,8 +43,8 @@ class CalendarWidget extends FullCalendarWidget
                 ->required()
                 ->maxLength(255)
                 ->columnSpan('full'),
-             Grid::make(2)
-                        ->schema([
+            Grid::make(2)
+                ->schema([
                     DateTimePicker::make('starts_at')
                         ->label('Mulai')
                         ->required(),
@@ -52,12 +53,10 @@ class CalendarWidget extends FullCalendarWidget
                         ->required(),
                 ])
                 ->columnSpan('full'),
-            Textarea::make('description')
+            RichEditor::make('description')
                 ->label('Deskripsi')
-                ->nullable()
-                ->rows(5)
-                ->maxLength(255)
-                ->columnSpan('full'),
+                ->required()
+                ->columnSpan(2),
         ];
     }
 
