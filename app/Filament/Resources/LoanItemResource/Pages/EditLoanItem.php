@@ -89,4 +89,8 @@ class EditLoanItem extends EditRecord
         
         $this->getRecord()->items()->sync($items);
     }
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }
