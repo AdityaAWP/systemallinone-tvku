@@ -17,6 +17,8 @@ class Overtime extends Model
         'tanggal_overtime',
         'check_in',
         'check_out',
+        'normal_work_time_check_in',
+        'normal_work_time_check_out',
         'overtime',
         'overtime_hours',
         'overtime_minutes',

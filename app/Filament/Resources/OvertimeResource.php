@@ -45,12 +45,20 @@ class OvertimeResource extends Resource
                         DatePicker::make('tanggal_overtime')
                             ->label('Tanggal Lembur')
                             ->required(),
+                        TimePicker::make('normal_work_time_check_in')
+                            ->label('Waktu Mulai Kerja')
+                            ->required()
+                            ->seconds(false),
+                        TimePicker::make('normal_work_time_check_out')
+                            ->label('Waktu Selesai Kerja')
+                            ->required()
+                            ->seconds(false),
                         TimePicker::make('check_in')
-                            ->label('Waktu Check-in')
+                            ->label('Waktu Mulai Lembur')
                             ->seconds(false)
                             ->required(),
                         TimePicker::make('check_out')
-                            ->label('Waktu Check-out')
+                            ->label('Waktu Selesai Lembur')
                             ->seconds(false)
                             ->required()
                             ->live()
@@ -118,12 +126,20 @@ class OvertimeResource extends Resource
                     ->searchable()
                     ->date('d F Y')
                     ->sortable(),
+                TextColumn::make('normal_work_time_check_in')
+                    ->label('Waktu Mulai Kerja')
+                    ->searchable()
+                    ->dateTime('H:i'),
+                TextColumn::make('normal_work_time_check_out')
+                    ->label('Waktu Selesai Kerja')
+                    ->searchable()
+                    ->dateTime('H:i'),
                 TextColumn::make('check_in')
-                    ->label('Waktu Check-in')
+                    ->label('Waktu Mulai Lembur')
                     ->searchable()
                     ->dateTime('H:i'),
                 TextColumn::make('check_out')
-                    ->label('Waktu Check-out')
+                    ->label('Waktu Selesai Lembur')
                     ->searchable()
                     ->dateTime('H:i'),
                 TextColumn::make('overtime_formatted')

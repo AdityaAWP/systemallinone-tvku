@@ -16,4 +16,8 @@ class EditIntern extends EditRecord
             Actions\DeleteAction::make()->label('Batal'),
         ];
     }
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }
