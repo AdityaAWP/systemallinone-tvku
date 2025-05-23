@@ -61,6 +61,30 @@ class LeaveResource extends Resource
                             ->visible(!$isStaff)
                             ->default(fn() => $isStaff ? $user->id : null),
 
+                        Forms\Components\TextInput::make('npp')
+                            ->label('NPP')
+                            ->required()
+                            ->maxLength(20)
+                            ->disabled(!$isCreating && !$isStaff)
+                            ->default(fn() => $user->npp)
+                            ->visible(!$isStaff),
+
+                        Forms\Components\TextInput::make('division_id')
+                            ->label('Divisi')
+                            ->required()
+                            ->maxLength(20)
+                            ->disabled(!$isCreating && !$isStaff)
+                            ->default(fn() => $user->division->name)
+                            ->visible(!$isStaff),
+
+                        Forms\Components\TextInput::make('roles')
+                            ->label('Jabatan')
+                            ->required()
+                            ->maxLength(20)
+                            ->disabled(!$isCreating && !$isStaff)
+                            ->default(fn() => $user->roles->first()->name ?? 'No Role')
+                            ->visible(!$isStaff),
+
                         Forms\Components\Hidden::make('user_id')
                             ->default(fn() => $user->id)
                             ->visible($isStaff),
@@ -107,7 +131,7 @@ class LeaveResource extends Resource
                             ->required(),
 
                         Forms\Components\Textarea::make('reason')
-                            ->label('Keterangan')
+                            ->label('Alasan')
                             ->required()
                             ->maxLength(500)
                             ->disabled(!$isCreating && !$isStaff),
@@ -185,7 +209,7 @@ class LeaveResource extends Resource
     public static function table(Table $table): Table
     {
         $user = Auth::user();
-        $isStaff = $user->hasRole('staff'); 
+        $isStaff = $user->hasRole('staff');
 
         return $table
             ->headerActions([
@@ -196,6 +220,25 @@ class LeaveResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Nama Karyawan')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(!$isStaff),
+
+                Tables\Columns\TextColumn::make('user.npp')
+                    ->label('NPP')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(!$isStaff),
+
+                Tables\Columns\TextColumn::make('user.division.name')
+                    ->label('Divisi')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(!$isStaff),
+
+                Tables\Columns\TextColumn::make('user.roles.name')
+                    ->label('Jabatan')
+                    ->formatStateUsing(fn($state) => $state ?: '-')
                     ->searchable()
                     ->sortable()
                     ->visible(!$isStaff),
