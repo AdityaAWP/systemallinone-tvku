@@ -38,6 +38,10 @@ class UserResource extends Resource
                         TextInput::make('name')
                             ->required()
                             ->maxLength(255),
+                        TextInput::make('npp')
+                            ->label('NPP')
+                            ->required()
+                            ->maxLength(20),
                         TextInput::make('email')
                             ->email()
                             ->required()
@@ -72,13 +76,21 @@ class UserResource extends Resource
                             ->maxLength(16),
                         DatePicker::make('birth')
                             ->label('Tanggal Lahir'),
-                        TextInput::make('phone')
-                            ->label('Nomor Telepon')
+                        TextInput::make('no_phone')
+                            ->label('No. Telepon')
                             ->tel()
-                            ->maxLength(15),
-                        TextInput::make('last_education')
+                            ->maxLength(20),
+                        Select::make('last_education')
                             ->label('Pendidikan Terakhir')
-                            ->maxLength(255),
+                            ->options([
+                                'sd' => 'SD',
+                                'smp' => 'SMP',
+                                'sma' => 'SMA',
+                                'diploma' => 'Diploma',
+                                's1' => 'S1',
+                                's2' => 'S2',
+                                's3' => 'S3',
+                            ]),
                         Forms\Components\Textarea::make('address')
                             ->label('Alamat')
                             ->rows(3)
