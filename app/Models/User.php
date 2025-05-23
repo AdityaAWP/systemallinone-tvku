@@ -29,7 +29,8 @@ class User extends Authenticatable //implements FilamentUser
         'address',
         'birth',
         'last_education',
-        'phone',
+        'no_phone', // ganti dari 'phone' ke 'no_phone'
+        'npp',      // pastikan 'npp' ada
         'division_id', // Add this line
     ];
 
