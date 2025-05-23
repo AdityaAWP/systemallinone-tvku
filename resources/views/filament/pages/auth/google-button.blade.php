@@ -1,4 +1,14 @@
 <div class="mt-4">
+    <div class="relative mb-5">
+        <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-300 dark:border-gray-700"></div>
+        </div>
+        <div class="relative flex justify-center text-sm">
+            <span class="bg-white dark:bg-gray-900 px-2 text-gray-500 dark:text-gray-400">
+                Atau
+            </span>
+        </div>
+    </div>
     <div class="mb-5 relative">
         <a href="{{ route('auth.google') }}"
             class="w-full flex items-center justify-center gap-3 py-3 px-5 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 transition duration-300 ease-in-out hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -10,14 +20,5 @@
         </a>
     </div>
 
-    <div class="relative">
-        <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-300 dark:border-gray-700"></div>
-        </div>
-        <div class="relative flex justify-center text-sm">
-            <span class="bg-white dark:bg-gray-900 px-2 text-gray-500 dark:text-gray-400">
-                Atau 
-            </span>
-        </div>
-    </div>
+
 </div>

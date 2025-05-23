@@ -1,335 +1,200 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
-        <title>Dokumen Peminjaman Logistik</title>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{{ $title }}</title>
         <style>
             body {
-                font-family: Arial, sans-serif;
-                font-size: 12px;
-                line-height: 1.5;
-                height: 842px;
-                width: 595px;
-                /* to centre page on screen*/
-                margin-left: auto;
-                margin-right: auto;
-            }
-
-            .header {
-                text-align: center;
-                margin-bottom: 20px;
-                position: relative;
-                padding-left: 50px;
-                min-height: 80px;
-            }
-
-            img {
-                margin-left: 100px;
-            }
-
-            .logo {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 60px;
+                font-family: "Times New Roman", Times, serif, sans-serif;
+                margin: 0;
+                padding: 20px;
             }
 
             .title {
-                font-size: 16px;
-                font-weight: bold;
-                margin-bottom: 5px;
-            }
-
-            .address {
-                font-size: 12px;
-                margin-bottom: 5px;
-            }
-
-            .contact {
-                font-size: 12px;
-                margin-bottom: 15px;
-            }
-
-            .document-title {
-                font-size: 14px;
-                font-weight: bold;
                 text-align: center;
-                margin: 20px 0;
-            }
-
-            table.info {
-                width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 10px;
-            }
-
-            table.info td {
-                border: 1px solid #000;
-                padding: 5px;
-            }
-
-            .category-row td {
-                background-color: #e8e8e8;
+                font-size: 24px;
                 font-weight: bold;
-            }
-
-            .checkbox {
-                border: 1px solid #000;
-                width: 15px;
-                height: 15px;
-                display: inline-block;
-                text-align: center;
-                vertical-align: middle;
-                margin-right: 5px;
-            }
-
-            .checkbox.checked::before {
-                content: "✓";
-                font-size: 14px;
-                line-height: 15px;
-            }
-
-            .items-table {
-                width: 100%;
-                border-collapse: collapse;
                 margin-bottom: 20px;
             }
 
-            .items-table td {
-                border: 1px solid #000;
-                padding: 5px 8px;
-                vertical-align: top;
-            }
-
-            .items-table .category {
+            .period-info {
+                text-align: center;
+                background-color: #f8f9fa;
+                padding: 10px;
+                margin-bottom: 20px;
                 font-weight: bold;
-                background-color: #e8e8e8;
             }
 
-            .signatures {
-                width: 100%;
-                margin-top: 20px;
-                text-align: center;
+            .content {
+                font-size: 12px;
             }
 
-            .signature-box {
-                display: inline-block;
-                width: 30%;
-                text-align: center;
-                vertical-align: top;
-            }
-
-            .signature-box .signature-title {
-                font-weight: bold;
-                margin-bottom: 10px;
-                font-size: 14px;
-            }
-
-            .signature-box .check {
-                border: 2px solid #000;
-                width: 30px;
-                height: 30px;
-                margin: 0 auto 10px;
-                text-align: center;
-                line-height: 30px;
-                font-size: 24px;
-            }
-
-            .signature-box .check.checked::before {
-                content: "✓";
-            }
-
-            .contact-table {
+            .content table {
                 width: 100%;
                 border-collapse: collapse;
             }
 
-            .contact-table td {
-                border: 1px solid #000;
-                padding: 5px;
+            .content table th,
+            .content table td {
+                border: 1px solid black;
+                padding: 8px;
+                text-align: left;
             }
 
-            .section-title {
+            .content table th {
                 text-align: center;
-                font-weight: bold;
-                margin: 10px 0;
+            }
+
+            .approved-by {
+                margin-top: 40px;
+            }
+
+            .approved-by table {
+                width: 100%;
+                border: none;
+            }
+
+            .approved-by table td {
+                width: 33.33%;
+                text-align: center;
+                border: none;
+                padding-top: 100px;
+            }
+
+            .no-data {
+                text-align: center;
+                color: #666;
+                padding: 40px;
             }
         </style>
     </head>
 
     <body>
-        <div class="header">
-            <img
-                src="{{ public_path('images/tvku-logo.png') }}"
-                class="logo"
-                alt="TVKU Logo"
-            />
-            <div class="title">TELEVISI KAMPUS UNIVERSITAS DIAN NUSWANTORO</div>
-            <div class="address">
-                Gedung E Lt.2 Kompleks UDINUS Jl. Nakula I/No.5-11 Semarang
-                50131
-            </div>
-            <div class="contact">Telp. (024)356-8491 Fax. (024)356-4645</div>
-        </div>
+        <div class="title">SURAT PERMOHONAN IJIN LEMBUR TVKU SEMARANG</div>
 
-        <div class="document-title">
-            DOKUMEN PEMINJAMAN LOGISTIK (ID : {{ $loanitem->id }})
-        </div>
+        <?php if($overtime->count() > 0): ?>
+        <div class="content">
+            <table style="border: none; margin-bottom: 20px">
+                <tr>
+                    <td style="width: 70px; border: none">Kepada</td>
+                    <td style="border: none">: Staff HRD TVKU Semarang</td>
+                </tr>
+                <tr>
+                    <td style="border: none">Hal</td>
+                    <td style="border: none">
+                        : Permohonan Lembur Karyawan
+                        <?php if(isset($period)) echo "- " . $period; ?>
+                    </td>
+                </tr>
+            </table>
 
-        <table class="info">
-            <tr>
-                <td width="120">Pengembalian</td>
-                <td>{{ $loanitem->return_status }}</td>
-                <td width="120">Tanggal Dibuat</td>
-                <td>
-                    {{ $loanitem->created_at ?
-                    $loanitem->created_at->format('d-m-Y H:i') : date('d-m-Y
-                    H:i') }}
-                </td>
-            </tr>
-            <tr>
-                <td>Program</td>
-                <td>{{ $loanitem->program }}</td>
-                <td>Tanggal Booking</td>
-                <td>
-                    {{
-                    \Carbon\Carbon::parse($loanitem->booking_date)->format('d-m-Y')
-                    }}
-                </td>
-            </tr>
-            <tr>
-                <td>Lokasi</td>
-                <td>{{ $loanitem->location }}</td>
-                <td>Jam Booking</td>
-                <td>
-                    {{
-                    \Carbon\Carbon::parse($loanitem->start_booking)->format('H:i')
-                    }}
-                </td>
-            </tr>
-        </table>
+            <h4 style="font-weight: 400; margin-left: 7px; margin-top: -10px">
+                Dengan ini saya,
+            </h4>
+            <br />
 
-        <div style="margin-bottom: 10px">
-            <div style="display: flex; justify-content: space-between">
-                <div>
-                    <span
-                        class="checkbox {{ $isProduksi ? 'checked' : '' }}"
-                    ></span>
-                    Produksi
-                </div>
-                <span class="checkbox {{ $isNews ? 'checked' : '' }}"></span>
-                News
-                <span class="checkbox {{ $isStudio ? 'checked' : '' }}"></span>
-                Studio
-                <span
-                    class="checkbox {{ $isMarketing ? 'checked' : '' }}"
-                ></span>
-                Marketing
-                <span
-                    class="checkbox {{ $isLainlain ? 'checked' : '' }}"
-                ></span>
-                Lain-lain
-            </div>
-        </div>
+            <table style="border: none; margin-bottom: 20px">
+                <tr>
+                    <td style="width: 70px; border: none">Nama</td>
+                    <td style="border: none">
+                        : {{ $overtime[0]->user->name }}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="border: none">Jabatan</td>
+                    <td style="border: none">
+                        : {{ Str::title(str_replace('_', ' ',
+                        $overtime[0]->user->role)) }}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="border: none">Divisi</td>
+                    <td style="border: none">: Divisi</td>
+                </tr>
+            </table>
 
-        <!-- Items Table with compact layout like the example -->
-        <table class="items-table">
-            <tr>
-                <td class="category" width="15%">Video</td>
-                <td>
-                    @php $videoItems = []; foreach ($loanitem->items as $item) {
-                    if (strtolower($item->category) == 'video') { $videoItems[]
-                    = $item->name . ' (' . $item->pivot->quantity . ')'; } }
-                    echo implode(' , ', $videoItems); @endphp
-                </td>
-            </tr>
-            <tr>
-                <td class="category">Audio</td>
-                <td>
-                    @php $audioItems = []; foreach ($loanitem->items as $item) {
-                    if (strtolower($item->category) == 'audio') { $audioItems[]
-                    = $item->name . ' (' . $item->pivot->quantity . ')'; } }
-                    echo implode(' , ', $audioItems); @endphp
-                </td>
-            </tr>
-            <tr>
-                <td class="category">Lighting</td>
-                <td>
-                    @php $lightingItems = []; foreach ($loanitem->items as
-                    $item) { if (strtolower($item->category) == 'lighting') {
-                    $lightingItems[] = $item->name . ' (' .
-                    $item->pivot->quantity . ')'; } } echo implode(' , ',
-                    $lightingItems); @endphp
-                </td>
-            </tr>
-            <tr>
-                <td class="category">Lain-lain</td>
-                <td>
-                    @php $otherItems = []; foreach ($loanitem->items as $item) {
-                    if (!$item->category || strtolower($item->category) ==
-                    'lain-lain' || $item->category == 'NULL') { $otherItems[] =
-                    $item->name . ' (' . $item->pivot->quantity . ')'; } } echo
-                    implode(' , ', $otherItems); @endphp
-                </td>
-            </tr>
-            <tr>
-                <td class="category">Catatan</td>
-                <td>
-                    {{ $loanitem->notes ?? 'Kebutuhan lainnya menyesuaikan' }}
-                </td>
-            </tr>
-        </table>
+            <h4 style="font-weight: 400; margin-left: 7px">
+                Memohon untuk bekerja ekstra pada
+                <?php if(isset($period)) echo ", periode " . $period; ?>:
+            </h4>
 
-        <!-- Debug information - Keeping for reference but hidden in production -->
-        <div style="font-size: 8px; color: #999; margin: 5px 0; display: none">
-            @foreach($loanitem->items as $item) Item: {{ $item->name }},
-            Category: "{{ $item->category ?? 'NULL' }}", Quantity: {{
-            $item->pivot->quantity }}<br />
-            @endforeach
-        </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Hari / Tanggal</th>
+                        <th>Jam Kerja Normal</th>
+                        <th>Jam Lembur</th>
+                        <th>Guna</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach($overtime as $index =>
+                    $item): ?>
+                    <tr>
+                        <td>
+                            <?php echo $index + 1; ?>
+                        </td>
+                        <td>
+                            <?php echo \Carbon\Carbon::parse($item->tanggal_overtime)->locale('id')->isoFormat('dddd,
+                            D MMMM Y'); ?>
+                        </td>
+                        <td>8 JAM</td>
+                        <td>
+                            <?php echo $item->overtime_hours; ?> Jam
+                            <?php echo $item->overtime_minutes; ?> Menit
+                        </td>
+                        <td><?php echo $item->description; ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
 
-        <!-- Remove section title as it's now in the signature boxes -->
-        <!--<div class="section-title">Requested</div>-->
-
-        <div class="signatures">
-            <div class="signature-box">
-                <div class="signature-title">Requested</div>
-                <div class="check checked"></div>
-                <div>Produser/Ass.</div>
-            </div>
-
-            <div class="signature-box">
-                <div class="signature-title">Crew</div>
-                <div class="check checked"></div>
-                <div>Campers</div>
-            </div>
-
-            <div class="signature-box">
-                <div class="signature-title">Approval</div>
-                <div
-                    class="check {{ $loanitem->approval_admin_logistics ? 'checked' : '' }}"
-                ></div>
-                <div>Logistik</div>
+            <div class="approved-by">
+                <table>
+                    <tr>
+                        <td>
+                            Pemohon,<br /><br /><br /><br /><br />...............
+                            <br />{{ $overtime[0]->user->name }}
+                        </td>
+                        <td>
+                            Mengetahui,<br /><br /><br /><br /><br />Eko Purwito
+                            <br />Manager Teknik
+                        </td>
+                        <td>
+                            Menyetujui,<br /><br /><br /><br /><br />Dr.Hery
+                            Pamungkas SS, M.I.Kom <br />Direktur Operasional
+                        </td>
+                    </tr>
+                </table>
             </div>
         </div>
+        <?php else: ?>
+        <div class="content">
+            <div class="no-data">
+                <h3>TIDAK ADA DATA LEMBUR</h3>
+                <?php if(isset($period)): ?>
+                <p>
+                    Tidak ada data lembur untuk periode
+                    <strong>
+                        <?php echo $period; ?>
+                    </strong>
+                </p>
+                <?php else: ?>
+                <p>Tidak ada data lembur yang tersedia</p>
+                <?php endif; ?>
+                <p style="margin-top: 30px">
+                    <em
+                        >Silakan pilih periode lain atau periksa kembali data
+                        lembur Anda.</em
+                    >
+                </p>
+            </div>
+        </div>
+        <?php endif; ?>
 
-        <table class="contact-table">
-            <tr>
-                <td width="60">Nama</td>
-                <td>{{ $loanitem->producer_name }}</td>
-                <td width="60">Nama</td>
-                <td>{{ $loanitem->crew_name }}</td>
-                <td width="60">Nama</td>
-                <td>{{ $loanitem->approver_name }}</td>
-            </tr>
-            <tr>
-                <td>HP</td>
-                <td>{{ $loanitem->producer_telp }}</td>
-                <td>HP</td>
-                <td>{{ $loanitem->crew_telp }}</td>
-                <td>HP</td>
-                <td>{{ $loanitem->approver_telp }}</td>
-            </tr>
-        </table>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     </body>
 </html>

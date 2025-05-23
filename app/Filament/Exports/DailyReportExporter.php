@@ -6,7 +6,8 @@ use App\Models\DailyReport;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
-
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 
 class DailyReportExporter extends Exporter
 {
@@ -16,17 +17,18 @@ class DailyReportExporter extends Exporter
     {
         return [
             ExportColumn::make('user.name')
-            ->label('Nama'),
+                ->label('Nama'),
             ExportColumn::make('entry_date')
-            ->label('Tanggal'),
+                ->label('Tanggal'),
             ExportColumn::make('check_in')
-            ->label('Check In'),
+                ->label('Check In'),
             ExportColumn::make('check_out')
-            ->label('Check Out'),
+                ->label('Check Out'),
             ExportColumn::make('work_hours')
-            ->label('Jam Kerja'),
+                ->label('Jam Kerja'),
             ExportColumn::make('description')
-            ->label('Keterangan'),
+                ->label('Keterangan')
+                ->formatStateUsing(fn (string $state): string => strip_tags($state)), // Remove HTML tags here
         ];
     }
 

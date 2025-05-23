@@ -28,8 +28,6 @@ class Login extends BaseLogin
                 $this->getPasswordFormComponent(),
                 $this->getRememberFormComponent(),
                 $this->getResetPasswordComponent(),
-                
-                View::make('filament.pages.auth.google-button'),
             ]);
     }
     
