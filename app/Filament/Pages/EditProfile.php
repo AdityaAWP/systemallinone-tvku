@@ -48,8 +48,14 @@ class EditProfile extends Page
                     ->maxLength(255)
                     ->default($user->name),
 
+                TextInput::make('npp')
+                    ->label('NPP')
+                    ->required()
+                    ->maxLength(20)
+                    ->default($user->npp),
+
                 TextInput::make('email')
-                    ->email()
+                    ->email()   
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255)
@@ -66,10 +72,11 @@ class EditProfile extends Page
                         'Perempuan' => 'Perempuan',
                     ])
                     ->default($user->gender),
-                TextInput::make('phone')
+                TextInput::make('no_phone')
+                    ->label('No. Telepon')
                     ->tel()
                     ->maxLength(20)
-                    ->default($user->phone),
+                    ->default($user->no_phone),
 
                 TextInput::make('ktp')
                     ->label('KTP Number')
