@@ -9,8 +9,10 @@ use Filament\Actions\Exports\Models\Export;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
@@ -41,114 +43,103 @@ class DailyReportResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Waktu Kerja')
+                Forms\Components\Grid::make(3)
                     ->schema([
-                        Forms\Components\Grid::make(3)
-                            ->schema([
-                                DatePicker::make('entry_date')
-                                    ->label('Tanggal Kerja')
-                                    ->required(),
-                                TimePicker::make('check_in')
-                                    ->label('Waktu Mulai')
-                                    ->seconds(false)
-                                    ->required(),
-                                TimePicker::make('check_out')
-                                    ->label('Waktu Selesai')
-                                    ->seconds(false)
-                                    ->required()
-                                    ->live()
-                                    ->afterStateUpdated(function (Get $get, Set $set) {
-                                        $this->calculateWorkHours($get, $set);
-                                    }),
-                            ]),
-                        Forms\Components\Grid::make(4)
-                            ->schema([
-                                TextInput::make('work_hours_component')
-                                    ->label('Total Jam Kerja')
-                                    ->disabled()
-                                    ->numeric()
-                                    ->columnSpan(1),
-                                TextInput::make('work_minutes_component')
-                                    ->label('Total Menit Kerja')
-                                    ->disabled()
-                                    ->numeric()
-                                    ->columnSpan(1),
-                            ]),
-                    ]),
-                Forms\Components\Section::make('Deskripsi Pekerjaan')
-                    ->schema([
-                        RichEditor::make('description')
-                            ->label('')
+                        DatePicker::make('entry_date')
+                            ->label('Tanggal Kerja')
+                            ->required(),
+                        TimePicker::make('check_in')
+                            ->label('Waktu Mulai Bekerja')
+                            ->seconds(false)
+                            ->required(),
+                        TimePicker::make('check_out')
+                            ->label('Waktu Berakhir Bekerja')
+                            ->seconds(false)
                             ->required()
-                            ->columnSpanFull(),
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                $tanggal = $get('entry_date');
+                                $checkIn = $get('check_in');
+                                $checkOut = $get('check_out');
+
+                                if ($tanggal && $checkIn && $checkOut) {
+                                    try {
+                                        $tanggalString = Carbon::parse($tanggal)->format('Y-m-d');
+                                        $checkInTime = Carbon::parse($checkIn)->format('H:i:s');
+                                        $checkOutTime = Carbon::parse($checkOut)->format('H:i:s');
+
+                                        $checkInDateTime = Carbon::parse("{$tanggalString} {$checkInTime}");
+                                        $checkOutDateTime = Carbon::parse("{$tanggalString} {$checkOutTime}");
+
+                                        if ($checkOutDateTime->lt($checkInDateTime)) {
+                                            $checkOutDateTime->addDay();
+                                        }
+
+                                        $totalMinutes = abs($checkOutDateTime->diffInMinutes($checkInDateTime));
+
+                                        $hours = (int)floor($totalMinutes / 60);
+                                        $minutes = $totalMinutes % 60;
+
+                                        $set('work_hours', round($totalMinutes / 60, 2));
+                                        $set('work_hours_component', $hours);
+                                        $set('work_minutes_component', $minutes);
+
+                                        Log::info("Form calculation - Date: {$tanggalString}, Check-in: {$checkInDateTime->format('Y-m-d H:i:s')}, Check-out: {$checkOutDateTime->format('Y-m-d H:i:s')}, Total minutes: {$totalMinutes}, Hours: {$hours}, Minutes: {$minutes}");
+                                    } catch (\Exception $e) {
+                                        Log::error("Error in afterStateUpdated: " . $e->getMessage());
+                                    }
+                                }
+                            }),
+                    ]),
+
+                Forms\Components\Grid::make(4)
+                    ->schema([
+                        TextInput::make('work_hours_component')
+                            ->label('Jam')
+                            ->disabled()
+                            ->numeric()
+                            ->columnSpan(1),
+                        TextInput::make('work_minutes_component')
+                            ->label('Menit')
+                            ->disabled()
+                            ->numeric()
+                            ->columnSpan(1),
+                        RichEditor::make('description')
+                            ->label('Deskripsi')
+                            ->required()
+                            ->columnSpan(3),
                     ]),
             ]);
-    }
-
-    protected static function calculateWorkHours(Get $get, Set $set): void
-    {
-        $tanggal = $get('entry_date');
-        $checkIn = $get('check_in');
-        $checkOut = $get('check_out');
-
-        if ($tanggal && $checkIn && $checkOut) {
-            try {
-                $tanggalString = Carbon::parse($tanggal)->format('Y-m-d');
-                $checkInTime = Carbon::parse($checkIn)->format('H:i:s');
-                $checkOutTime = Carbon::parse($checkOut)->format('H:i:s');
-
-                $checkInDateTime = Carbon::parse("{$tanggalString} {$checkInTime}");
-                $checkOutDateTime = Carbon::parse("{$tanggalString} {$checkOutTime}");
-
-                if ($checkOutDateTime->lt($checkInDateTime)) {
-                    $checkOutDateTime->addDay();
-                }
-
-                $totalMinutes = abs($checkOutDateTime->diffInMinutes($checkInDateTime));
-
-                $hours = (int)floor($totalMinutes / 60);
-                $minutes = $totalMinutes % 60;
-
-                $set('work_hours', round($totalMinutes / 60, 2));
-                $set('work_hours_component', $hours);
-                $set('work_minutes_component', $minutes);
-            } catch (\Exception $e) {
-                // Handle error if needed
-            }
-        }
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->headerActions([
-                ExportAction::make()
-                    ->exporter(DailyReportExporter::class)
-                    ->label('Ekspor Excel')
-                    ->icon('heroicon-o-document-arrow-down'),
+                ExportAction::make()->exporter(DailyReportExporter::class),
             ])
             ->columns([
                 TextColumn::make('entry_date')
                     ->label('Tanggal')
+                    ->searchable()
                     ->date('d F Y')
                     ->sortable(),
                 TextColumn::make('check_in')
-                    ->label('Jam Masuk')
+                ->label('Waktu Check-in')
+                    ->searchable()
                     ->dateTime('H:i'),
                 TextColumn::make('check_out')
-                    ->label('Jam Keluar')
+                    ->label('Waktu Check-out')
+                    ->searchable()
                     ->dateTime('H:i'),
                 TextColumn::make('hours_formatted')
+                    ->searchable()
                     ->label('Durasi Kerja')
-                    ->state(fn (DailyReport $record): string => "{$record->work_hours_component} jam {$record->work_minutes_component} menit"),
+                    ->state(fn(DailyReport $record): string => "{$record->work_hours_component} jam {$record->work_minutes_component} menit"),
                 TextColumn::make('description')
-                    ->label('Deskripsi Pekerjaan')
-                    ->html()
-                    ->limit(50)
-                    ->tooltip(function (TextColumn $column): ?string {
-                        $state = $column->getState();
-                        return strip_tags($state);
-                    }),
+                    ->searchable()
+                    ->formatStateUsing(fn (string $state): HtmlString => new HtmlString($state))
+                    ->label('Deskripsi'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('bulan')
@@ -178,21 +169,23 @@ class DailyReportResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+                
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                     ExportBulkAction::make()
                         ->exporter(DailyReportExporter::class)
-                        ->label('Ekspor Data Terpilih')
-                        ->icon('heroicon-o-document-arrow-down'),
+                        
                 ]),
             ]);
     }
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            //
+        ];
     }
 
     public static function getPages(): array
