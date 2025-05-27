@@ -14,6 +14,7 @@ class IncomingLetter extends Model
         'reference_number',
         'type',
         'sender',
+        'letter_number', // Kolom baru
         'subject',
         'content',
         'letter_date',
@@ -36,10 +37,16 @@ class IncomingLetter extends Model
         parent::boot();
         
         static::creating(function ($model) {
-            $prefix = ($model->type == 'internal') ? 'I-' : 'U-';
+            $prefix = match ($model->type) {
+                'internal' => 'I-',
+                'general' => 'U-',
+                'visit' => 'KP-',
+                default => 'X-'
+            };
+            
             $lastLetter = self::where('type', $model->type)->latest('id')->first();
-            $nextNumber = $lastLetter ? intval(substr($lastLetter->reference_number, 2)) + 1 : 1;
-            $model->reference_number = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            $nextNumber = $lastLetter ? intval(substr($lastLetter->reference_number, strlen($prefix))) + 1 : 1;
+            $model->reference_number = $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         });
     }
 }

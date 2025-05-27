@@ -28,23 +28,49 @@ class OutgoingLetterResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Surat')
                     ->schema([
-                        Forms\Components\TextInput::make('reference_number')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->label('Nomor Referensi')
-                            ->helperText('Akan otomatis dihasilkan setelah disimpan'),
-                        Forms\Components\TextInput::make('recipient')
-                            ->required()
-                            ->maxLength(255)
-                            ->label('Penerima'),
-                        Forms\Components\TextInput::make('subject')
-                            ->required()
-                            ->maxLength(255)
-                            ->label('Perihal'),
-                        Forms\Components\DatePicker::make('letter_date')
-                            ->required()
-                            ->default(now())
-                            ->label('Tanggal Surat'),
+                        Forms\Components\Grid::make()
+                            ->schema([
+
+                                Forms\Components\Select::make('type')
+                                    ->options([
+                                        'internal' => 'Internal',
+                                        'general' => 'Umum',
+                                    ])
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                        $prefix = $state == 'internal' ? 'I-' : 'U-';
+                                        $set('reference_number', $prefix . '000');
+                                    }),
+
+                                Forms\Components\TextInput::make('reference_number')
+                                    ->label('Nomor Referensi')
+                                    ->required()
+                                    ->default(function (Forms\Get $get) {
+                                        $prefix = $get('type') == 'internal' ? 'I-' : 'U-';
+                                        return $prefix . '000';
+                                    }),
+                                Forms\Components\DatePicker::make('letter_date')
+                                    ->required()
+                                    ->default(now())
+                                    ->label('Tanggal Surat'),
+                            ])
+                            ->columns(3),
+                        Forms\Components\Grid::make()
+                            ->schema([
+
+                                Forms\Components\TextArea::make('recipient')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->rows(2)
+                                    ->label('Penerima'),
+                                Forms\Components\TextArea::make('subject')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->rows(2)
+                                    ->label('Perihal'),
+                            ])
+                            ->columns(2),
                         Forms\Components\RichEditor::make('content')
                             ->columnSpanFull()
                             ->label('Isi Surat'),
@@ -53,7 +79,7 @@ class OutgoingLetterResource extends Resource
                             ->columnSpanFull()
                             ->label('Catatan'),
                     ]),
-                    
+
                 Forms\Components\Section::make('Lampiran')
                     ->schema([
                         Forms\Components\FileUpload::make('attachments')
@@ -75,6 +101,19 @@ class OutgoingLetterResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\BadgeColumn::make('type')
+                    ->colors([
+                        'primary' => 'internal',
+                        'success' => 'general',
+                    ])
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            'internal' => 'Internal',
+                            'general' => 'Umum',
+                            default => $state
+                        };
+                    })
+                    ->label('Jenis Surat'),
                 Tables\Columns\TextColumn::make('reference_number')
                     ->searchable()
                     ->sortable()
@@ -102,6 +141,12 @@ class OutgoingLetterResource extends Resource
                     ->label('Diperbarui Pada'),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('type')
+                    ->options([
+                        'internal' => 'Internal',
+                        'general' => 'Umum',
+                    ])
+                    ->label('Jenis Surat'),
                 Tables\Filters\Filter::make('letter_date')
                     ->form([
                         Forms\Components\DatePicker::make('letter_date_from')
@@ -113,11 +158,11 @@ class OutgoingLetterResource extends Resource
                         return $query
                             ->when(
                                 $data['letter_date_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('letter_date', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('letter_date', '>=', $date),
                             )
                             ->when(
                                 $data['letter_date_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('letter_date', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('letter_date', '<=', $date),
                             );
                     }),
             ])

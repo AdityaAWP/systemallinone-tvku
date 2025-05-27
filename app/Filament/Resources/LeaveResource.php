@@ -61,29 +61,29 @@ class LeaveResource extends Resource
                             ->visible(!$isStaff)
                             ->default(fn() => $isStaff ? $user->id : null),
 
-                        Forms\Components\TextInput::make('npp')
-                            ->label('NPP')
-                            ->required()
-                            ->maxLength(20)
-                            ->disabled(!$isCreating && !$isStaff)
-                            ->default(fn() => $user->npp)
-                            ->visible(!$isStaff),
+                        // Forms\Components\TextInput::make('npp')
+                        //     ->label('NPP')
+                        //     ->required()
+                        //     ->maxLength(20)
+                        //     ->disabled(!$isCreating && !$isStaff)
+                        //     ->default(fn() => $user->npp)
+                        //     ->visible(!$isStaff),
 
-                        Forms\Components\TextInput::make('division_id')
-                            ->label('Divisi')
-                            ->required()
-                            ->maxLength(20)
-                            ->disabled(!$isCreating && !$isStaff)
-                            ->default(fn() => $user->division->name)
-                            ->visible(!$isStaff),
+                        // Forms\Components\TextInput::make('division_id')
+                        //     ->label('Divisi')
+                        //     ->required()
+                        //     ->maxLength(20)
+                        //     ->disabled(!$isCreating && !$isStaff)
+                        //     ->default(fn() => $user->division->name)
+                        //     ->visible(!$isStaff),
 
-                        Forms\Components\TextInput::make('roles')
-                            ->label('Jabatan')
-                            ->required()
-                            ->maxLength(20)
-                            ->disabled(!$isCreating && !$isStaff)
-                            ->default(fn() => $user->roles->first()->name ?? 'No Role')
-                            ->visible(!$isStaff),
+                        // Forms\Components\TextInput::make('roles')
+                        //     ->label('Jabatan')
+                        //     ->required()
+                        //     ->maxLength(20)
+                        //     ->disabled(!$isCreating && !$isStaff)
+                        //     ->default(fn() => $user->roles->first()->name ?? 'No Role')
+                        //     ->visible(!$isStaff),
 
                         Forms\Components\Hidden::make('user_id')
                             ->default(fn() => $user->id)
