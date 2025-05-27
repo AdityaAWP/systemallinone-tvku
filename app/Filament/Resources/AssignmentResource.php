@@ -150,7 +150,7 @@ class AssignmentResource extends Resource
                                         Assignment::STATUS_DECLINED => 'Ditolak',
                                     ])
                                     ->default(Assignment::STATUS_PENDING)
-                                    ->disabled(fn() => !Auth::user()->hasRole('direktur_keuangan'))
+                                    ->disabled(fn() => !Auth::user()->hasAnyRole(['direktur_keuangan', 'direktur_utama']))
                                     ->hidden(fn(Forms\Get $get) => in_array($get('type'), [Assignment::TYPE_FREE, Assignment::TYPE_BARTER])),
 
                                 Forms\Components\Placeholder::make('approved_at')
