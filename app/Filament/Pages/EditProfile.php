@@ -12,6 +12,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Models\Division;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 
@@ -24,6 +25,7 @@ class EditProfile extends Page
     protected static ?int $navigationSort = 5;
     protected static string $view = 'filament.pages.edit-profile';
     protected static ?string $title = 'Edit Profile';
+    
     public function getEditAction(): Action
     {
         $user = Auth::user();
@@ -72,6 +74,7 @@ class EditProfile extends Page
                         'Perempuan' => 'Perempuan',
                     ])
                     ->default($user->gender),
+
                 TextInput::make('no_phone')
                     ->label('No. Telepon')
                     ->tel()
@@ -95,6 +98,13 @@ class EditProfile extends Page
                         's3' => 'S3',
                     ])
                     ->default($user->last_education),
+
+                Select::make('division_id')
+                    ->label('Division')
+                    ->options(Division::all()->pluck('name', 'id'))
+                    ->searchable()
+                    ->placeholder('Select Division')
+                    ->default($user->division_id),
 
                 TextInput::make('address')
                     ->maxLength(500)

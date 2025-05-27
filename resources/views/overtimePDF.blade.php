@@ -157,13 +157,13 @@
         <tr>
             <td class="info-label">Nama</td>
             <td class="info-colon">:</td>
-            <td>{{ $overtime[0]->user->name ?? 'Nama Karyawan' }}</td>
+            <td>{{Str::headline($overtime[0]->user->name ?? 'Nama Karyawan') }}</td>
         </tr>
         <tr>
             <td class="info-label">Jabatan</td>
             <td class="info-colon">:</td>
             {{-- Using static data from image as role/division might not be directly available or match --}}
-            <td>Staff</td>
+            <td>{{ Str::headline($overtime[0]->user->roles->first()->name) }}</td>
         </tr>
         <tr>
             <td class="info-label">Divisi</td>
@@ -241,12 +241,18 @@
         </tr>
         <tr>
             <td>
-                <span class="text-bold">{{ $overtime[0]->user->name ?? '' }}</span><br>
-                {{ $overtime[0]->user->division ?? 'IT' }}
+                <span class="textBold">{{ Str::headline($overtime[0]->user->name ?? '' )}}</span><br>
+                {{ Str::headline($overtime[0]->user->division->name ?? 'IT') }}
             </td>
             <td>
-                <span class="text-bold">Husin Sufi S.Kom</span><br>
-                Kepala IT
+                @if($overtime[0]->user->atasan)
+                <span class="textBold">{{ Str::headline($overtime[0]->user->atasan->name) }}</span><br>
+                {{ $overtime[0]->user->jabatan_atasan }}
+                @else
+                <span class="textBold">-</span><br>
+                -
+                @endif
+            </td>f
             </td>
             <td>
                 <span class="text-bold">Hery Pamungkas S.S, M.I.Kom</span><br>

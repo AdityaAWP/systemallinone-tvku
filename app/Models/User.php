@@ -45,7 +45,6 @@ class User extends Authenticatable //implements FilamentUser
         'is_admin' => 'boolean',
         'birth' => 'date',
     ];
-
     public function createdUsers()
     {
         return $this->hasMany(User::class, 'created_by');
@@ -85,4 +84,46 @@ class User extends Authenticatable //implements FilamentUser
         
         return $leavesCount >= 2;
     }
+    // Di model User.php
+public function getAtasanAttribute()
+{
+    // Cari user dengan role manager atau kepala divisi yang sama
+    $divisionId = $this->division_id;
+    
+    // Cari manager divisi terlebih dahulu
+    $manager = User::whereHas('roles', function($query) {
+            $query->where('name', 'like', 'manager_%');
+        })
+        ->where('division_id', $divisionId)
+        ->first();
+    
+    // Jika tidak ada manager, cari kepala divisi
+    if (!$manager) {
+        $manager = User::whereHas('roles', function($query) use ($divisionId) {
+                $query->where('name', 'like', 'kepala_%')
+                     ->orWhere('name', 'like', 'head_%');
+            })
+            ->where('division_id', $divisionId)
+            ->first();
+    }
+    
+    return $manager;
+}
+
+public function getJabatanAtasanAttribute()
+{
+    $atasan = $this->atasan;
+    if (!$atasan) return null;
+    
+    // Ambil role pertama yang mengandung manager/kepala
+    foreach ($atasan->roles as $role) {
+        if (str_contains($role->name, 'manager')) {
+            return 'Manager ' . str_replace('manager_', '', $role->name);
+        } elseif (str_contains($role->name, 'kepala') || str_contains($role->name, 'head')) {
+            return 'Kepala ' . str_replace(['kepala_', 'head_'], '', $role->name);
+        }
+    }
+    
+    return 'Atasan';
+}
 }

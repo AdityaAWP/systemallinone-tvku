@@ -32,6 +32,16 @@ class JournalResource extends Resource
     protected static ?string $title = 'Jurnal';
     protected static ?string $label = 'Jurnal';
     protected static ?int $navigationSort = 0;
+    public static function getPanel(): ?string
+    {
+        return 'intern';
+    }
+
+    public static function canViewAny(): bool
+    {
+        return Auth::guard('intern')->check();
+    }
+
     public static function form(Form $form): Form
     {
         return $form

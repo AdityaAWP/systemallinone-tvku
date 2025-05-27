@@ -74,4 +74,8 @@ class Intern extends Authenticatable implements FilamentUser
     {
         return $this->belongsTo(InternSchool::class, 'school_id');
     }
+    // public function getAuthIdentifierName()
+    // {
+    //     return 'name';
+    // }
 }

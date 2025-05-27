@@ -27,8 +27,4 @@ class Journal extends Model
         'end_time' => 'datetime',
     ];
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
 }

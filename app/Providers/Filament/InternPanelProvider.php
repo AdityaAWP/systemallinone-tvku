@@ -1,8 +1,9 @@
 <?php
-
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
+use App\Filament\Pages\Auth\LoginIntern;
+use App\Filament\Resources\JournalResource; // Add this import
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -26,7 +27,7 @@ class InternPanelProvider extends PanelProvider
             ->id('intern')
             ->path('intern')
             ->brandLogo(asset('images/tvku-logo.png'))
-            ->login(Login::class)
+            ->login(LoginIntern::class)
             ->registration(Register::class)
             ->colors([
                 'primary' => Color::Amber,
@@ -36,6 +37,9 @@ class InternPanelProvider extends PanelProvider
                 'success' => Color::Green,
                 'info' => Color::Blue,
                 'dark' => Color::Gray,
+            ])
+            ->resources([ // Explicitly register resources
+                JournalResource::class,
             ])
             ->discoverResources(in: app_path('Filament/InternResources'), for: 'App\\Filament\\InternResources')
             ->discoverPages(in: app_path('Filament/InternPages'), for: 'App\\Filament\\InternPages')
