@@ -11,7 +11,7 @@ class Journal extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'intern_id',
         'entry_date',
         'start_time',
         'end_time',
@@ -26,5 +26,8 @@ class Journal extends Model
         'start_time' => 'datetime',
         'end_time' => 'datetime',
     ];
-
+    public function intern(): BelongsTo
+    {
+        return $this->belongsTo(Intern::class, 'intern_id');
+    }
 }

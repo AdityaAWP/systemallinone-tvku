@@ -12,7 +12,7 @@ class CreateJournal extends CreateRecord
     protected static string $resource = JournalResource::class;
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        return [...$data, 'user_id' => Auth::id()];
+        return [...$data, 'intern_id' => Auth::id()];
     }
     protected function getRedirectUrl(): string
     {

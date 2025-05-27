@@ -9,6 +9,7 @@ use App\Http\Controllers\LeaveTokenActionController;
 use App\Http\Controllers\LeaveDetailController;
 use App\Http\Controllers\PDFAssignmentController;
 use App\Http\Controllers\InternController;
+use App\Http\Controllers\PDFJournalController;
 
 Route::get('/', function () {
     return redirect()->route('filament.admin.pages.dashboard');
@@ -65,4 +66,6 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/interns/pdf', [InternController::class, 'generatePdf'])->name('interns.pdf');
     Route::get('/interns/excel', [InternController::class, 'downloadExcel'])->name('interns.excel');
 });
+
+Route::get('pdfjournal', [PDFJournalController::class, 'downloadpdf'])->name('journal.report');
 

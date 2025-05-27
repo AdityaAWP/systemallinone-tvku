@@ -46,7 +46,7 @@ class JournalResource extends Resource
     {
         return $form
             ->schema([
-                Hidden::make('user_id')
+                Hidden::make('intern_id')
                     ->default(fn() => Auth::id()),
                 DatePicker::make('entry_date')
                     ->label('Tanggal')
@@ -118,6 +118,14 @@ class JournalResource extends Resource
             ])
             ->filters([
                 //
+            ])
+            ->headerActions([
+                Tables\Actions\Action::make('downloadAll')
+                    ->label('Download Semua')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->url(fn() => route('journal.report'))
+                    ->openUrlInNewTab(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
