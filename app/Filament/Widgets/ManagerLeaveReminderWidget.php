@@ -36,6 +36,8 @@ class ManagerLeaveReminderWidget extends Widget
         foreach ($staffIds as $staffId) {
             $staff = User::find($staffId);
             if (!$staff || $staff->id === $manager->id) continue;
+            // Exclude super admin and hrd
+            if ($staff->hasRole('super_admin') || $staff->hasRole('hrd') || $staff->hasRole('manager')) continue;
             
             // Get quota information
             $quota = $staff->getCurrentYearQuota();
