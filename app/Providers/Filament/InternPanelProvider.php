@@ -30,7 +30,7 @@ class InternPanelProvider extends PanelProvider
             ->login(LoginIntern::class)
             ->registration(Register::class)
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Blue,
                 'secondary' => Color::Gray,
                 'error' => Color::Red,
                 'warning' => Color::Yellow,

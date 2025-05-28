@@ -23,7 +23,7 @@ class LeaveStatsWidget extends BaseWidget
     {
         $user = Auth::user();
         
-        if (!$user->hasRole('staff')) {
+        if (!$user->hasRole(['staff', 'staff_keuangan'])) {
             return [];
         }
         

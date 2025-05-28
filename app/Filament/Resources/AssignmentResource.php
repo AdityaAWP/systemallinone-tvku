@@ -30,8 +30,8 @@ class AssignmentResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        // For staff_keuangan, only show pending items they created
-        if (Auth::user()->hasRole('staff_keuangan')) {
+        $user = Auth::user();
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('staff_keuangan')) {
             return static::getModel()::where('approval_status', Assignment::STATUS_PENDING)
                 ->where('created_by', Auth::id())
                 ->count();
@@ -178,6 +178,11 @@ class AssignmentResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('creator.name')
+                    ->label('Dibuat Oleh')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(fn() => Auth::user()->hasAnyRole(['super_admin', 'direktur_keuangan'])),
                 Tables\Columns\TextColumn::make('created_date')
                     ->label('Tanggal Dibuat')
                     ->date('d M Y')
@@ -252,8 +257,6 @@ class AssignmentResource extends Resource
                         Assignment::STATUS_DECLINED => 'danger',
                         default => 'gray',
                     }),
-
-
             ])
             ->actions([
 

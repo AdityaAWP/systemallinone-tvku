@@ -39,7 +39,7 @@ class LeaveResource extends Resource
     public static function form(Form $form): Form
     {
         $user = Auth::user();
-        $isStaff = $user->hasRole('staff');
+        $isStaff = $user->hasAnyRole(['staff', 'staff_keuangan']);
         $isCreating = $form->getOperation() === 'create';
 
         $sisaKuotaCuti = 0;
@@ -209,7 +209,7 @@ class LeaveResource extends Resource
     public static function table(Table $table): Table
     {
         $user = Auth::user();
-        $isStaff = $user->hasRole('staff');
+        $isStaff = $user->hasAnyRole(['staff', 'staff_keuangan']);
 
         return $table
             ->headerActions([
@@ -379,7 +379,7 @@ class LeaveResource extends Resource
     {
         $user = Auth::user();
 
-        if ($user->hasRole('staff')) {
+        if ($user->hasAnyRole(['staff', 'staff_keuangan'])) {
             return parent::getEloquentQuery()->where('user_id', $user->id);
         }
 

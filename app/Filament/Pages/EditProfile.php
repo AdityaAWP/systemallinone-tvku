@@ -15,10 +15,14 @@ use App\Models\User;
 use App\Models\Division;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\Section;
+use Filament\Infolists\Infolist;
+use Filament\Infolists\Concerns\InteractsWithInfolists;
 
 class EditProfile extends Page
 {
-    use InteractsWithForms, InteractsWithActions;
+    use InteractsWithForms, InteractsWithActions, InteractsWithInfolists;
 
     protected static ?string $navigationIcon = 'heroicon-o-user';
     protected static ?string $navigationGroup = 'Manajemen Karyawan';
@@ -126,6 +130,60 @@ class EditProfile extends Page
                     ->success()
                     ->send();
             });
+    }
+
+    public function profileInfolist($infolist = null)
+    {
+        $user = Auth::user();
+        if ($infolist === null) {
+            $infolist = \Filament\Infolists\Infolist::make();
+        }
+        return $infolist
+            ->record($user)
+            ->schema([
+                Section::make('Informasi Pribadi')
+                    ->schema([
+                        TextEntry::make('name')
+                            ->label('Nama Lengkap')
+                            ->icon('heroicon-o-user'),
+                        TextEntry::make('npp')
+                            ->label('NPP')
+                            ->icon('heroicon-o-identification'),
+                        TextEntry::make('email')
+                            ->label('Email')
+                            ->icon('heroicon-o-envelope'),
+                        TextEntry::make('birth')
+                            ->label('Tanggal Lahir')
+                            ->date()
+                            ->icon('heroicon-o-calendar-days'),
+                        TextEntry::make('gender')
+                            ->label('Jenis Kelamin')
+                            ->icon('heroicon-o-user-group'),
+                        TextEntry::make('no_phone')
+                            ->label('No. Telepon')
+                            ->icon('heroicon-o-phone'),
+                        TextEntry::make('ktp')
+                            ->label('No. KTP')
+                            ->icon('heroicon-o-identification'),
+                    ])->columns(2),
+                Section::make('Informasi Pekerjaan')
+                    ->schema([
+                        TextEntry::make('last_education')
+                            ->label('Pendidikan Terakhir')
+                            ->icon('heroicon-o-academic-cap'),
+                        TextEntry::make('division.name')
+                            ->label('Divisi')
+                            ->icon('heroicon-o-building-office'),
+                        TextEntry::make('address')
+                            ->label('Alamat')
+                            ->icon('heroicon-o-map-pin'),
+                    ])->columns(2),
+            ]);
+    }
+
+    public function infolist(Infolist $infolist): Infolist
+    {
+        return $this->profileInfolist($infolist);
     }
 
     protected function getHeaderActions(): array
