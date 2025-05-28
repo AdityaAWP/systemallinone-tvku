@@ -68,4 +68,5 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 });
 
 Route::get('pdfjournal', [PDFJournalController::class, 'downloadpdf'])->name('journal.report');
-
+Route::get('pdfjournal/monthly', [PDFJournalController::class, 'downloadMonthlyPdf'])
+    ->name('journal.monthly');

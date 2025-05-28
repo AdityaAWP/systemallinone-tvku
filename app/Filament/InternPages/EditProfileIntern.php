@@ -38,20 +38,20 @@ class EditProfileIntern extends Page
                 Section::make('Personal Information')
                     ->schema([
                         TextEntry::make('name')
-                            ->label('Full Name')
+                            ->label('Nama Lengkap')
                             ->icon('heroicon-o-user'),
                         
                         TextEntry::make('email')
-                            ->label('Email Address')
+                            ->label('Email')
                             ->icon('heroicon-o-envelope'),
                         
                         TextEntry::make('birth_date')
-                            ->label('Date of Birth')
+                            ->label('Tanggal Lahir')
                             ->date()
                             ->icon('heroicon-o-calendar-days'),
                         
                         TextEntry::make('no_phone')
-                            ->label('Phone Number')
+                            ->label('No Telepon')
                             ->icon('heroicon-o-phone')
                             ->placeholder('Not provided'),
                         
@@ -65,27 +65,27 @@ class EditProfileIntern extends Page
                 Section::make('Academic Information')
                     ->schema([
                         TextEntry::make('school.name')
-                            ->label('School/Institution')
+                            ->label('Asal Sekolah/Institusi')
                             ->icon('heroicon-o-academic-cap')
                             ->placeholder('Not provided'),
                         
                         TextEntry::make('division')
-                            ->label('Division')
+                            ->label('Divisi')
                             ->icon('heroicon-o-building-office')
                             ->placeholder('Not provided'),
                         
                         TextEntry::make('institution_supervisor')
-                            ->label('Institution Supervisor')
+                            ->label('Nama Pembimbing')
                             ->icon('heroicon-o-user-circle')
                             ->placeholder('Not provided'),
                         
                         TextEntry::make('college_supervisor')
-                            ->label('College Supervisor')
+                            ->label('Dosen Pembimbing')
                             ->icon('heroicon-o-user-circle')
                             ->placeholder('Not provided'),
                         
                         TextEntry::make('college_supervisor_phone')
-                            ->label('College Supervisor Phone')
+                            ->label('No Telepon Dosen Pembimbing')
                             ->icon('heroicon-o-phone')
                             ->placeholder('Not provided'),
                     ])
@@ -122,30 +122,32 @@ class EditProfileIntern extends Page
             ->form([
                 TextInput::make('name')
                     ->required()
+                    ->label('Nama Lengkap')
                     ->maxLength(255)
                     ->default($intern->name),
 
                 TextInput::make('email')
                     ->email()   
+                    ->label('Email')
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255)
                     ->default($intern->email),
 
                 DatePicker::make('birth_date')
-                    ->label('Date of Birth')
+                    ->label('Tanggal Lahir')
                     ->maxDate(now())
                     ->default($intern->birth_date),
 
                 Select::make('school_id')
-                    ->label('School/Institution')
+                    ->label('Asal Sekolah/Institusi')
                     ->options(InternSchool::all()->pluck('name', 'id'))
                     ->searchable()
                     ->placeholder('Select School/Institution')
                     ->default($intern->school_id),
 
                 TextInput::make('division')
-                    ->label('Division')
+                    ->label('Divisi')
                     ->maxLength(255)
                     ->default($intern->division),
 
@@ -155,33 +157,33 @@ class EditProfileIntern extends Page
                     ->default($intern->nis_nim),
 
                 TextInput::make('no_phone')
-                    ->label('Phone Number')
+                    ->label('No Telepon')
                     ->tel()
                     ->maxLength(20)
                     ->default($intern->no_phone),
 
                 TextInput::make('institution_supervisor')
-                    ->label('Institution Supervisor')
+                    ->label('Nama Pembimbing')
                     ->maxLength(255)
                     ->default($intern->institution_supervisor),
 
                 TextInput::make('college_supervisor')
-                    ->label('College Supervisor')
+                    ->label('Dosen Pembimbing')
                     ->maxLength(255)
                     ->default($intern->college_supervisor),
 
                 TextInput::make('college_supervisor_phone')
-                    ->label('College Supervisor Phone')
+                    ->label('No Telepon Dosen Pembimbing')
                     ->tel()
                     ->maxLength(20)
                     ->default($intern->college_supervisor_phone),
 
                 DatePicker::make('start_date')
-                    ->label('Internship Start Date')
+                    ->label('Mulai Magang')
                     ->default($intern->start_date),
 
                 DatePicker::make('end_date')
-                    ->label('Internship End Date')
+                    ->label('Selesai Magang')
                     ->after('start_date')
                     ->default($intern->end_date),
             ])

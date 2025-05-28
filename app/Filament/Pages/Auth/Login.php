@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Filament\Pages\Auth;
-
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -23,14 +21,14 @@ class Login extends BaseLogin
         return parent::form($form)
             ->schema([
                 View::make('filament.pages.auth.flash-message'),
-                
                 $this->getEmailFormComponent(),
                 $this->getPasswordFormComponent(),
                 $this->getRememberFormComponent(),
                 $this->getResetPasswordComponent(),
+                $this->getInternRedirectComponent(),
             ]);
     }
-    
+
     protected function getEmailFormComponent(): Component
     {
         return TextInput::make('email')
@@ -41,7 +39,7 @@ class Login extends BaseLogin
             ->autofocus()
             ->extraAttributes(['tabindex' => 1]);
     }
-    
+
     protected function getPasswordFormComponent(): Component
     {
         return TextInput::make('password')
@@ -51,9 +49,14 @@ class Login extends BaseLogin
             ->autocomplete('current-password')
             ->extraAttributes(['tabindex' => 2]);
     }
-    
+
     protected function getResetPasswordComponent(): Component
     {
         return View::make('filament.pages.auth.reset-password-link');
+    }
+
+    protected function getInternRedirectComponent(): Component
+    {
+        return View::make('filament.pages.auth.intern-redirect-link');
     }
 }

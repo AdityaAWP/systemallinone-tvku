@@ -28,7 +28,6 @@ class InternPanelProvider extends PanelProvider
             ->path('intern')
             ->brandLogo(asset('images/tvku-logo.png'))
             ->login(LoginIntern::class)
-            ->registration(Register::class)
             ->colors([
                 'primary' => Color::Blue,
                 'secondary' => Color::Gray,
@@ -38,7 +37,7 @@ class InternPanelProvider extends PanelProvider
                 'info' => Color::Blue,
                 'dark' => Color::Gray,
             ])
-            ->resources([ // Explicitly register resources
+            ->resources([
                 JournalResource::class,
             ])
             ->discoverResources(in: app_path('Filament/InternResources'), for: 'App\\Filament\\InternResources')

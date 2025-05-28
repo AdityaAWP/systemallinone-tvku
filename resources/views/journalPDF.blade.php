@@ -61,39 +61,39 @@
 <body>
     <h1>Rangkuman Kegiatan</h1>
 
-    @if(count($overtime) > 0 && $overtime[0]->intern)
+    @if(count($journal) > 0 && $journal[0]->intern)
     <table class="info-table">
         <tr>
             <td>Nama</td>
             <td class="colon">:</td>
-            <td>{{ $overtime[0]->intern->name ?? 'N/A' }}</td>
+            <td>{{ $journal[0]->intern->name ?? 'N/A' }}</td>
         </tr>
         <tr>
             <td>NIS/NIM</td>
             <td class="colon">:</td>
-            <td>{{ $overtime[0]->intern->nim ?? 'N/A' }}</td>
+            <td>{{ $journal[0]->intern->nis_nim ?? 'N/A' }}</td>
         </tr>
         <tr>
             <td>Periode</td>
             <td class="colon">:</td>
-            <td>{{ isset($overtime[0]->intern->start_date) ? date('d-m-Y', strtotime($overtime[0]->intern->start_date))
-                : '01-03-2025' }} - {{ isset($overtime[0]->intern->end_date) ? date('d-m-Y',
-                strtotime($overtime[0]->intern->end_date)) : '31-08-2025' }}</td>
+            <td>{{ isset($journal[0]->intern->start_date) ? date('d-m-Y', strtotime($journal[0]->intern->start_date))
+                : '01-03-2025' }} - {{ isset($journal[0]->intern->end_date) ? date('d-m-Y',
+                strtotime($journal[0]->intern->end_date)) : '31-08-2025' }}</td>
         </tr>
         <tr>
             <td>Sekolah/Universitas</td>
             <td class="colon">:</td>
-            <td>{{ $overtime[0]->intern->school->name ?? 'N/A' }}</td>
+            <td>{{ $journal[0]->intern->school->name ?? 'N/A' }}</td>
         </tr>
         <tr>
             <td>Divisi</td>
             <td class="colon">:</td>
-            <td>{{ $overtime[0]->intern->division->name ?? 'N/A' }}</td>
+            <td>{{ $journal[0]->intern->division ?? 'N/A' }}</td>
         </tr>
         <tr>
             <td>Nama Pembimbing</td>
             <td class="colon">:</td>
-            <td>{{ $overtime[0]->intern->mentor->name ?? 'N/A' }}</td>
+            <td>{{ $journal[0]->intern->institution_supervisor ?? 'N/A' }}</td>
         </tr>
     </table>
     @else
@@ -145,7 +145,7 @@
         </thead>
         <tbody>
             @php $no = 1; @endphp
-            @forelse($overtime as $journal)
+            @forelse($journal as $journal)
             <tr>
                 <td>{{ $no++ }}</td>
                 <td>{{ $journal->entry_date ? date('d-m-Y', strtotime($journal->entry_date)) : 'N/A' }}</td>
