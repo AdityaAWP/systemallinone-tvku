@@ -141,12 +141,6 @@ class OutgoingLetterResource extends Resource
                     ->label('Diperbarui Pada'),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('type')
-                    ->options([
-                        'internal' => 'Internal',
-                        'general' => 'Umum',
-                    ])
-                    ->label('Jenis Surat'),
                 Tables\Filters\Filter::make('letter_date')
                     ->form([
                         Forms\Components\DatePicker::make('letter_date_from')
