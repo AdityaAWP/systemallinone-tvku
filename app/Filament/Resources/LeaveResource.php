@@ -42,9 +42,21 @@ class LeaveResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        // Hitung jumlah cuti dengan status 'pending'
-        $pendingCount = Leave::where('status', 'pending')->count();
-        return $pendingCount > 0 ? (string) $pendingCount : null;
+        $user = Auth::user();
+
+        if ($user->hasRole('super_admin')) {
+            // Super admin: tampilkan jumlah semua data cuti
+            $count = Leave::count();
+            return $count > 0 ? (string) $count : null;
+        }
+
+        if ($user->hasAnyRole(['hrd', 'manager',])) {
+            // HRD & Manager: tampilkan jumlah cuti dengan status 'pending'
+            $pendingCount = Leave::where('status', 'pending')->count();
+            return $pendingCount > 0 ? (string) $pendingCount : null;
+        }
+
+        return null;
     }
 
     public static function form(Form $form): Form

@@ -44,7 +44,10 @@ class LoanItemResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $pendingCount = LoanItem::where('return_status', 'Belum Dikembalikan')->count();
+        $user = Auth::user();
+        $pendingCount = LoanItem::where('user_id', $user->id)
+            ->where('return_status', 'Belum Dikembalikan')
+            ->count();
         return $pendingCount > 0 ? (string) $pendingCount : null;
     }
     

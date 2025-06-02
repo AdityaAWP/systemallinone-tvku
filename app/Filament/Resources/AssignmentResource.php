@@ -30,14 +30,14 @@ class AssignmentResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
+        // Show pending count for staff_keuangan, otherwise total count
         $user = Auth::user();
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('staff_keuangan')) {
             return static::getModel()::where('approval_status', Assignment::STATUS_PENDING)
                 ->where('created_by', Auth::id())
-                ->count();
+                ->count() ?: null;
         }
-
-        return static::getModel()::where('approval_status', Assignment::STATUS_PENDING)->count();
+        return static::getModel()::count() ?: null;
     }
 
     public static function getNavigationBadgeColor(): ?string
