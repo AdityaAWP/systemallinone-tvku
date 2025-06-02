@@ -19,8 +19,9 @@ class DivisionResource extends Resource
 {
     protected static ?string $model = Division::class;
     protected static ?string $navigationIcon = 'heroicon-o-briefcase';
-    protected static ?string $navigationGroup = 'Manajemen Karyawan';   
-    protected static ?string $label = 'Divisi';
+    protected static ?string $navigationGroup = 'Manajemen Karyawan';  
+    protected static ?string $navigationLabel = 'Divisi'; 
+    protected static ?string $label = 'Data Divisi';
     protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form
