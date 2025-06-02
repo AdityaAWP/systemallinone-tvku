@@ -40,7 +40,13 @@ class LoanItemResource extends Resource
     protected static ?int $navigationSort = 1;
     protected static ?string $navigationLabel = 'Peminjaman';
     protected static ?string $title = 'Peminjaman';
-    protected static ?string $label = 'Peminjaman';
+    protected static ?string $label = 'Data Peminjaman';
+
+    public static function getNavigationBadge(): ?string
+    {
+        $pendingCount = LoanItem::where('return_status', 'Belum Dikembalikan')->count();
+        return $pendingCount > 0 ? (string) $pendingCount : null;
+    }
     
     public static function form(Form $form): Form
     {
