@@ -21,18 +21,20 @@ use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class OvertimeResource extends Resource
 {
     protected static ?string $model = Overtime::class;
     protected static ?string $navigationIcon = 'heroicon-o-clock';
     protected static ?string $navigationGroup = 'Menu Karyawan';
-    protected static ?string $label = 'Lembur';
+    protected static ?string $navigationLabel = 'Lembur';
+    protected static ?string $label = 'Permohonan Lembur';
     protected static ?int $navigationSort = -1;
     
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('user_id', auth()->id());
+        return parent::getEloquentQuery()->where('user_id', Auth::user()?->id);
     }
 
 
