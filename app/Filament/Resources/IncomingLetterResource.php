@@ -156,14 +156,6 @@ class IncomingLetterResource extends Resource
                     ->label('Tanggal Agenda'),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('type')
-                    ->options([
-                        'internal' => 'Internal',
-                        'general' => 'Umum',
-                        'visit' => 'Kunjungan/Prakerin',
-                    ])
-                    ->label('Jenis Surat'),
-
                 Tables\Filters\Filter::make('dates')
                     ->form([
                         Forms\Components\DatePicker::make('letter_date_from')
