@@ -27,7 +27,14 @@ class UserResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $navigationGroup = 'Manajemen Karyawan';
     protected static ?string $navigationLabel = 'Data Karyawan';
+    protected static ?string $label = 'Data Karyawan';
     protected static ?int $navigationSort = 4;
+
+    public static function getNavigationBadge(): ?string
+    {
+        $userCount = User::count();
+        return $userCount > 0 ? (string) $userCount : null;
+    }
 
     public static function form(Form $form): Form
     {
