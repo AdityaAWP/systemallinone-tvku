@@ -14,11 +14,12 @@ class ListLogistics extends ListRecords
     protected static ?string $title = "Daftar Barang";
     protected static ?string $navigationBadgeTooltip = "Logistics";
 
-
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()
+                ->label('Tambah Data')
+                ->icon('heroicon-o-plus'),
         ];
     }
 }

@@ -15,7 +15,9 @@ class ListAssignments extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->hidden(fn () => Auth::user()->hasRole('direktur_keuangan')),
+                ->hidden(fn() => Auth::user()->hasRole('direktur_keuangan'))
+                ->label('Tambah Data')
+                ->icon('heroicon-o-plus'),
         ];
     }
 }

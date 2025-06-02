@@ -16,7 +16,7 @@ class ListInternSchools extends ListRecords
         return [
             Actions\CreateAction::make()
                 ->label('Tambah Data')
-                ->icon('heroicon-o-user-plus'),
+                ->icon('heroicon-o-plus'),
         ];
     }
 
