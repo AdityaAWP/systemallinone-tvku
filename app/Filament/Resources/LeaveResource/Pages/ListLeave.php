@@ -19,22 +19,27 @@ class ListLeave extends ListRecords
             ManagerLeaveReminderWidget::class,
         ];
     }
+    
 
-    // public function getTabs(): array
-    // {
-    //     return [
-    //         'All' => Tab::make(),
-    //     ];
-    // }
+    public function getTabs(): array
+    {
+        return [
+            'all' => Tab::make('All'),
+            'pending' => Tab::make('Pending')
+                ->query(fn($query) => $query->where('status', 'pending')),
+            'approved' => Tab::make('Approved')
+                ->query(fn($query) => $query->where('status', 'approved')),
+            'rejected' => Tab::make('Rejected')
+                ->query(fn($query) => $query->where('status', 'rejected')),
+        ];
+    }
 
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
-            // Actions\Action::make('report')
-            //     ->label('Generate Report')
-            //     ->url(static::getResource()::getUrl('report'))
-            //     ->visible(fn () => auth()->user()->can('generate_leave_report')),
+            Actions\CreateAction::make()
+                ->label('Tambah Data')
+                ->icon('heroicon-o-plus'),
         ];
     }
 }

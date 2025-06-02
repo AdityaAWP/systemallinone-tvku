@@ -26,14 +26,25 @@ class LeaveResource extends Resource
     protected static ?string $navigationGroup = 'Menu Karyawan';
     protected static ?int $navigationSort = -1;
     protected static ?string $navigationLabel = 'Cuti';
-    protected static ?string $title = 'Cuti';
-    protected static ?string $label = 'Cuti';
+    protected static ?string $label = 'Permohonan Cuti';
 
     protected function getHeaderWidgets(): array
     {
         return [
             LeaveStatsWidget::class,
         ];
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getNavigationBadge() > 0 ? 'primary' : null;
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        // Hitung jumlah cuti dengan status 'pending'
+        $pendingCount = Leave::where('status', 'pending')->count();
+        return $pendingCount > 0 ? (string) $pendingCount : null;
     }
 
     public static function form(Form $form): Form
@@ -131,7 +142,7 @@ class LeaveResource extends Resource
                             ->required(),
 
                         Forms\Components\Textarea::make('reason')
-                            ->label('Alasan')
+                            ->label('Keterangan')
                             ->required()
                             ->maxLength(500)
                             ->disabled(!$isCreating && !$isStaff),
@@ -274,6 +285,16 @@ class LeaveResource extends Resource
                     ->label('Jumlah Hari')
                     ->alignCenter(),
 
+                Tables\Columns\TextColumn::make('user.leaveQuotas')
+                    ->label('Sisa Cuti Tahunan')
+                    ->alignCenter()
+                    ->getStateUsing(function ($record) {
+                        $quota = $record->user?->leaveQuotas?->first();
+                        return $quota ? $quota->remaining_casual_quota . ' hari' : '0 hari';
+                    })
+                    ->sortable()
+                    ->visible(!$isStaff),
+
                 Tables\Columns\IconColumn::make('approval_manager')
                     ->label('Manager')
                     ->boolean()
@@ -312,14 +333,6 @@ class LeaveResource extends Resource
                         'medical' => 'Cuti Sakit',
                         'maternity' => 'Cuti Melahirkan',
                         'other' => 'Cuti Lainnya',
-                    ]),
-
-                Tables\Filters\SelectFilter::make('status')
-                    ->label('Status')
-                    ->options([
-                        'pending' => 'Menunggu',
-                        'approved' => 'Disetujui',
-                        'rejected' => 'Ditolak',
                     ]),
 
                 Tables\Filters\Filter::make('date_range')
