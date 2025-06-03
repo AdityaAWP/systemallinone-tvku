@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Exports\DailyReportExporter;
 use App\Filament\Resources\DailyReportResource\Pages;
 use App\Models\DailyReport;
+use App\Exports\DailyReportExcel;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -16,6 +17,7 @@ use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -23,6 +25,7 @@ use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Actions\ExportAction;
+use Filament\Tables\Actions\Action;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
@@ -116,7 +119,35 @@ class DailyReportResource extends Resource
     {
         return $table
             ->headerActions([
-                ExportAction::make()->exporter(DailyReportExporter::class)->label('Ekspor Excel'),
+                Action::make('export_monthly')
+                    ->label('Ekspor Excel')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->form([
+                        Select::make('year')
+                            ->label('Tahun')
+                            ->options(function () {
+                                $years = [];
+                                $reports = DailyReport::query()
+                                    ->where('user_id', auth()->id())
+                                    ->selectRaw('DISTINCT YEAR(entry_date) as year')
+                                    ->orderBy('year', 'desc')
+                                    ->get();
+                                
+                                foreach ($reports as $report) {
+                                    $years[$report->year] = $report->year;
+                                }
+                                
+                                return $years;
+                            })
+                            ->required()
+                            ->default(now()->year),
+                    ])
+                    ->action(function (array $data) {
+                        $year = $data['year'];
+                        $filename = "daily_reports_{$year}.xlsx";
+                        
+                        return (new DailyReportExcel($year, auth()->id()))->download($filename);
+                    }),
             ])
             ->columns([
                 TextColumn::make('entry_date')

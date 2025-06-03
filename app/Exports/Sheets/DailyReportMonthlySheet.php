@@ -13,23 +13,26 @@ class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, Wit
 {
     private int $year;
     private int $month;
+    private int $userId;
 
-    public function __construct(int $year, int $month)
+    public function __construct(int $year, int $month, int $userId)
     {
         $this->year = $year;
         $this->month = $month;
+        $this->userId = $userId;
     }
 
     /**
-     * @return 
+     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function query()
     {
         return DailyReport::query()
-            ->with('user') // Eager load user relationship
+            ->with('user')
+            ->where('user_id', $this->userId)
             ->whereYear('entry_date', $this->year)
             ->whereMonth('entry_date', $this->month)
-            ->orderBy('entry_date'); // Order by date within the month
+            ->orderBy('entry_date');
     }
 
     /**
@@ -37,7 +40,6 @@ class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, Wit
      */
     public function title(): string
     {
-        // Use Carbon to get month name
         return Carbon::create()->month($this->month)->format('F');
     }
 
@@ -57,19 +59,18 @@ class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, Wit
     }
 
     /**
-     * @param DailyReport $report
+     * @param DailyReport $row
      * @return array
      */
-    public function map($report): array
+    public function map($row): array
     {
         return [
-            $report->user?->name ?? 'N/A', // Handle potential null user
-            $report->entry_date,
-            $report->check_in,
-            $report->check_out,
-            $report->work_hours,
-            strip_tags((string) $report->description), // Ensure description is string and strip tags
+            $row->user->name ?? '',
+            $row->entry_date ? Carbon::parse($row->entry_date)->format('d F Y') : '',
+            $row->check_in ? Carbon::parse($row->check_in)->format('H:i') : '',
+            $row->check_out ? Carbon::parse($row->check_out)->format('H:i') : '',
+            "{$row->work_hours_component} jam {$row->work_minutes_component} menit",
+            strip_tags($row->description ?? ''), // Remove HTML tags
         ];
     }
 }
-
