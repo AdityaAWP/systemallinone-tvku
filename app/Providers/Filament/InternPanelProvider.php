@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Auth\LoginIntern;
 use App\Filament\Resources\JournalResource; // Add this import
+use App\Http\Middleware\CheckProfileCompletion;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -56,6 +57,7 @@ class InternPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                CheckProfileCompletion::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
