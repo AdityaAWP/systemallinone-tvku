@@ -144,7 +144,7 @@ class DailyReportResource extends Resource
                     ])
                     ->action(function (array $data) {
                         $year = $data['year'];
-                        $filename = "daily_reports_{$year}.xlsx";
+                        $filename = "laporan_harian_{$year}.xlsx";
                         
                         return (new DailyReportExcel($year, auth()->id()))->download($filename);
                     }),

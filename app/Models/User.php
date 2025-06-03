@@ -115,7 +115,6 @@ public function getJabatanAtasanAttribute()
     $atasan = $this->atasan;
     if (!$atasan) return null;
     
-    // Ambil role pertama yang mengandung manager/kepala
     foreach ($atasan->roles as $role) {
         if (str_contains($role->name, 'manager')) {
             return 'Manager ' . str_replace('manager_', '', $role->name);
