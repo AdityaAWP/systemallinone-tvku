@@ -30,6 +30,7 @@ class RoleSeeder extends Seeder
             'staff_keuangan',
             'admin_keuangan',
             'admin_magang',
+            'admin_surat',
             'admin_logistik',
         ];
 
