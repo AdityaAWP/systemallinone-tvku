@@ -177,12 +177,12 @@ class LoanItemResource extends Resource
                             Radio::make('approval_admin_logistics')
                                 ->label('Approval Admin Logistics')
                                 ->boolean()
-                                ->hidden(fn () => !auth()->user()->hasRole('admin_logistics'))
+                                ->hidden(fn () => !auth()->user()->hasRole('admin_logistik'))
                                 ->required(),
                             Radio::make('return_status')
                                 ->label('Status Pengembalian')
                                 ->required()
-                                ->hidden(fn () => !auth()->user()->hasRole('admin_logistics'))
+                                ->hidden(fn () => !auth()->user()->hasRole('admin_logistik'))
                                 ->options([
                                     'Sudah Dikembalikan' => 'Sudah Dikembalikan',
                                     'Belum Dikembalikan' => 'Belum Dikembalikan',
@@ -240,12 +240,12 @@ class LoanItemResource extends Resource
                     ->visible(function ($record) {
                         $user = Auth::user();
                         // Allow edit if user is admin_logistics, super_admin, or the owner
-                        return $user->hasRole(['admin_logistics', 'super_admin']) || 
+                        return $user->hasRole(['admin_logistik', 'super_admin']) || 
                                $record->user_id === $user->id;
                     }),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn ($record) => Auth::user()->hasRole(['admin_logistics', 'super_admin'])),
+                    ->visible(fn ($record) => Auth::user()->hasRole(['admin_logistik', 'super_admin'])),
                 Tables\Actions\Action::make('download') 
                     ->url(fn(LoanItem $loanitem) => route('loanitem.single', $loanitem))
                     ->openUrlInNewTab(),
@@ -254,7 +254,7 @@ class LoanItemResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => Auth::user()->hasRole(['admin_logistics', 'super_admin'])),
+                        ->visible(fn () => Auth::user()->hasRole(['admin_logistik', 'super_admin'])),
                     ExportBulkAction::make()
                         ->exporter(LoanItemExporter::class)
                 ]),
@@ -342,7 +342,7 @@ class LoanItemResource extends Resource
         $query = parent::getEloquentQuery();
         
         // If user is not admin_logistics or super_admin, only show their own loans
-        if (!Auth::user()->hasRole(['admin_logistics', 'super_admin'])) {
+        if (!Auth::user()->hasRole(['admin_logistik', 'super_admin'])) {
             $query->where('user_id', Auth::id());
         }
         
