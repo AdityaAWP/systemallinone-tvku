@@ -123,7 +123,6 @@ class LoanItemResource extends Resource
                         DatePicker::make('return_date')
                             ->required()
                             ->label('Tanggal Pengembalian'),
-                        // Replace TextInput with Select for division
                         Select::make('division')
                             ->options([
                                 'produksi' => 'Produksi',
@@ -167,13 +166,16 @@ class LoanItemResource extends Resource
                             ->cols(20),
                         ]),
                         Section::make('Approval')
+                        ->visible(fn () => auth()->user()->hasRole('admin_logistik'))
                         ->schema([
                             TextInput::make('approver_name')
-                                ->required()
-                                ->label('Nama'),
+                                ->required(fn () => auth()->user()->hasRole('admin_logistik'))
+                                ->label('Nama')
+                                ->visible(fn () => auth()->user()->hasRole('admin_logistik')),
                             TextInput::make('approver_telp')
-                                ->required()
-                                ->label('Telp.'),
+                                ->required(fn () => auth()->user()->hasRole('admin_logistik'))
+                                ->label('Telp.')
+                                ->visible(fn () => auth()->user()->hasRole('admin_logistik')),
                             Radio::make('approval_admin_logistics')
                                 ->label('Approval Admin Logistics')
                                 ->boolean()
