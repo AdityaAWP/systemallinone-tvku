@@ -1,22 +1,38 @@
 <?php
-
 namespace Database\Seeders;
 
-use App\Models\Position;
-use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+use App\Models\User;
 
 class SuperAdminSeeder extends Seeder
 {
-    public function run(): void
+    public function run()
     {
-        User::create([
-            'name' => 'Super Admin',
-            'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
-            'gender' => 'Laki-laki',
-            'phone' => '081234567890',
+        // Create super admin role
+        $superAdminRole = Role::firstOrCreate([
+            'name' => 'super_admin',
+            'guard_name' => 'web'
         ]);
+
+        // Give super admin all permissions
+        $superAdminRole->givePermissionTo(Permission::all());
+
+        // Create super admin user (optional)
+        $superAdmin = User::firstOrCreate([
+            'email' => 'admin@example.com'
+        ], [
+            'name' => 'Super Admin',
+            'password' => bcrypt('password'),
+            'email_verified_at' => now(),
+        ]);
+
+        // Assign super admin role
+        $superAdmin->assignRole('super_admin');
+
+        $this->command->info('✅ Super Admin created successfully!');
+        $this->command->info('Email: admin@example.com');
+        $this->command->info('Password: password');
     }
 }
