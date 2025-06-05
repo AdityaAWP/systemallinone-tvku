@@ -1,5 +1,6 @@
 <?php
 namespace Database\Seeders;
+
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
@@ -37,173 +38,258 @@ class RoleSeeder extends Seeder
         // Create roles
         foreach ($roles as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
+            $this->command->info("✓ Role created: {$role}");
         }
 
-        // Define resources and their permissions
+        // Check if permissions already exist (created by Shield)
+        $existingPermissions = Permission::count();
+        
+        if ($existingPermissions == 0) {
+            $this->command->info('No permissions found. Creating permissions...');
+            $this->createPermissions();
+        } else {
+            $this->command->info("Found {$existingPermissions} existing permissions. Using existing permissions.");
+        }
+
+        // Define role permissions mapping with Shield format
+        $rolePermissions = $this->getRolePermissionsMapping();
+
+        // Assign permissions to roles using Shield format
+        foreach ($rolePermissions as $roleName => $permissions) {
+            $role = Role::where('name', $roleName)->first();
+            
+            if ($role) {
+                // Filter permissions that actually exist
+                $existingPermissionNames = Permission::whereIn('name', $permissions)->pluck('name')->toArray();
+                
+                if (!empty($existingPermissionNames)) {
+                    $role->syncPermissions($existingPermissionNames);
+                    $this->command->info("✓ Assigned " . count($existingPermissionNames) . " permissions to {$roleName}");
+                } else {
+                    $this->command->warn("⚠ No valid permissions found for {$roleName}");
+                }
+            }
+        }
+
+        $this->command->info('✅ Roles and permissions have been seeded successfully!');
+    }
+
+    /**
+     * Create permissions if they don't exist
+     */
+    private function createPermissions()
+    {
         $resources = [
-            'assignment' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-            'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-            'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-            'incoming_letter' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-            'intern' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-            'intern_school' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-            'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-            'loan_item' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-            'logistics' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-            'outgoing_letter' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-            'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-            'user' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+            'assignment', 'daily_report', 'event', 'incoming_letter', 
+            'intern', 'intern_school', 'leave', 'loan_item', 
+            'logistics', 'outgoing_letter', 'overtime', 'user'
         ];
 
-        // Create permissions
-        foreach ($resources as $resource => $actions) {
+        $actions = ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'];
+
+        foreach ($resources as $resource) {
             foreach ($actions as $action) {
+                // Create with Shield format
                 Permission::firstOrCreate([
-                    'name' => $action . '_' . $resource,
+                    'name' => $resource . '::' . $action,
                     'guard_name' => 'web'
                 ]);
             }
         }
+    }
 
-        // Define role permissions mapping
-        $rolePermissions = [
+    /**
+     * Get role permissions mapping using Shield format (action_resource)
+     */
+    private function getRolePermissionsMapping()
+    {
+        return [
             'direktur_utama' => [
-                'assignment' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_assignment', 'view_assignment', 'create_assignment', 
+                'update_assignment', 'delete_assignment', 'delete_any_assignment',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
             
             'manager_produksi' => [
-                'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'kepala_produksi' => [
-                'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'kepala_it' => [
-                'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'manager_teknik' => [
-                'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'kepala_teknik' => [
-                'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'kepala_news' => [
-                'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'manager_keuangan' => [
-                'assignment' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_assignment', 'view_assignment', 'create_assignment', 
+                'update_assignment', 'delete_assignment', 'delete_any_assignment',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'kepala_marketing' => [
-                'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'manager_marketing' => [
-                'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'hrd' => [
-                'user' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_user', 'view_user', 'create_user', 
+                'update_user', 'delete_user', 'delete_any_user',
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'staff_produksi' => [
-                'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'staff_it' => [
-                'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'staff_teknik' => [
-                'leave' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'daily_report' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'overtime' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'staff_keuangan' => [
-                'assignment' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_assignment', 'view_assignment', 'create_assignment', 
+                'update_assignment', 'delete_assignment', 'delete_any_assignment',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'admin_keuangan' => [
-                'assignment' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_assignment', 'view_assignment', 'create_assignment', 
+                'update_assignment', 'delete_assignment', 'delete_any_assignment',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
+
             'admin_surat' => [
-                'incoming_letter' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'outgoing_letter' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_incoming::letter', 'view_incoming::letter', 'create_incoming::letter', 
+                'update_incoming::letter', 'delete_incoming::letter', 'delete_any_incoming::letter',
+                'view_any_outgoing::letter', 'view_outgoing::letter', 'create_outgoing::letter', 
+                'update_outgoing::letter', 'delete_outgoing::letter', 'delete_any_outgoing::letter',
             ],
+
             'admin_magang' => [
-                'intern' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'intern_school' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_intern', 'view_intern', 'create_intern', 
+                'update_intern', 'delete_intern', 'delete_any_intern',
+                'view_any_intern::school', 'view_intern::school', 'create_intern::school', 
+                'update_intern::school', 'delete_intern::school', 'delete_any_intern::school',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
 
             'admin_logistik' => [
-                'logistics' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'loan_item' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
-                'event' => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'],
+                'view_any_logistics', 'view_logistics', 'create_logistics', 
+                'update_logistics', 'delete_logistics', 'delete_any_logistics',
+                'view_any_loan::item', 'view_loan::item', 'create_loan::item', 
+                'update_loan::item', 'delete_loan::item', 'delete_any_loan::item',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
             ],
         ];
-
-        foreach ($rolePermissions as $roleName => $resourcePermissions) {
-            $role = Role::where('name', $roleName)->first();
-            
-            if ($role) {
-                $permissions = [];
-                
-                foreach ($resourcePermissions as $resource => $actions) {
-                    foreach ($actions as $action) {
-                        $permissions[] = $action . '_' . $resource;
-                    }
-                }
-                
-                $role->syncPermissions($permissions);
-            }
-        }
-
-        $this->command->info('Roles and permissions have been seeded successfully!');
     }
 }
