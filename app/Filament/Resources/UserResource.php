@@ -64,6 +64,9 @@ class UserResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload(),
+                        TextInput::make('position')
+                            ->label('Jabatan')
+                            ->required(),
                         Select::make('division_id')
                             ->label('Division')
                             ->required()
@@ -121,6 +124,9 @@ class UserResource extends Resource
                     ->sortable(),
                 TextColumn::make('division.name')
                     ->label('Division')
+                    ->searchable(),
+                TextColumn::make('position')
+                    ->label('Jabatan')
                     ->searchable(),
                 TextColumn::make('created_at')
                     ->dateTime()
