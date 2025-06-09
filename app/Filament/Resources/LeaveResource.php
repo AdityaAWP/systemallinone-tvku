@@ -37,6 +37,22 @@ class LeaveResource extends Resource
         ];
     }
 
+    /**
+     * Check if user has any staff role
+     */
+    private static function isStaff($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'staff%')->exists();
+    }
+
+    /**
+     * Check if user has any manager role
+     */
+    private static function isManager($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'manager%')->exists();
+    }
+
     public static function getNavigationBadgeColor(): ?string
     {
         return static::getNavigationBadge() > 0 ? 'primary' : null;
@@ -52,7 +68,7 @@ class LeaveResource extends Resource
             return $count > 0 ? (string) $count : null;
         }
 
-        if ($user->hasAnyRole(['hrd', 'manager',])) {
+        if ($user->hasRole('hrd') || static::isManager($user)) {
             // HRD & Manager: tampilkan jumlah cuti dengan status 'pending'
             $pendingCount = Leave::where('status', 'pending')->count();
             return $pendingCount > 0 ? (string) $pendingCount : null;
@@ -64,11 +80,11 @@ class LeaveResource extends Resource
     /**
      * Menghitung hari kerja (tidak termasuk weekend dan hari libur)
      */
-    private static function calculateWorkingDays($fromDate, $toDate): int
+    public static function calculateWorkingDays($fromDate, $toDate): int
     {
         $from = Carbon::parse($fromDate);
         $to = Carbon::parse($toDate);
-        
+
         // Daftar hari libur nasional Indonesia 2025 (bisa disesuaikan atau diambil dari database)
         $holidays = [
             '2025-01-01', // Tahun Baru
@@ -89,10 +105,10 @@ class LeaveResource extends Resource
             '2025-09-05', // Maulid Nabi Muhammad SAW
             '2025-12-25', // Hari Raya Natal
         ];
-        
+
         $workingDays = 0;
         $current = $from->copy();
-        
+
         while ($current->lte($to)) {
             // Skip weekend (Sabtu = 6, Minggu = 0)
             if (!$current->isWeekend()) {
@@ -103,53 +119,64 @@ class LeaveResource extends Resource
             }
             $current->addDay();
         }
-        
+
         return $workingDays;
     }
 
     public static function form(Form $form): Form
     {
         $user = Auth::user();
-        $isStaff = $user->hasAnyRole(['staff', 'staff_keuangan']);
+        $isStaff = static::isStaff($user);
+        $isManager = static::isManager($user);
         $isCreating = $form->getOperation() === 'create';
-
-        $sisaKuotaCuti = 0;
-        if ($isStaff) {
-            $quota = LeaveQuota::getUserQuota($user->id);
-            $sisaKuotaCuti = $quota->remaining_casual_quota;
-        }
 
         return $form
             ->schema([
                 Forms\Components\Section::make('Detail Permohonan Cuti')
                     ->schema([
-                        Forms\Components\TextInput::make('user.name')
-                            ->label('Karyawan')
-                            ->default($user->name)
-                            ->required()
-                            ->visible(!$isStaff)
-                            ->default(fn() => $isStaff ? $user->id : $user->name),
-                        
-                        TextInput::make('user.npp')
+                        Forms\Components\TextInput::make('employee_name')
+                            ->label('Nama Karyawan')
+                            ->formatStateUsing(function ($record) use ($user, $isCreating) {
+                                if ($isCreating) {
+                                    return $user->name;
+                                }
+                                return $record?->user?->name ?? $user->name;
+                            })
+                            ->disabled()
+                            ->required(),
+
+                        Forms\Components\TextInput::make('employee_npp')
                             ->label('NPP')
-                            ->default($user->npp)
-                            ->required()
-                            ->visible(!$isStaff)
-                            ->default(fn() => $isStaff ? $user->npp : $user->npp),
-                        
-                        TextInput::make('user.division.name')
+                            ->formatStateUsing(function ($record) use ($user, $isCreating) {
+                                if ($isCreating) {
+                                    return $user->npp;
+                                }
+                                return $record?->user?->npp ?? $user->npp;
+                            })
+                            ->disabled()
+                            ->required(),
+
+                        Forms\Components\TextInput::make('employee_division')
                             ->label('Divisi')
-                            ->default($user->division?->name)
-                            ->required()
-                            ->visible(!$isStaff)
-                            ->default(fn() => $isStaff ? $user->division?->name : $user->division?->name),
-                        
-                        TextInput::make('user.position')
+                            ->formatStateUsing(function ($record) use ($user, $isCreating) {
+                                if ($isCreating) {
+                                    return $user->division?->name ?? '-';
+                                }
+                                return $record?->user?->division?->name ?? $user->division?->name ?? '-';
+                            })
+                            ->disabled()
+                            ->required(),
+
+                        Forms\Components\TextInput::make('employee_position')
                             ->label('Jabatan')
-                            ->default($user->position)
-                            ->required()
-                            ->visible(!$isStaff)
-                            ->default(fn() => $isStaff ? $user->position : $user->position),
+                            ->formatStateUsing(function ($record) use ($user, $isCreating) {
+                                if ($isCreating) {
+                                    return $user->position ?? '-';
+                                }
+                                return $record?->user?->position ?? $user->position ?? '-';
+                            })
+                            ->disabled()
+                            ->required(),
 
                         Forms\Components\Select::make('leave_type')
                             ->label('Jenis Cuti')
@@ -162,43 +189,82 @@ class LeaveResource extends Resource
                             ->required()
                             ->reactive()
                             ->disabled(!$isCreating && !$isStaff)
-                            ->helperText(fn(?string $state) => $state === 'casual' && $isStaff ? "Anda memiliki {$sisaKuotaCuti} hari cuti tahunan tersisa tahun ini." : null),
+                            ->helperText(function (?string $state, $record) use ($user, $isStaff, $isCreating) {
+                                if ($state === 'casual' && $isStaff) {
+                                    // Untuk edit, gunakan user dari record, untuk create gunakan current user
+                                    $targetUser = $isCreating ? $user : ($record?->user ?? $user);
+                                    $quota = LeaveQuota::getUserQuota($targetUser->id);
+                                    $sisaKuotaCuti = $quota ? $quota->remaining_casual_quota : 0;
+                                    return "Anda memiliki {$sisaKuotaCuti} hari cuti tahunan tersisa tahun ini.";
+                                }
+                                return null;
+                            }),
+
+                        Forms\Components\TextInput::make('remaining_casual_leave')
+                            ->label('Sisa Cuti Tahunan')
+                            ->formatStateUsing(function ($record) use ($user, $isCreating) {
+                                // Untuk edit, gunakan user dari record, untuk create gunakan current user
+                                $targetUser = $isCreating ? $user : ($record?->user ?? $user);
+                                $quota = LeaveQuota::getUserQuota($targetUser->id);
+                                return $quota ? $quota->remaining_casual_quota . ' hari' : '0 hari';
+                            })
+                            ->disabled(),
 
                         Forms\Components\DatePicker::make('from_date')
                             ->label('Tanggal Mulai Cuti')
                             ->helperText('Tanggal pertama tidak masuk kerja')
                             ->required()
                             ->disabled(!$isCreating && !$isStaff)
-                            ->minDate(fn() => Carbon::now())
+                            ->minDate(fn() => $isCreating ? Carbon::now() : null)
                             ->reactive(),
 
-                        Forms\Components\DatePicker::make('back_to_work_date')
-                            ->label('Tanggal Masuk Kerja Kembali')
-                            ->helperText('Tanggal pertama masuk kerja setelah cuti')
+                        Forms\Components\DatePicker::make('to_date')
+                            ->label('Tanggal Berakhir Cuti')
+                            ->helperText('Tanggal terakhir tidak masuk kerja')
                             ->required()
                             ->disabled(!$isCreating && !$isStaff)
-                            ->minDate(fn(callable $get) => $get('from_date') ? Carbon::parse($get('from_date'))->addDay() : Carbon::now()->addDay())
+                            ->minDate(fn(callable $get) => $get('from_date') ? Carbon::parse($get('from_date')) : ($isCreating ? Carbon::now() : null))
                             ->reactive()
                             ->afterStateUpdated(function (callable $set, callable $get) {
-                                if ($get('from_date') && $get('back_to_work_date')) {
+                                if ($get('from_date') && $get('to_date')) {
                                     $fromDate = $get('from_date');
-                                    $backToWorkDate = $get('back_to_work_date');
-                                    
-                                    // Tanggal terakhir cuti = H-1 sebelum tanggal masuk kerja
-                                    $toDate = Carbon::parse($backToWorkDate)->subDay()->format('Y-m-d');
-                                    $set('to_date', $toDate);
-                                    
+                                    $toDate = $get('to_date');
+
+                                    // Tanggal masuk kerja kembali = H+1 setelah tanggal berakhir cuti
+                                    $backToWorkDate = Carbon::parse($toDate)->addDay()->format('Y-m-d');
+                                    $set('back_to_work_date', $backToWorkDate);
+
                                     // Hitung hari kerja saja (tidak termasuk weekend dan hari libur)
                                     $workingDays = static::calculateWorkingDays($fromDate, $toDate);
                                     $set('days', $workingDays);
                                 }
                             }),
 
+                        Forms\Components\DatePicker::make('back_to_work_date')
+                            ->label('Tanggal Masuk Kerja Kembali')
+                            ->helperText('Tanggal pertama masuk kerja setelah cuti (otomatis terisi)')
+                            ->disabled()
+                            ->formatStateUsing(function ($record) {
+                                // Jika editing dan ada to_date, hitung back_to_work_date
+                                if ($record && $record->to_date) {
+                                    return Carbon::parse($record->to_date)->addDay()->format('Y-m-d');
+                                }
+                                return null;
+                            })
+                            ->required(),
+
                         Forms\Components\TextInput::make('days')
-                            ->label('Jumlah Hari Libur')
+                            ->label('Jumlah Hari Kerja')
                             ->helperText('Hanya hari kerja yang dihitung (tidak termasuk weekend dan hari libur)')
                             ->numeric()
                             ->disabled()
+                            ->formatStateUsing(function ($record) {
+                                // Jika editing dan ada from_date & to_date, hitung ulang working days
+                                if ($record && $record->from_date && $record->to_date) {
+                                    return static::calculateWorkingDays($record->from_date, $record->to_date);
+                                }
+                                return $record?->days ?? 0;
+                            })
                             ->required(),
 
                         Forms\Components\Textarea::make('reason')
@@ -220,7 +286,7 @@ class LeaveResource extends Resource
                         Forms\Components\Toggle::make('approval_manager')
                             ->label('Persetujuan Manager')
                             ->helperText('Setujui atau tolak permohonan cuti ini')
-                            ->visible(fn() => $user->hasRole('manager') && !$isCreating)
+                            ->visible(fn() => $isManager && !$isCreating)
                             ->reactive(),
 
                         Forms\Components\Toggle::make('approval_hrd')
@@ -232,10 +298,10 @@ class LeaveResource extends Resource
                         Forms\Components\Textarea::make('rejection_reason')
                             ->label('Alasan Penolakan')
                             ->maxLength(500)
-                            ->visible(function (callable $get) use ($user, $isCreating) {
+                            ->visible(function (callable $get) use ($user, $isCreating, $isManager) {
                                 if ($isCreating) return false;
 
-                                if ($user->hasRole('manager') && $get('approval_manager') === false) {
+                                if ($isManager && $get('approval_manager') === false) {
                                     return true;
                                 }
 
@@ -245,8 +311,8 @@ class LeaveResource extends Resource
 
                                 return false;
                             })
-                            ->required(function (callable $get) use ($user) {
-                                if ($user->hasRole('manager') && $get('approval_manager') === false) {
+                            ->required(function (callable $get) use ($user, $isManager) {
+                                if ($isManager && $get('approval_manager') === false) {
                                     return true;
                                 }
 
@@ -279,7 +345,7 @@ class LeaveResource extends Resource
     public static function table(Table $table): Table
     {
         $user = Auth::user();
-        $isStaff = $user->hasAnyRole(['staff', 'staff_keuangan']);
+        $isStaff = static::isStaff($user);
 
         return $table
             ->headerActions([
@@ -291,27 +357,23 @@ class LeaveResource extends Resource
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Nama Karyawan')
                     ->searchable()
-                    ->sortable()
-                    ->visible(!$isStaff),
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('user.npp')
                     ->label('NPP')
                     ->searchable()
-                    ->sortable()
-                    ->visible(!$isStaff),
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('user.division.name')
                     ->label('Divisi')
                     ->searchable()
-                    ->sortable()
-                    ->visible(!$isStaff),
+                    ->sortable(),
 
-                Tables\Columns\TextColumn::make('user.roles.name')
+                Tables\Columns\TextColumn::make('user.position')
                     ->label('Jabatan')
                     ->formatStateUsing(fn($state) => $state ?: '-')
                     ->searchable()
-                    ->sortable()
-                    ->visible(!$isStaff),
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('leave_type')
                     ->label('Jenis Cuti')
@@ -335,30 +397,44 @@ class LeaveResource extends Resource
                     ->date('d M Y')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('back_to_work_date')
-                    ->label('Masuk Kembali')
-                    ->date('d M Y')
-                    ->sortable(),
-
                 Tables\Columns\TextColumn::make('to_date')
                     ->label('Berakhir Cuti')
                     ->date('d M Y')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('days')
-                    ->label('Hari Kerja')
-                    ->alignCenter()
-                    ->suffix(' hari'),
+                Tables\Columns\TextColumn::make('back_to_work_date')
+                    ->label('Masuk Kembali')
+                    ->getStateUsing(function ($record) {
+                        // Tanggal masuk kerja kembali = H+1 setelah tanggal berakhir cuti
+                        if ($record->to_date) {
+                            return \Carbon\Carbon::parse($record->to_date)->addDay()->format('Y-m-d');
+                        }
+                        return null;
+                    })
+                    ->date('d M Y')
+                    ->sortable(),
 
-                Tables\Columns\TextColumn::make('user.leaveQuotas')
+                Tables\Columns\TextColumn::make('days')
+                    ->label('Jml. Hari Cuti')
+                    ->alignCenter()
+                    ->suffix(' hari')
+                    ->tooltip('Hanya hari kerja yang dihitung (tidak termasuk weekend dan hari libur)')
+                    ->getStateUsing(function ($record) {
+                        if ($record->from_date && $record->to_date) {
+                            // Panggil fungsi calculateWorkingDays dari LeaveResource
+                            return \App\Filament\Resources\LeaveResource::calculateWorkingDays($record->from_date, $record->to_date);
+                        }
+                        return 0;
+                    }),
+
+                Tables\Columns\TextColumn::make('remaining_casual_leave')
                     ->label('Sisa Cuti Tahunan')
                     ->alignCenter()
                     ->getStateUsing(function ($record) {
                         $quota = $record->user?->leaveQuotas?->first();
                         return $quota ? $quota->remaining_casual_quota . ' hari' : '0 hari';
                     })
-                    ->sortable()
-                    ->visible(!$isStaff),
+                    ->sortable(),
 
                 Tables\Columns\IconColumn::make('approval_manager')
                     ->label('Manager')
@@ -457,10 +533,12 @@ class LeaveResource extends Resource
     {
         $user = Auth::user();
 
-        if ($user->hasAnyRole(['staff', 'staff_keuangan'])) {
+        if (static::isStaff($user)) {
+            // Staff hanya bisa melihat cuti miliknya sendiri
             return parent::getEloquentQuery()->where('user_id', $user->id);
         }
 
-        return parent::getEloquentQuery()->where('user_id', Auth::user()?->id);
+        // Selain staff bisa melihat semua data cuti
+        return parent::getEloquentQuery();
     }
 }
