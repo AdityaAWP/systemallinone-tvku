@@ -66,6 +66,8 @@ class UserResource extends Resource
                             ->preload(),
                         Select::make('division_id')
                             ->label('Division')
+                            ->required()
+                            ->relationship('division', 'name')
                             ->options(Division::all()->pluck('name', 'id'))
                             ->searchable()
                             ->preload(),
