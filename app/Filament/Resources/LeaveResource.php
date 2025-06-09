@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Filament\Tables\Actions\ExportAction;
 use App\Filament\Exports\LeaveExporter;
+use Dom\Text;
+use Filament\Forms\Components\TextInput;
 
 class LeaveResource extends Resource
 {
@@ -59,6 +61,52 @@ class LeaveResource extends Resource
         return null;
     }
 
+    /**
+     * Menghitung hari kerja (tidak termasuk weekend dan hari libur)
+     */
+    private static function calculateWorkingDays($fromDate, $toDate): int
+    {
+        $from = Carbon::parse($fromDate);
+        $to = Carbon::parse($toDate);
+        
+        // Daftar hari libur nasional Indonesia 2025 (bisa disesuaikan atau diambil dari database)
+        $holidays = [
+            '2025-01-01', // Tahun Baru
+            '2025-01-29', // Tahun Baru Imlek
+            '2025-02-12', // Isra Mi'raj
+            '2025-03-14', // Hari Suci Nyepi
+            '2025-03-29', // Wafat Isa Al-Masih
+            '2025-03-30', // Idul Fitri
+            '2025-03-31', // Idul Fitri
+            '2025-04-01', // Cuti Bersama Idul Fitri
+            '2025-05-01', // Hari Buruh
+            '2025-05-12', // Hari Raya Waisak
+            '2025-05-29', // Kenaikan Isa Al-Masih
+            '2025-06-01', // Hari Lahir Pancasila
+            '2025-06-06', // Idul Adha
+            '2025-06-27', // Tahun Baru Islam
+            '2025-08-17', // Hari Kemerdekaan RI
+            '2025-09-05', // Maulid Nabi Muhammad SAW
+            '2025-12-25', // Hari Raya Natal
+        ];
+        
+        $workingDays = 0;
+        $current = $from->copy();
+        
+        while ($current->lte($to)) {
+            // Skip weekend (Sabtu = 6, Minggu = 0)
+            if (!$current->isWeekend()) {
+                // Skip hari libur nasional
+                if (!in_array($current->format('Y-m-d'), $holidays)) {
+                    $workingDays++;
+                }
+            }
+            $current->addDay();
+        }
+        
+        return $workingDays;
+    }
+
     public static function form(Form $form): Form
     {
         $user = Auth::user();
@@ -75,42 +123,33 @@ class LeaveResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Detail Permohonan Cuti')
                     ->schema([
-                        Forms\Components\Select::make('user_id')
+                        Forms\Components\TextInput::make('user.name')
                             ->label('Karyawan')
-                            ->relationship('user', 'name')
-                            ->searchable()
-                            ->preload()
+                            ->default($user->name)
                             ->required()
                             ->visible(!$isStaff)
-                            ->default(fn() => $isStaff ? $user->id : null),
-
-                        // Forms\Components\TextInput::make('npp')
-                        //     ->label('NPP')
-                        //     ->required()
-                        //     ->maxLength(20)
-                        //     ->disabled(!$isCreating && !$isStaff)
-                        //     ->default(fn() => $user->npp)
-                        //     ->visible(!$isStaff),
-
-                        // Forms\Components\TextInput::make('division_id')
-                        //     ->label('Divisi')
-                        //     ->required()
-                        //     ->maxLength(20)
-                        //     ->disabled(!$isCreating && !$isStaff)
-                        //     ->default(fn() => $user->division->name)
-                        //     ->visible(!$isStaff),
-
-                        // Forms\Components\TextInput::make('roles')
-                        //     ->label('Jabatan')
-                        //     ->required()
-                        //     ->maxLength(20)
-                        //     ->disabled(!$isCreating && !$isStaff)
-                        //     ->default(fn() => $user->roles->first()->name ?? 'No Role')
-                        //     ->visible(!$isStaff),
-
-                        Forms\Components\Hidden::make('user_id')
-                            ->default(fn() => $user->id)
-                            ->visible($isStaff),
+                            ->default(fn() => $isStaff ? $user->id : $user->name),
+                        
+                        TextInput::make('user.npp')
+                            ->label('NPP')
+                            ->default($user->npp)
+                            ->required()
+                            ->visible(!$isStaff)
+                            ->default(fn() => $isStaff ? $user->npp : $user->npp),
+                        
+                        TextInput::make('user.division.name')
+                            ->label('Divisi')
+                            ->default($user->division?->name)
+                            ->required()
+                            ->visible(!$isStaff)
+                            ->default(fn() => $isStaff ? $user->division?->name : $user->division?->name),
+                        
+                        TextInput::make('user.position')
+                            ->label('Jabatan')
+                            ->default($user->position)
+                            ->required()
+                            ->visible(!$isStaff)
+                            ->default(fn() => $isStaff ? $user->position : $user->position),
 
                         Forms\Components\Select::make('leave_type')
                             ->label('Jenis Cuti')
@@ -126,29 +165,38 @@ class LeaveResource extends Resource
                             ->helperText(fn(?string $state) => $state === 'casual' && $isStaff ? "Anda memiliki {$sisaKuotaCuti} hari cuti tahunan tersisa tahun ini." : null),
 
                         Forms\Components\DatePicker::make('from_date')
-                            ->label('Tanggal Mulai')
+                            ->label('Tanggal Mulai Cuti')
+                            ->helperText('Tanggal pertama tidak masuk kerja')
                             ->required()
                             ->disabled(!$isCreating && !$isStaff)
                             ->minDate(fn() => Carbon::now())
                             ->reactive(),
 
-                        Forms\Components\DatePicker::make('to_date')
-                            ->label('Tanggal Selesai')
+                        Forms\Components\DatePicker::make('back_to_work_date')
+                            ->label('Tanggal Masuk Kerja Kembali')
+                            ->helperText('Tanggal pertama masuk kerja setelah cuti')
                             ->required()
                             ->disabled(!$isCreating && !$isStaff)
-                            ->minDate(fn(callable $get) => Carbon::parse($get('from_date')))
+                            ->minDate(fn(callable $get) => $get('from_date') ? Carbon::parse($get('from_date'))->addDay() : Carbon::now()->addDay())
                             ->reactive()
                             ->afterStateUpdated(function (callable $set, callable $get) {
-                                if ($get('from_date') && $get('to_date')) {
-                                    $fromDate = Carbon::parse($get('from_date'));
-                                    $toDate = Carbon::parse($get('to_date'));
-                                    $days = abs($toDate->diffInDays($fromDate)) + 1;
-                                    $set('days', $days);
+                                if ($get('from_date') && $get('back_to_work_date')) {
+                                    $fromDate = $get('from_date');
+                                    $backToWorkDate = $get('back_to_work_date');
+                                    
+                                    // Tanggal terakhir cuti = H-1 sebelum tanggal masuk kerja
+                                    $toDate = Carbon::parse($backToWorkDate)->subDay()->format('Y-m-d');
+                                    $set('to_date', $toDate);
+                                    
+                                    // Hitung hari kerja saja (tidak termasuk weekend dan hari libur)
+                                    $workingDays = static::calculateWorkingDays($fromDate, $toDate);
+                                    $set('days', $workingDays);
                                 }
                             }),
 
                         Forms\Components\TextInput::make('days')
-                            ->label('Jumlah Hari')
+                            ->label('Jumlah Hari Libur')
+                            ->helperText('Hanya hari kerja yang dihitung (tidak termasuk weekend dan hari libur)')
                             ->numeric()
                             ->disabled()
                             ->required(),
@@ -161,7 +209,6 @@ class LeaveResource extends Resource
 
                         Forms\Components\FileUpload::make('attachment')
                             ->label('Lampiran (jika ada)')
-                            ->directory('lampiran-cuti')
                             ->directory('lampiran-cuti')
                             ->disabled(!$isCreating && !$isStaff)
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
@@ -284,18 +331,24 @@ class LeaveResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('from_date')
-                    ->label('Dari Tanggal')
+                    ->label('Mulai Cuti')
+                    ->date('d M Y')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('back_to_work_date')
+                    ->label('Masuk Kembali')
                     ->date('d M Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('to_date')
-                    ->label('Sampai Tanggal')
+                    ->label('Berakhir Cuti')
                     ->date('d M Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('days')
-                    ->label('Jumlah Hari')
-                    ->alignCenter(),
+                    ->label('Hari Kerja')
+                    ->alignCenter()
+                    ->suffix(' hari'),
 
                 Tables\Columns\TextColumn::make('user.leaveQuotas')
                     ->label('Sisa Cuti Tahunan')
@@ -410,5 +463,4 @@ class LeaveResource extends Resource
 
         return parent::getEloquentQuery()->where('user_id', Auth::user()?->id);
     }
-
 }

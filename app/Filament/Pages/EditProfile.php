@@ -110,6 +110,10 @@ class EditProfile extends Page
                     ->placeholder('Select Division')
                     ->default($user->division_id),
 
+                TextInput::make('position')
+                    ->label('Jabatan')
+                    ->maxLength(100)
+                    ->default($user->position),
                 TextInput::make('address')
                     ->maxLength(500)
                     ->columnSpanFull()
@@ -177,6 +181,9 @@ class EditProfile extends Page
                         TextEntry::make('address')
                             ->label('Alamat')
                             ->icon('heroicon-o-map-pin'),
+                        TextEntry::make('position')
+                            ->label('Jabatan')
+                            ->icon('heroicon-o-briefcase'),
                     ])->columns(2),
             ]);
     }
