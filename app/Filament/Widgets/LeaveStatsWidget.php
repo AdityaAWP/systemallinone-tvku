@@ -23,10 +23,6 @@ class LeaveStatsWidget extends BaseWidget
     {
         $user = Auth::user();
         
-        if (!$user->hasRole(['staff', 'staff_keuangan'])) {
-            return [];
-        }
-        
         $quota = LeaveQuota::getUserQuota($user->id);
         $currentYear = date('Y');
         
