@@ -14,6 +14,7 @@ use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -37,7 +38,6 @@ class OvertimeResource extends Resource
         return parent::getEloquentQuery()->where('user_id', Auth::user()?->id);
     }
 
-
     public static function form(Form $form): Form
     {
         return $form
@@ -47,14 +47,40 @@ class OvertimeResource extends Resource
                         DatePicker::make('tanggal_overtime')
                             ->label('Tanggal Lembur')
                             ->required(),
-                        TimePicker::make('normal_work_time_check_in')
-                            ->label('Waktu Mulai Kerja')
+                        
+                        Select::make('is_holiday')
+                            ->label('Status Hari')
+                            ->options([
+                                0 => 'Hari Kerja Normal',
+                                1 => 'Hari Libur'
+                            ])
+                            ->default(0)
                             ->required()
+                            ->live()
+                            ->columnSpan(1),
+                        
+                        Forms\Components\Placeholder::make('spacer')
+                            ->label('')
+                            ->columnSpan(1),
+                    ]),
+
+                Forms\Components\Grid::make(2)
+                    ->schema([
+                        TimePicker::make('normal_work_time_check_in')
+                            ->label('Waktu Mulai Kerja Normal')
+                            ->required(fn (Get $get): bool => $get('is_holiday') == 0)
+                            ->hidden(fn (Get $get): bool => $get('is_holiday') == 1)
                             ->seconds(false),
                         TimePicker::make('normal_work_time_check_out')
-                            ->label('Waktu Selesai Kerja')
-                            ->required()
+                            ->label('Waktu Selesai Kerja Normal')
+                            ->required(fn (Get $get): bool => $get('is_holiday') == 0)
+                            ->hidden(fn (Get $get): bool => $get('is_holiday') == 1)
                             ->seconds(false),
+                    ])
+                    ->hidden(fn (Get $get): bool => $get('is_holiday') == 1),
+
+                Forms\Components\Grid::make(2)
+                    ->schema([
                         TimePicker::make('check_in')
                             ->label('Waktu Mulai Lembur')
                             ->seconds(false)
@@ -114,7 +140,7 @@ class OvertimeResource extends Resource
                         TextInput::make('description')
                             ->label('Deskripsi')
                             ->required()
-                            ->columnSpan(3),
+                            ->columnSpan(2),
                     ]),
             ]);
     }
@@ -128,14 +154,23 @@ class OvertimeResource extends Resource
                     ->searchable()
                     ->date('d F Y')
                     ->sortable(),
+                TextColumn::make('is_holiday')
+                    ->label('Status Hari')
+                    ->formatStateUsing(fn (string $state): string => $state ? 'Hari Libur' : 'Hari Kerja')
+                    ->badge()
+                    ->color(fn (string $state): string => $state ? 'success' : 'primary'),
                 TextColumn::make('normal_work_time_check_in')
                     ->label('Waktu Mulai Kerja')
                     ->searchable()
-                    ->dateTime('H:i'),
+                    ->dateTime('H:i')
+                    ->placeholder('Hari Libur')
+                    ->hidden(fn ($record) => $record?->is_holiday),
                 TextColumn::make('normal_work_time_check_out')
                     ->label('Waktu Selesai Kerja')
                     ->searchable()
-                    ->dateTime('H:i'),
+                    ->dateTime('H:i')
+                    ->placeholder('Hari Libur')
+                    ->hidden(fn ($record) => $record?->is_holiday),
                 TextColumn::make('check_in')
                     ->label('Waktu Mulai Lembur')
                     ->searchable()
@@ -153,7 +188,12 @@ class OvertimeResource extends Resource
                     ->label('Deskripsi'),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('is_holiday')
+                    ->label('Status Hari')
+                    ->options([
+                        0 => 'Hari Kerja Normal',
+                        1 => 'Hari Libur'
+                    ])
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -162,8 +202,6 @@ class OvertimeResource extends Resource
                     ->url(fn(Overtime $overtime) => route('overtime.single', $overtime))
                     ->openUrlInNewTab()
             ])
-            // Tambahkan ini di bagian actions pada table() method di OvertimeResource
-
             ->headerActions([
                 // Action untuk download semua data
                 Tables\Actions\Action::make('downloadAll')

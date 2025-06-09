@@ -15,6 +15,7 @@ class Overtime extends Model
     protected $fillable = [
         'user_id',
         'tanggal_overtime',
+        'is_holiday',
         'check_in',
         'check_out',
         'normal_work_time_check_in',
@@ -30,6 +31,7 @@ class Overtime extends Model
         'check_in' => 'datetime',
         'check_out' => 'datetime',
         'overtime' => 'decimal:2',
+        'is_holiday' => 'boolean',
         'overtime_hours' => 'integer',
         'overtime_minutes' => 'integer',
     ];
