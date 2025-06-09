@@ -3,14 +3,14 @@
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
                 @if($user)
-                    <div class="flex-shrink-0">
-                        <img src="{{ asset('images/profile.png') }}" alt="{{ $user->name }}"
-                            class="h-16 w-16 rounded-full object-cover">
-                    </div>
+                <div class="flex-shrink-0">
+                    <img src="{{ asset('images/profile.png') }}" alt="{{ $user->name }}"
+                        class="h-16 w-16 rounded-full object-cover">
+                </div>
                 @else
-                    <div class="flex-shrink-0 h-16 w-16 rounded-full bg-gray-200">
-                        <span class="text-gray-500 text-xl font-medium">{{ substr($user->name, 0, 1) }}</span>
-                    </div>
+                <div class="flex-shrink-0 h-16 w-16 rounded-full bg-gray-200">
+                    <span class="text-gray-500 text-xl font-medium">{{ substr($user->name, 0, 1) }}</span>
+                </div>
                 @endif
 
                 <div>
@@ -18,10 +18,10 @@
                     <div class="flex items-center px-3">
                         <p class="text-sm text-gray-500 py-1 pl-2">{{ $user->email }}</p>
                         @if($user->position)
-                            <span
-                                class="mx-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-black border-2 border-black">
-                                {{ $user->position->name }}
-                            </span>
+                        <span
+                            class="mx-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-black border-2 border-black">
+                            {{ $user->position }}
+                        </span>
                         @endif
                     </div>
                 </div>

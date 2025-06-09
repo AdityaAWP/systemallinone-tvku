@@ -408,6 +408,7 @@ class LeaveResource extends Resource
             return parent::getEloquentQuery()->where('user_id', $user->id);
         }
 
-        return parent::getEloquentQuery();
+        return parent::getEloquentQuery()->where('user_id', Auth::user()?->id);
     }
+
 }
