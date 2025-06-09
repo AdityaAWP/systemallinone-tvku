@@ -23,19 +23,32 @@ class CreateLeave extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['status'] = 'pending';
-        
+        // Always set user_id to the authenticated user (scalar, force int)
+        $data['user_id'] = (int) Auth::id();
         // Generate token unik setiap kali membuat permintaan cuti baru
         $data['approval_token'] = Str::random(64);
-        
         Log::info('Token approval dibuat: ' . $data['approval_token']);
-        
+        // Set to_date to from_date if not provided
+        if (empty($data['to_date'])) {
+            $data['to_date'] = $data['from_date'] ?? null;
+        }
         return $data;
     }
 
     protected function beforeCreate(): void
     {
         $data = $this->form->getState();
-        $user = User::find($data['user_id']);
+        $userId = $data['user_id'] ?? Auth::id();
+        $user = User::find($userId);
+        if (!$user instanceof User) {
+            FilamentNotification::make()
+                ->title('User tidak ditemukan')
+                ->body('Data user tidak valid. Silakan login ulang.')
+                ->danger()
+                ->persistent()
+                ->send();
+            $this->halt();
+        }
         $this->validateMonthlyLeaveLimit($user, $data);
     }
 
@@ -72,7 +85,7 @@ class CreateLeave extends CreateRecord
                 ->persistent()
                 ->send();
 
-            $this->halt("Anda sudah mencapai batas maksimal 2 cuti {$leaveTypeName} dalam bulan ini.");
+            $this->halt();
         }
 
         if ($totalLeavesThisMonth >= 2) {
@@ -83,14 +96,23 @@ class CreateLeave extends CreateRecord
                 ->persistent()
                 ->send();
 
-            $this->halt("Anda sudah mencapai batas maksimal 2 cuti dalam bulan ini. Anda hanya dapat mengajukan cuti melahirkan sekarang.");
+            $this->halt();
         }
     }
 
     protected function handleRecordCreation(array $data): Model
     {
-        $user = User::find($data['user_id']);
-
+        $userId = $data['user_id'] ?? Auth::id();
+        $user = User::find($userId);
+        if (!$user instanceof User) {
+            FilamentNotification::make()
+                ->title('User tidak ditemukan')
+                ->body('Data user tidak valid. Silakan login ulang.')
+                ->danger()
+                ->persistent()
+                ->send();
+            $this->halt();
+        }
         $this->validateLeaveApplication($user, $data);
 
         $leave = parent::handleRecordCreation($data);
@@ -126,7 +148,13 @@ class CreateLeave extends CreateRecord
             $days = $data['days'] ?? 1;
 
             if (($quota->casual_used + $days) > $quota->casual_quota) {
-                $this->halt('Anda telah melebihi kuota cuti tahunan Anda untuk tahun ini.');
+                FilamentNotification::make()
+                    ->title('Kuota Cuti Tahunan Terlampaui')
+                    ->body('Anda telah melebihi kuota cuti tahunan Anda untuk tahun ini.')
+                    ->danger()
+                    ->persistent()
+                    ->send();
+                $this->halt();
             }
         }
     }
@@ -168,8 +196,16 @@ class CreateLeave extends CreateRecord
         $hrdUsers = User::role('hrd')->get();
         Notification::send($hrdUsers, new LeaveRequested($leave));
 
-        $managers = User::role('manager')->get();
-        Notification::send($managers, new LeaveRequested($leave));
+        // Get the staff's role and convert to manager role
+        $staffRole = $leave->user->roles->first()?->name;
+        if ($staffRole && str_starts_with($staffRole, 'staff_')) {
+            $managerRole = 'manager_' . substr($staffRole, 6);
+            // Cek apakah role manager ada
+            if (\Spatie\Permission\Models\Role::where('name', $managerRole)->exists()) {
+                $managers = User::role($managerRole)->get();
+                Notification::send($managers, new LeaveRequested($leave));
+            }
+        }
     }
 
     protected function getRedirectUrl(): string
