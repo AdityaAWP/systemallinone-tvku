@@ -62,6 +62,7 @@ class UserResource extends Resource
                         Select::make('roles')
                             ->relationship('roles', 'name')
                             ->required()
+                            ->multiple()
                             ->searchable()
                             ->preload(),
                         TextInput::make('position')
