@@ -28,7 +28,7 @@ class EditProfile extends Page
     protected static ?string $navigationGroup = 'Manajemen Karyawan';
     protected static ?int $navigationSort = 5;
     protected static string $view = 'filament.pages.edit-profile';
-    protected static ?string $title = 'Edit Profile';
+    protected static ?string $title = 'Profile';
     
     public function getEditAction(): Action
     {

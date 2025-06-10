@@ -9,8 +9,8 @@ use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Support\Facades\Auth;
 
-{class InternEndingSoonTable extends BaseWidget
-
+class InternEndingSoonTable extends BaseWidget
+{
     protected static ?int $sort = 1;
     
     protected int | string | array $columnSpan = 'full';
