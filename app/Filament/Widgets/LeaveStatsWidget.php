@@ -46,7 +46,7 @@ class LeaveStatsWidget extends BaseWidget
                 
             Stat::make('Cuti Sakit', $medicalLeaves . ' Kesempatan')
                 ->description('Terpakai tahun ini')
-                ->descriptionIcon('heroicon-o-heart')
+                ->descriptionIcon('heroicon-o-calendar')
                 ->color('warning'),
                 
             Stat::make('Permintaan Menunggu', $pendingLeaves)

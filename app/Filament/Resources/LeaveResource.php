@@ -53,6 +53,11 @@ class LeaveResource extends Resource
         return $user->roles()->where('name', 'like', 'manager%')->exists();
     }
 
+    private static function isKepala($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'kepala%')->exists();
+    }
+
     public static function getNavigationBadgeColor(): ?string
     {
         return static::getNavigationBadge() > 0 ? 'primary' : null;
@@ -536,9 +541,22 @@ class LeaveResource extends Resource
         if (static::isStaff($user)) {
             // Staff hanya bisa melihat cuti miliknya sendiri
             return parent::getEloquentQuery()->where('user_id', $user->id);
+        } 
+
+        if ($user->hasRole('hrd')) {
+            // HRD bisa melihat semua data cuti
+            return parent::getEloquentQuery();
         }
 
-        // Selain staff bisa melihat semua data cuti
+        if (static::isManager($user) || static::isKepala($user)) {
+            // Manager & Kepala hanya bisa melihat data cuti di divisinya
+            $divisionId = $user->division_id;
+            return parent::getEloquentQuery()->whereHas('user', function ($query) use ($divisionId) {
+                $query->where('division_id', $divisionId);
+            });
+        }
+
+        // Default: bisa melihat semua data cuti
         return parent::getEloquentQuery();
     }
 }
