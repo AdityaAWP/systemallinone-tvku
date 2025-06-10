@@ -206,7 +206,7 @@ class LeaveResource extends Resource
                                 // Untuk edit, gunakan user dari record, untuk create gunakan current user
                                 $targetUser = $isCreating ? $user : ($record?->user ?? $user);
                                 $quota = LeaveQuota::getUserQuota($targetUser->id);
-                                return $quota ? $quota->remaining_casual_quota . ' hari' : '0 hari';
+                                return $quota ? 'sisa ' . $quota->remaining_casual_quota : 'sisa 0';
                             })
                             ->disabled(),
 
@@ -432,7 +432,7 @@ class LeaveResource extends Resource
                     ->alignCenter()
                     ->getStateUsing(function ($record) {
                         $quota = $record->user?->leaveQuotas?->first();
-                        return $quota ? $quota->remaining_casual_quota . ' hari' : '0 hari';
+                       return $quota ? 'sisa ' . $quota->remaining_casual_quota : 'sisa 0';
                     })
                     ->sortable(),
 

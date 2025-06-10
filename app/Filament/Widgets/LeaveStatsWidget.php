@@ -14,7 +14,7 @@ class LeaveStatsWidget extends BaseWidget
 {
 
 
-    protected static ?string $title = 'Leave Statistics';
+    protected static ?string $title = 'Statistik Cuti';
     protected static ?int $sort = 1;
     use HasWidgetShield;
 
@@ -26,31 +26,31 @@ class LeaveStatsWidget extends BaseWidget
         $quota = LeaveQuota::getUserQuota($user->id);
         $currentYear = date('Y');
         
-        // Get medical leaves count
+        // Ambil jumlah cuti sakit
         $medicalLeaves = Leave::where('user_id', $user->id)
             ->where('leave_type', 'medical')
             ->whereYear('from_date', $currentYear)
             ->where('status', 'approved')
             ->count();
         
-        // Get pending leaves count
+        // Ambil jumlah cuti yang masih menunggu persetujuan
         $pendingLeaves = Leave::where('user_id', $user->id)
             ->where('status', 'pending')
             ->count();
         
         return [
-            Stat::make('Casual Leave', $quota->remaining_casual_quota . ' days')
-                ->description($quota->casual_used . ' days used this year')
+            Stat::make('Cuti Tahunan', $quota->remaining_casual_quota . ' kesempatan')
+                ->description($quota->casual_used . ' kali sudah diambil tahun ini')
                 ->descriptionIcon('heroicon-o-calendar')
                 ->color('success'),
                 
-            Stat::make('Medical Leave', $medicalLeaves . ' days')
-                ->description('Used this year')
+            Stat::make('Cuti Sakit', $medicalLeaves . ' Kesempatan')
+                ->description('Terpakai tahun ini')
                 ->descriptionIcon('heroicon-o-heart')
                 ->color('warning'),
                 
-            Stat::make('Pending Requests', $pendingLeaves)
-                ->description('Awaiting approval')
+            Stat::make('Permintaan Menunggu', $pendingLeaves)
+                ->description('Menunggu persetujuan')
                 ->descriptionIcon('heroicon-o-clock')
                 ->color($pendingLeaves > 0 ? 'warning' : 'success'),
         ];
@@ -58,14 +58,14 @@ class LeaveStatsWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        // Keep your existing visibility logic
+        // Tetap gunakan logika visibilitas yang ada
         $currentRoute = request()->route()?->getName();
         return $currentRoute && str_contains($currentRoute, 'leave');
     }
 
     public static function getSort(): int
     {
-        return 1; // Ensures this widget is at the top
+        return 1; // Memastikan widget ini berada di atas
     }
     
 }
