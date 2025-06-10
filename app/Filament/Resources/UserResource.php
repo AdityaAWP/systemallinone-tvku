@@ -68,11 +68,11 @@ class UserResource extends Resource
                         TextInput::make('position')
                             ->label('Jabatan')
                             ->required(),
-                        Select::make('division_id')
-                            ->label('Division')
+                        Select::make('divisions')
+                            ->label('Divisions')
                             ->required()
-                            ->relationship('division', 'name')
-                            ->options(Division::all()->pluck('name', 'id'))
+                            ->relationship('divisions', 'name')
+                            ->multiple()
                             ->searchable()
                             ->preload(),
                     ])->columns(2),

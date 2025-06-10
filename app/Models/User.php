@@ -51,9 +51,9 @@ class User extends Authenticatable //implements FilamentUser
         return $this->hasMany(User::class, 'created_by');
     }
 
-    public function division()
+    public function divisions()
     {
-        return $this->belongsTo(Division::class);
+        return $this->belongsToMany(Division::class);
     }
 
     public function leaves(): HasMany
