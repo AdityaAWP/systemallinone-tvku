@@ -168,7 +168,7 @@
         <tr>
             <td class="info-label">Divisi</td>
             <td class="info-colon">:</td>
-            <td>IT</td>
+            <td>{{Str::headline($overtime[0]->user->division->name ?? 'Divisi') }}</td>
         </tr>
         @else
         {{-- Placeholder if no overtime data --}}
@@ -227,7 +227,12 @@
     <p class="closing-text" style="margin-left: 10px">Demikian permohonan dari kami, atas persetujuannya kami ucapkan
         terimakasih</p>
 
-    {{-- Signature Section - Using static names/titles from image --}}
+    @php
+    $direkturOperasional = \App\Models\User::whereHas('roles', function($query) {
+    $query->where('name', 'direktur_utama');
+    })->first();
+    @endphp
+
     <table class="signature-table">
         <tr>
             <td>Pemohon,</td>
@@ -241,22 +246,26 @@
         </tr>
         <tr>
             <td>
-                <span class="textBold">{{ Str::headline($overtime[0]->user->name ?? '' )}}</span><br>
+                <span class="text-bold">{{ Str::headline($overtime[0]->user->name ?? '') }}</span><br>
                 {{ Str::headline($overtime[0]->user->division->name ?? 'IT') }}
             </td>
             <td>
                 @if($overtime[0]->user->atasan)
-                <span class="textBold">{{ Str::headline($overtime[0]->user->atasan->name) }}</span><br>
+                <span class="text-bold">{{ Str::headline($overtime[0]->user->atasan->name) }}</span><br>
                 {{ $overtime[0]->user->jabatan_atasan }}
                 @else
-                <span class="textBold">-</span><br>
+                <span class="text-bold">-</span><br>
                 -
                 @endif
-            </td>f
             </td>
             <td>
-                <span class="text-bold">Hery Pamungkas S.S, M.I.Kom</span><br>
+                @if($direkturOperasional)
+                <span class="text-bold">{{ Str::headline($direkturOperasional->name) }}</span><br>
                 Direktur Operasional
+                @else
+                <span class="text-bold">-</span><br>
+                Direktur Operasional
+                @endif
             </td>
         </tr>
     </table>
