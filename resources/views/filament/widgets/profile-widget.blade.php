@@ -3,9 +3,14 @@
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
                 @if($user)
-                <div class="flex-shrink-0">
-                    <img src="{{ asset('images/profile.png') }}" alt="{{ $user->name }}"
-                        class="h-16 w-16 rounded-full object-cover">
+                <div class="flex-shrink-0 h-16 w-16 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
+                    @if($user->avatar && file_exists(public_path('storage/' . $user->avatar)))
+                        <img src="{{ asset('storage/' . $user->avatar) }}" alt="{{ $user->name }}"
+                            class="h-16 w-16 rounded-full object-cover">
+                    @else
+                        <img src="{{ asset('images/profile.png') }}" alt="{{ $user->name }}"
+                            class="h-16 w-16 rounded-full object-cover">
+                    @endif
                 </div>
                 @else
                 <div class="flex-shrink-0 h-16 w-16 rounded-full bg-gray-200">
