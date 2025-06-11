@@ -29,6 +29,11 @@ class UserStatsWidget extends Widget
                 ->color('warning'),
         ];
     }
+    
+    public static function canView(): bool
+    {
+        return Auth::check();
+    }
 
     public static function getSort(): int
     {
