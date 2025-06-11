@@ -8,6 +8,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +30,7 @@ class EditProfile extends Page
     protected static ?int $navigationSort = 5;
     protected static string $view = 'filament.pages.edit-profile';
     protected static ?string $title = 'Profile';
-    
+
     public function getEditAction(): Action
     {
         $user = Auth::user();
@@ -38,94 +39,103 @@ class EditProfile extends Page
             ->label('Edit Profile')
             ->icon('heroicon-o-pencil-square')
             ->modalHeading('Edit Profile Information')
-            ->modalWidth('xl')
+            ->modalWidth('7xl')
             ->modalSubmitActionLabel('Save Changes')
             ->form([
-                // FileUpload::make('avatar')
-                //     ->label('Profile Picture')
-                //     ->image()
-                //     ->directory('profile-photos')
-                //     ->avatar()
-                //     ->imageEditor()
-                //     ->default($user->avatar),
-
-                TextInput::make('name')
-                    ->required()
-                    ->maxLength(255)
-                    ->default($user->name),
-
-                TextInput::make('npp')
-                    ->label('NPP')
-                    ->required()
-                    ->maxLength(20)
-                    ->default($user->npp),
-
-                TextInput::make('email')
-                    ->email()   
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->maxLength(255)
-                    ->default($user->email),
-
-                DatePicker::make('birth')
-                    ->label('Date of Birth')
-                    ->maxDate(now())
-                    ->default($user->birth),
-
-                Select::make('gender')
-                    ->options([
-                        'Laki-laki' => 'Laki-laki',
-                        'Perempuan' => 'Perempuan',
-                    ])
-                    ->default($user->gender),
-
-                TextInput::make('no_phone')
-                    ->label('No. Telepon')
-                    ->tel()
-                    ->maxLength(20)
-                    ->default($user->no_phone),
-
-                TextInput::make('ktp')
-                    ->label('KTP Number')
-                    ->maxLength(20)
-                    ->default($user->ktp),
-
-                Select::make('last_education')
-                    ->label('Last Education')
-                    ->options([
-                        'sd' => 'SD',
-                        'smp' => 'SMP',
-                        'sma' => 'SMA',
-                        'diploma' => 'Diploma',
-                        's1' => 'S1',
-                        's2' => 'S2',
-                        's3' => 'S3',
-                    ])
-                    ->default($user->last_education),
-
-                Select::make('division_id')
-                    ->label('Division')
-                    ->options(Division::all()->pluck('name', 'id'))
-                    ->searchable()
-                    ->placeholder('Select Division')
-                    ->default($user->division_id),
-
-                TextInput::make('position')
-                    ->label('Jabatan')
-                    ->maxLength(100)
-                    ->default($user->position),
-                TextInput::make('address')
-                    ->maxLength(500)
-                    ->columnSpanFull()
-                    ->default($user->address),
+                Grid::make(4)
+                    ->schema([
+                        FileUpload::make('avatar')
+                            ->label('Foto Profil')
+                            ->image()
+                            ->directory('profile-photos')
+                            ->avatar()
+                            ->imageEditor()
+                            ->columnSpan(1)
+                            ->default($user->avatar),
+                        TextInput::make('name')
+                            ->label('Nama Lengkap')
+                            ->required()
+                            ->maxLength(255)
+                            ->columnSpan(4)
+                            ->default($user->name),
+                        TextInput::make('email')
+                            ->label('Email')
+                            ->email()
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->maxLength(255)
+                            ->columnSpan(2)
+                            ->default($user->email),
+                        TextInput::make('npp')
+                            ->label('NPP')
+                            ->required()
+                            ->maxLength(20)
+                            ->columnSpan(1)
+                            ->default($user->npp),
+                        DatePicker::make('birth')
+                            ->label('Tanggal Lahir')
+                            ->maxDate(now())
+                            ->columnSpan(1)
+                            ->default($user->birth),
+                        Select::make('gender')
+                            ->label('Jenis Kelamin')
+                            ->options([
+                                'Laki-laki' => 'Laki-laki',
+                                'Perempuan' => 'Perempuan',
+                            ])
+                            ->columnSpan(1)
+                            ->default($user->gender),
+                        TextInput::make('no_phone')
+                            ->label('No. Telepon')
+                            ->tel()
+                            ->maxLength(20)
+                            ->columnSpan(1)
+                            ->default($user->no_phone),
+                        TextInput::make('ktp')
+                            ->label('No. KTP')
+                            ->maxLength(20)
+                            ->columnSpan(1)
+                            ->default($user->ktp),
+                        Select::make('last_education')
+                            ->label('Pendidikan Terakhir')
+                            ->options([
+                                'sd' => 'SD',
+                                'smp' => 'SMP',
+                                'sma' => 'SMA',
+                                'diploma' => 'Diploma',
+                                's1' => 'S1',
+                                's2' => 'S2',
+                                's3' => 'S3',
+                            ])
+                            ->columnSpan(1)
+                            ->default($user->last_education),
+                        Select::make('division_id')
+                            ->label('Divisi')
+                            ->options(Division::all()->pluck('name', 'id'))
+                            ->searchable()
+                            ->placeholder('Pilih Divisi')
+                            ->columnSpan(2)
+                            ->default($user->division_id),
+                        TextInput::make('position')
+                            ->label('Jabatan')
+                            ->maxLength(100)
+                            ->columnSpan(2)
+                            ->default($user->position),
+                        TextInput::make('address')
+                            ->label('Alamat')
+                            ->maxLength(500)
+                            ->columnSpan(4)
+                            ->default($user->address),
+                    ]),
             ])
             ->action(function (array $data): void {
                 $user = User::find(Auth::id());
 
-                // Handle empty values
-                $data = array_map(function ($value) {
-                    return $value === '' ? null : $value;
-                }, $data);
+                $data = array_map(fn($value) => $value === '' ? null : $value, $data);
+
+                if (isset($data['avatar'])) {
+                    $user->avatar = $data['avatar'];
+                }
 
                 $user->update($data);
 
