@@ -73,9 +73,20 @@ class LeaveResource extends Resource
             return $count > 0 ? (string) $count : null;
         }
 
-        if ($user->hasRole('hrd') || static::isManager($user)) {
-            // HRD & Manager: tampilkan jumlah cuti dengan status 'pending'
+        if ($user->hasRole('hrd')) {
+            // HRD: tampilkan jumlah cuti dengan status 'pending' untuk semua data
             $pendingCount = Leave::where('status', 'pending')->count();
+            return $pendingCount > 0 ? (string) $pendingCount : null;
+        }
+
+        if (static::isManager($user)) {
+            // Manager: tampilkan jumlah cuti 'pending' hanya untuk divisinya sendiri
+            $divisionId = $user->division_id;
+            $pendingCount = Leave::where('status', 'pending')
+            ->whereHas('user', function ($query) use ($divisionId) {
+                $query->where('division_id', $divisionId);
+            })
+            ->count();
             return $pendingCount > 0 ? (string) $pendingCount : null;
         }
 
@@ -357,6 +368,18 @@ class LeaveResource extends Resource
                 ExportAction::make()
                     ->exporter(LeaveExporter::class)
                     ->visible(fn() => $user->hasRole('hrd')),
+                Tables\Actions\Action::make('Cuti Saya')
+                    ->label('Cuti Saya')
+                    ->icon('heroicon-o-user')
+                    ->visible(fn() => $user->hasRole('hrd'))
+                    ->url(fn () => url()->current() . '?tableFilters[my_leave][value]=true')
+                    ->color('primary'),
+                Tables\Actions\Action::make('Semua Cuti Staff')
+                    ->label('Semua Cuti Staff')
+                    ->icon('heroicon-o-users')
+                    ->visible(fn() => $user->hasRole('hrd'))
+                    ->url(fn () => url()->current() . '?tableFilters[my_leave][value]=false')
+                    ->color('secondary'),
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
@@ -496,7 +519,18 @@ class LeaveResource extends Resource
                                 $data['to'],
                                 fn(Builder $query, $date): Builder => $query->whereDate('to_date', '<=', $date),
                             );
-                    })
+                    }),
+
+                Tables\Filters\TernaryFilter::make('my_leave')
+                    ->label('Tampilkan Cuti Saya')
+                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->trueLabel('Cuti Saya')
+                    ->falseLabel('Semua Cuti Staff')
+                    ->queries(
+                        true: fn(Builder $query) => $query->where('user_id', Auth::id()),
+                        false: fn(Builder $query) => $query,
+                        blank: fn(Builder $query) => $query,
+                    ),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
