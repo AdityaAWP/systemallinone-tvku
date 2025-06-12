@@ -15,9 +15,9 @@ class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMappi
 {
     private int $year;
     private int $month;
-    private int $userId;
+    private ?int $userId;
 
-    public function __construct(int $year, int $month, int $userId)
+    public function __construct(int $year, int $month, ?int $userId = null)
     {
         $this->year = $year;
         $this->month = $month;
@@ -31,10 +31,15 @@ class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMappi
     {
         // This query finds leave requests that are active within the specified month.
         // It correctly handles leaves that might start in a previous month or end in a future one.
-        return Leave::query()
-            ->with('user')
-            ->where('user_id', $this->userId)
-            ->where(function (Builder $query) {
+        $query = Leave::query()
+            ->with('user');
+            
+        // Jika userId disediakan, filter berdasarkan user_id
+        if ($this->userId !== null) {
+            $query->where('user_id', $this->userId);
+        }
+        
+        return $query->where(function (Builder $query) {
                 $query->where(function(Builder $q) {
                     $q->whereYear('from_date', $this->year)
                       ->whereMonth('from_date', $this->month);
