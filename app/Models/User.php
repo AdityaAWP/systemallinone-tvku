@@ -56,6 +56,16 @@ class User extends Authenticatable //implements FilamentUser
         return $this->belongsToMany(Division::class);
     }
 
+    public function division()
+    {
+        return $this->belongsTo(Division::class);
+    }
+
+    public function dailyReports()
+    {
+        return $this->hasMany(DailyReport::class);
+    }
+
     public function leaves(): HasMany
     {
         return $this->hasMany(Leave::class);
