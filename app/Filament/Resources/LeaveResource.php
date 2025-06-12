@@ -76,11 +76,17 @@ class LeaveResource extends Resource
         }
 
         if (static::isManager($user)) {
-            // Manager: tampilkan jumlah cuti 'pending' hanya untuk divisinya sendiri
-            $divisionId = $user->division_id;
+            // Manager: tampilkan jumlah cuti 'pending' untuk semua divisi yang mereka kelola
+            $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
+            
+            // Jika tidak ada divisi dari many-to-many, fallback ke primary division
+            if (empty($userDivisionIds) && $user->division_id) {
+                $userDivisionIds = [$user->division_id];
+            }
+            
             $pendingCount = Leave::where('status', 'pending')
-                ->whereHas('user', function ($query) use ($divisionId) {
-                    $query->where('division_id', $divisionId);
+                ->whereHas('user', function ($query) use ($userDivisionIds) {
+                    $query->whereIn('division_id', $userDivisionIds);
                 })
                 ->count();
             return $pendingCount > 0 ? (string) $pendingCount : null;
@@ -666,10 +672,16 @@ class LeaveResource extends Resource
         }
 
         if (static::isManager($user) || static::isKepala($user)) {
-            // Manager & Kepala hanya bisa melihat data cuti di divisinya
-            $divisionId = $user->division_id;
-            return parent::getEloquentQuery()->whereHas('user', function ($query) use ($divisionId) {
-                $query->where('division_id', $divisionId);
+            // Manager & Kepala bisa melihat data cuti dari semua divisi yang mereka kelola
+            $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
+            
+            // Jika tidak ada divisi dari many-to-many, fallback ke primary division
+            if (empty($userDivisionIds) && $user->division_id) {
+                $userDivisionIds = [$user->division_id];
+            }
+            
+            return parent::getEloquentQuery()->whereHas('user', function ($query) use ($userDivisionIds) {
+                $query->whereIn('division_id', $userDivisionIds);
             });
         }
 
