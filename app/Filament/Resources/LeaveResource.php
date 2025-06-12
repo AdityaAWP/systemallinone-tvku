@@ -376,7 +376,8 @@ class LeaveResource extends Resource
 
                 ExportAction::make()
                     ->label('Export Cuti')
-                    ->icon('heroicon-o-document')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
                     ->exporter(LeaveExporter::class)
                     ->visible(fn() => $user->hasRole('hrd')),
             ])
@@ -536,7 +537,7 @@ class LeaveResource extends Resource
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('export_user_yearly')
                     ->label('Export Excel')
-                    ->icon('heroicon-o-document-arrow-down')
+                    ->icon('heroicon-o-document-text')
                     ->color('success')
                     ->visible(fn () => Auth::user()->hasRole('hrd'))
                     ->form([
