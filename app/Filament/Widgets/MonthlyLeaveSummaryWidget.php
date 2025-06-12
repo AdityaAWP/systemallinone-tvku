@@ -2,7 +2,9 @@
 
 namespace App\Filament\Widgets;
 
+use App\Exports\MonthlySummaryLeavesExport;
 use App\Models\User;
+use Filament\Forms;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -15,6 +17,14 @@ class MonthlyLeaveSummaryWidget extends BaseWidget
     protected static ?string $heading = 'Rekap Pengajuan Cuti Pegawai Bulanan setelah di Approve';
     protected static ?int $sort = 2;
     protected int|string|array $columnSpan = 'full';
+
+    // State untuk filter tahun
+    public ?int $selectedYear = null;
+
+    public function mount(): void
+    {
+        $this->selectedYear = Carbon::now()->year;
+    }
 
     public static function canView(): bool
     {
@@ -123,7 +133,7 @@ class MonthlyLeaveSummaryWidget extends BaseWidget
 
     public function table(Table $table): Table
     {
-        $currentYear = Carbon::now()->year;
+        $currentYear = $this->selectedYear ?? Carbon::now()->year;
 
         return $table
             ->query(
@@ -134,6 +144,44 @@ class MonthlyLeaveSummaryWidget extends BaseWidget
                     })
                     ->orderBy('name')
             )
+            ->headerActions([
+                Tables\Actions\Action::make('filter_year')
+                    ->label('Filter Tahun')
+                    ->icon('heroicon-o-funnel')
+                    ->form([
+                        Forms\Components\Select::make('year')
+                            ->label('Pilih Tahun')
+                            ->options(function () {
+                                $years = [];
+                                $currentYear = Carbon::now()->year;
+                                
+                                // Generate 5 tahun mundur dari tahun sekarang
+                                for ($i = 0; $i < 5; $i++) {
+                                    $year = $currentYear - $i;
+                                    $years[$year] = $year;
+                                }
+                                
+                                return $years;
+                            })
+                            ->default($this->selectedYear)
+                            ->required(),
+                    ])
+                    ->action(function (array $data) {
+                        $this->selectedYear = $data['year'];
+                        // Trigger table refresh
+                        $this->dispatch('$refresh');
+                    }),
+                    
+                Tables\Actions\Action::make('export_excel')
+                    ->label('Export Excel')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->action(function () {
+                        $year = $this->selectedYear ?? Carbon::now()->year;
+                        $filename = "rekap_cuti_bulanan_{$year}.xlsx";
+                        return \Maatwebsite\Excel\Facades\Excel::download(new MonthlySummaryLeavesExport($year), $filename);
+                    }),
+            ])
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('No')
