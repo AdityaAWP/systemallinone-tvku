@@ -170,7 +170,7 @@ class UserResource extends Resource
     {
         $user = Auth::user();
 
-        if ($user->roles === 'super_admin') {
+        if ($user->hasRole('super_admin') || $user->hasRole('hrd')) {
             return parent::getEloquentQuery();
         } else {
             return parent::getEloquentQuery()
