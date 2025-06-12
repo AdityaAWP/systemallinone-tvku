@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 
 class MonthlyLeaveSummaryWidget extends BaseWidget
 {
-    protected static ?string $heading = 'Rekap Pengajuan Cuti Pegawai Bulanan';
+    protected static ?string $heading = 'Rekap Pengajuan Cuti Pegawai Bulanan setelah di Approve';
     protected static ?int $sort = 2;
     protected int|string|array $columnSpan = 'full';
 
