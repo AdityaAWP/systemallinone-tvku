@@ -13,7 +13,7 @@ class DailyReportExcel implements WithMultipleSheets
     protected $year;
     protected $userId;
 
-    public function __construct(int $year, int $userId)
+    public function __construct(int $year, ?int $userId = null)
     {
         $this->year = $year;
         $this->userId = $userId;
