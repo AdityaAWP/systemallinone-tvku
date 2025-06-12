@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\LeaveYearlyExport;
 use App\Filament\Resources\LeaveResource\Pages;
 use App\Filament\Widgets\LeaveStatsWidget;
 use App\Models\Leave;
@@ -535,6 +536,41 @@ class LeaveResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('export_user_yearly')
+                    ->label('Export Excel')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->visible(fn () => Auth::user()->hasRole('hrd'))
+                    ->form([
+                        Forms\Components\Select::make('year')
+                            ->label('Tahun')
+                            ->options(function ($record) {
+                                $years = Leave::query()
+                                    ->where('user_id', $record->user_id)
+                                    ->selectRaw('DISTINCT YEAR(from_date) as year')
+                                    ->orderBy('year', 'desc')
+                                    ->get()
+                                    ->pluck('year', 'year')
+                                    ->toArray();
+
+                                if (empty($years)) {
+                                    return [now()->year => now()->year];
+                                }
+
+                                return $years;
+                            })
+                            ->required()
+                            ->default(now()->year),
+                    ])
+                    ->action(function (array $data, $record) {
+                        $year = $data['year'];
+                        $user = $record->user;
+                        $filename = "Laporan Cuti {$user->name} - {$year}.xlsx";
+
+                        // Use the new multi-sheet exporter class
+                        return (new LeaveYearlyExport($year, $user->id))->download($filename);
+                    }),
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
