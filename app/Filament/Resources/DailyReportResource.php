@@ -28,6 +28,7 @@ use Filament\Tables\Actions\ExportAction;
 use Filament\Tables\Actions\Action;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Facades\Auth;
 
 class DailyReportResource extends Resource
 {
@@ -39,7 +40,15 @@ class DailyReportResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('user_id', auth()->id());
+        $user = Auth::user();
+
+        // Jika user adalah HRD, bisa melihat semua data laporan harian
+        if ($user->hasRole('hrd')) {
+            return parent::getEloquentQuery();
+        }
+
+        // Jika user adalah staff, hanya bisa melihat laporan harian miliknya sendiri
+        return parent::getEloquentQuery()->where('user_id', $user->id);
     }
 
     public static function form(Form $form): Form
@@ -119,37 +128,83 @@ class DailyReportResource extends Resource
     {
         return $table
             ->headerActions([
+                Tables\Actions\Action::make('reset_to_all')
+                    ->label('Semua Laporan Staff')
+                    ->icon('heroicon-o-users')
+                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->url(fn() => request()->url())
+                    ->color(fn() => !request()->hasAny(['tableFilters']) || request()->input('tableFilters.my_reports.value') === 'false' ? 'primary' : 'gray'),
+
+                Tables\Actions\Action::make('filter_my_reports')
+                    ->label('Laporan Saya')
+                    ->icon('heroicon-o-user')
+                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->url(fn() => request()->url() . '?tableFilters[my_reports][value]=true')
+                    ->color(fn() => request()->input('tableFilters.my_reports.value') === 'true' ? 'primary' : 'gray'),
+
                 Action::make('export_monthly')
                     ->label('Ekspor Excel')
+                    ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
                     ->form([
                         Select::make('year')
                             ->label('Tahun')
                             ->options(function () {
                                 $years = [];
-                                $reports = DailyReport::query()
-                                    ->where('user_id', auth()->id())
-                                    ->selectRaw('DISTINCT YEAR(entry_date) as year')
-                                    ->orderBy('year', 'desc')
-                                    ->get();
+                                $currentYear = now()->year;
                                 
-                                foreach ($reports as $report) {
-                                    $years[$report->year] = $report->year;
+                                // Generate 5 tahun mundur dari tahun sekarang
+                                for ($i = 0; $i < 5; $i++) {
+                                    $year = $currentYear - $i;
+                                    $years[$year] = $year;
                                 }
                                 
                                 return $years;
                             })
                             ->required()
                             ->default(now()->year),
+                        Select::make('export_type')
+                            ->label('Jenis Export')
+                            ->options([
+                                'personal' => 'Data Pribadi Saya',
+                                'all' => 'Semua Data Staff'
+                            ])
+                            ->default('personal')
+                            ->visible(fn() => Auth::user()->hasRole('hrd'))
+                            ->required(),
                     ])
                     ->action(function (array $data) {
                         $year = $data['year'];
-                        $filename = "laporan_harian_{$year}.xlsx";
+                        $user = Auth::user();
                         
-                        return (new DailyReportExcel($year, auth()->id()))->download($filename);
+                        // Tentukan userId berdasarkan pilihan export
+                        if ($user->hasRole('hrd') && isset($data['export_type']) && $data['export_type'] === 'all') {
+                            $userId = null; // Export semua data
+                            $filename = "laporan_harian_semua_staff_{$year}.xlsx";
+                        } else {
+                            $userId = $user->id; // Export data pribadi
+                            $filename = "laporan_harian_{$year}.xlsx";
+                        }
+                        
+                        return (new DailyReportExcel($year, $userId))->download($filename);
                     }),
             ])
             ->columns([
+                TextColumn::make('user.name')
+                    ->label('Nama Karyawan')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(fn() => Auth::user()->hasRole('hrd')),
+                TextColumn::make('user.npp')
+                    ->label('NPP')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(fn() => Auth::user()->hasRole('hrd')),
+                TextColumn::make('user.division.name')
+                    ->label('Divisi')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(fn() => Auth::user()->hasRole('hrd')),
                 TextColumn::make('entry_date')
                     ->label('Tanggal')
                     ->searchable()
@@ -173,13 +228,61 @@ class DailyReportResource extends Resource
                     ->label('Deskripsi'),
             ])
             ->filters([
+                Tables\Filters\TernaryFilter::make('my_reports')
+                    ->label('Tampilkan Laporan Saya')
+                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->trueLabel('Laporan Saya')
+                    ->falseLabel('Semua Laporan Staff')
+                    ->queries(
+                        true: fn(Builder $query) => $query->where('user_id', Auth::id()),
+                        false: fn(Builder $query) => $query,
+                        blank: fn(Builder $query) => $query,
+                    ),
+                Tables\Filters\SelectFilter::make('divisi')
+                    ->label('Filter Divisi')
+                    ->options(function () {
+                        return \App\Models\Division::orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('user', function ($q) use ($data) {
+                                $q->where('division_id', $data['value']);
+                            });
+                        }
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn() => Auth::user()->hasRole('hrd')),
+                Tables\Filters\SelectFilter::make('user')
+                    ->label('Filter Karyawan')
+                    ->options(function () {
+                        return \App\Models\User::whereHas('dailyReports')
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->where('user_id', $data['value']);
+                        }
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn() => Auth::user()->hasRole('hrd')),
                 Tables\Filters\SelectFilter::make('bulan')
                     ->label('Bulan')
                     ->options(function () {
                         $months = [];
-                        $reports = DailyReport::query()
-                            ->where('user_id', auth()->id())
-                            ->selectRaw('DISTINCT DATE_FORMAT(entry_date, "%Y-%m") as month')
+                        $query = DailyReport::query();
+                        
+                        // Jika bukan HRD, hanya tampilkan bulan dari laporan user sendiri
+                        if (!Auth::user()->hasRole('hrd')) {
+                            $query->where('user_id', Auth::id());
+                        }
+                        
+                        $reports = $query->selectRaw('DISTINCT DATE_FORMAT(entry_date, "%Y-%m") as month')
                             ->orderBy('month', 'desc')
                             ->get();
 
@@ -198,8 +301,51 @@ class DailyReportResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat'),
+                Tables\Actions\EditAction::make()
+                    ->label('Edit'),
+                Tables\Actions\DeleteAction::make()
+                    ->label('Hapus'),
+                Tables\Actions\Action::make('export_individual')
+                    ->label('Export Data')
+                    ->icon('heroicon-o-document-text')
+                    ->color('success')
+                    ->tooltip('Export laporan harian karyawan ini')
+                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->modalHeading(fn(DailyReport $record) => 'Export Laporan - ' . $record->user->name)
+                    ->modalDescription('Export laporan harian karyawan ini')
+                    ->modalWidth('md')
+                    ->form([
+                        TextInput::make('user_info')
+                            ->label('Karyawan')
+                            ->disabled()
+                            ->default(fn(DailyReport $record) => $record->user->name . ' (' . ($record->user->npp ?? 'No NPP') . ')'),
+                        Select::make('year')
+                            ->label('Tahun')
+                            ->options(function () {
+                                $years = [];
+                                $currentYear = now()->year;
+                                
+                                // Generate 5 tahun mundur dari tahun sekarang
+                                for ($i = 0; $i < 5; $i++) {
+                                    $year = $currentYear - $i;
+                                    $years[$year] = $year;
+                                }
+                                
+                                return $years;
+                            })
+                            ->required()
+                            ->default(now()->year),
+                    ])
+                    ->action(function (DailyReport $record, array $data) {
+                        $user = $record->user;
+                        $year = $data['year'];
+                        $userName = str_replace(' ', '_', $user->name);
+                        
+                        $filename = "laporan_harian_{$userName}_{$year}.xlsx";
+                        return (new DailyReportExcel($year, $user->id))->download($filename);
+                    }),
                 
             ])
             ->bulkActions([
