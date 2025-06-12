@@ -22,6 +22,7 @@ use Filament\Tables\Actions\ExportAction;
 use App\Filament\Exports\LeaveExporter;
 use Dom\Text;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 
 class LeaveResource extends Resource
 {
@@ -374,12 +375,52 @@ class LeaveResource extends Resource
                     ->url(fn() => request()->url() . '?tableFilters[my_leave][value]=true')
                     ->color(fn() => request()->input('tableFilters.my_leave.value') === 'true' ? 'primary' : 'gray'),
 
-                ExportAction::make()
-                    ->label('Export Cuti')
-                    ->icon('heroicon-o-document-arrow-down')
+                Tables\Actions\Action::make('export_leave')
+                    ->label('Ekspor Excel')
                     ->color('success')
-                    ->exporter(LeaveExporter::class)
-                    ->visible(fn() => $user->hasRole('hrd')),
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->form([
+                        Select::make('year')
+                            ->label('Tahun')
+                            ->options(function () {
+                                $years = [];
+                                $currentYear = now()->year;
+                                
+                                // Generate 5 tahun mundur dari tahun sekarang
+                                for ($i = 0; $i < 5; $i++) {
+                                    $year = $currentYear - $i;
+                                    $years[$year] = $year;
+                                }
+                                
+                                return $years;
+                            })
+                            ->required()
+                            ->default(now()->year),
+                        Select::make('export_type')
+                            ->label('Jenis Export')
+                            ->options([
+                                'personal' => 'Data Pribadi Saya',
+                                'all' => 'Semua Data Staff'
+                            ])
+                            ->default('personal')
+                            ->visible(fn() => Auth::user()->hasRole('hrd'))
+                            ->required(),
+                    ])
+                    ->action(function (array $data) {
+                        $year = $data['year'];
+                        $user = Auth::user();
+                        
+                        // Tentukan userId berdasarkan pilihan export
+                        if ($user->hasRole('hrd') && isset($data['export_type']) && $data['export_type'] === 'all') {
+                            $userId = null; // Export semua data
+                            $filename = "laporan_cuti_semua_staff_{$year}.xlsx";
+                        } else {
+                            $userId = $user->id; // Export data pribadi
+                            $filename = "laporan_cuti_{$year}.xlsx";
+                        }
+                        
+                        return (new LeaveYearlyExport($year, $userId))->download($filename);
+                    }),
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
@@ -533,40 +574,47 @@ class LeaveResource extends Resource
                     ),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('export_user_yearly')
-                    ->label('Export Excel')
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat'),
+                Tables\Actions\EditAction::make()
+                    ->label('Edit'),
+                Tables\Actions\Action::make('export_individual')
+                    ->label('Export Data')
                     ->icon('heroicon-o-document-text')
                     ->color('success')
-                    ->visible(fn () => Auth::user()->hasRole('hrd'))
+                    ->tooltip('Export laporan cuti karyawan ini')
+                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->modalHeading(fn(Leave $record) => 'Export Laporan Cuti - ' . $record->user->name)
+                    ->modalDescription('Export laporan cuti karyawan ini')
+                    ->modalWidth('md')
                     ->form([
-                        Forms\Components\Select::make('year')
+                        TextInput::make('user_info')
+                            ->label('Karyawan')
+                            ->disabled()
+                            ->default(fn(Leave $record) => $record->user->name . ' (' . ($record->user->npp ?? 'No NPP') . ')'),
+                        Select::make('year')
                             ->label('Tahun')
-                            ->options(function ($record) {
-                                $years = Leave::query()
-                                    ->where('user_id', $record->user_id)
-                                    ->selectRaw('DISTINCT YEAR(from_date) as year')
-                                    ->orderBy('year', 'desc')
-                                    ->get()
-                                    ->pluck('year', 'year')
-                                    ->toArray();
-
-                                if (empty($years)) {
-                                    return [now()->year => now()->year];
+                            ->options(function () {
+                                $years = [];
+                                $currentYear = now()->year;
+                                
+                                // Generate 5 tahun mundur dari tahun sekarang
+                                for ($i = 0; $i < 5; $i++) {
+                                    $year = $currentYear - $i;
+                                    $years[$year] = $year;
                                 }
-
+                                
                                 return $years;
                             })
                             ->required()
                             ->default(now()->year),
                     ])
-                    ->action(function (array $data, $record) {
-                        $year = $data['year'];
+                    ->action(function (Leave $record, array $data) {
                         $user = $record->user;
-                        $filename = "Laporan Cuti {$user->name} - {$year}.xlsx";
-
-                        // Use the new multi-sheet exporter class
+                        $year = $data['year'];
+                        $userName = str_replace(' ', '_', $user->name);
+                        
+                        $filename = "laporan_cuti_{$userName}_{$year}.xlsx";
                         return (new LeaveYearlyExport($year, $user->id))->download($filename);
                     }),
 
