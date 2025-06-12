@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Exports\LeaveYearlyExport;
 use App\Filament\Resources\LeaveResource\Pages;
 use App\Filament\Widgets\LeaveStatsWidget;
+use App\Filament\Widgets\MonthlyLeaveSummaryWidget;
 use App\Models\Leave;
 use App\Models\LeaveQuota;
 use App\Models\User;
@@ -30,13 +31,6 @@ class LeaveResource extends Resource
     protected static ?int $navigationSort = -1;
     protected static ?string $navigationLabel = 'Cuti';
     protected static ?string $label = 'Permohonan Cuti';
-
-    protected function getHeaderWidgets(): array
-    {
-        return [
-            LeaveStatsWidget::class,
-        ];
-    }
 
     /**
      * Check if user has any staff role
@@ -84,10 +78,10 @@ class LeaveResource extends Resource
             // Manager: tampilkan jumlah cuti 'pending' hanya untuk divisinya sendiri
             $divisionId = $user->division_id;
             $pendingCount = Leave::where('status', 'pending')
-            ->whereHas('user', function ($query) use ($divisionId) {
-                $query->where('division_id', $divisionId);
-            })
-            ->count();
+                ->whereHas('user', function ($query) use ($divisionId) {
+                    $query->where('division_id', $divisionId);
+                })
+                ->count();
             return $pendingCount > 0 ? (string) $pendingCount : null;
         }
 
@@ -366,21 +360,25 @@ class LeaveResource extends Resource
 
         return $table
             ->headerActions([
-                ExportAction::make()
-                    ->exporter(LeaveExporter::class)
-                    ->visible(fn() => $user->hasRole('hrd')),
-                Tables\Actions\Action::make('Cuti Saya')
-                    ->label('Cuti Saya')
-                    ->icon('heroicon-o-user')
-                    ->visible(fn() => $user->hasRole('hrd'))
-                    ->url(fn () => url()->current() . '?tableFilters[my_leave][value]=true')
-                    ->color('primary'),
-                Tables\Actions\Action::make('Semua Cuti Staff')
+                Tables\Actions\Action::make('reset_to_all')
                     ->label('Semua Cuti Staff')
                     ->icon('heroicon-o-users')
                     ->visible(fn() => $user->hasRole('hrd'))
-                    ->url(fn () => url()->current() . '?tableFilters[my_leave][value]=false')
-                    ->color('secondary'),
+                    ->url(fn() => request()->url())
+                    ->color(fn() => !request()->hasAny(['tableFilters']) || request()->input('tableFilters.my_leave.value') === 'false' ? 'primary' : 'gray'),
+
+                Tables\Actions\Action::make('filter_my_leave')
+                    ->label('Cuti Saya')
+                    ->icon('heroicon-o-user')
+                    ->visible(fn() => $user->hasRole('hrd'))
+                    ->url(fn() => request()->url() . '?tableFilters[my_leave][value]=true')
+                    ->color(fn() => request()->input('tableFilters.my_leave.value') === 'true' ? 'primary' : 'gray'),
+
+                ExportAction::make()
+                    ->label('Export Cuti')
+                    ->icon('heroicon-o-document')
+                    ->exporter(LeaveExporter::class)
+                    ->visible(fn() => $user->hasRole('hrd')),
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
@@ -461,7 +459,7 @@ class LeaveResource extends Resource
                     ->alignCenter()
                     ->getStateUsing(function ($record) {
                         $quota = $record->user?->leaveQuotas?->first();
-                       return $quota ? 'sisa ' . $quota->remaining_casual_quota : 'sisa 0';
+                        return $quota ? 'sisa ' . $quota->remaining_casual_quota : 'sisa 0';
                     })
                     ->sortable(),
 
@@ -611,7 +609,7 @@ class LeaveResource extends Resource
         if (static::isStaff($user)) {
             // Staff hanya bisa melihat cuti miliknya sendiri
             return parent::getEloquentQuery()->where('user_id', $user->id);
-        } 
+        }
 
         if ($user->hasRole('hrd')) {
             // HRD bisa melihat semua data cuti

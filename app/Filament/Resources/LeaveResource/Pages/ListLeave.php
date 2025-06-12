@@ -6,18 +6,46 @@ use App\Filament\Resources\LeaveResource;
 use Filament\Actions;
 use App\Filament\Widgets\LeaveStatsWidget;
 use App\Filament\Widgets\ManagerLeaveReminderWidget;
+use App\Filament\Widgets\MonthlyLeaveSummaryWidget;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Auth;
 
 class ListLeave extends ListRecords
 {
     protected static string $resource = LeaveResource::class;
+    
+    public function mount(): void
+    {
+        parent::mount();
+        
+        // Tidak perlu set default filter, biarkan kosong agar menampilkan semua data
+        // HRD bisa memilih sendiri filter yang diinginkan melalui button
+    }
+    
     protected function getHeaderWidgets(): array
     {
-        return [
-            LeaveStatsWidget::class,
-            ManagerLeaveReminderWidget::class,
-        ];
+        $user = Auth::user();
+        $myLeave = request()->input('tableFilters.my_leave.value');
+        
+        $widgets = [];
+        
+        // Widget LeaveStatsWidget - tampil pada "Cuti Saya"
+        if (LeaveStatsWidget::canView()) {
+            $widgets[] = LeaveStatsWidget::class;
+        }
+        
+        // Widget MonthlyLeaveSummaryWidget - tampil pada "Semua Cuti Staff"
+        if (MonthlyLeaveSummaryWidget::canView()) {
+            $widgets[] = MonthlyLeaveSummaryWidget::class;
+        }
+        
+        // Widget ManagerLeaveReminderWidget - existing logic
+        if ($user->hasRole(['manager', 'manager_keuangan', 'manager_logistik'])) {
+            $widgets[] = ManagerLeaveReminderWidget::class;
+        }
+        
+        return $widgets;
     }
     
 

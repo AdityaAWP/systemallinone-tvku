@@ -12,12 +12,9 @@ use Illuminate\Support\Facades\Auth;
 
 class LeaveStatsWidget extends BaseWidget
 {
-
-
     protected static ?string $title = 'Statistik Cuti';
     protected static ?int $sort = 1;
     use HasWidgetShield;
-
 
     public function getStats(): array
     {
@@ -58,14 +55,28 @@ class LeaveStatsWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        // Tetap gunakan logika visibilitas yang ada
+        $user = Auth::user();
+        $myLeave = request()->input('tableFilters.my_leave.value');
+        
+        // Hanya tampil di halaman cuti (LeaveResource)
         $currentRoute = request()->route()?->getName();
-        return $currentRoute && str_contains($currentRoute, 'leave');
+        $isLeaveRoute = str_contains($currentRoute ?? '', 'filament.admin.resources.leaves.index');
+        
+        if (!$isLeaveRoute) {
+            return false;
+        }
+        
+        // Untuk HRD: hanya tampil ketika filter "Cuti Saya" (true)
+        if ($user->hasRole('hrd')) {
+            return $myLeave === 'true';
+        }
+        
+        // Untuk role lain: selalu tampil di halaman cuti (karena mereka hanya lihat cuti sendiri)
+        return true;
     }
 
     public static function getSort(): int
     {
         return 1; // Memastikan widget ini berada di atas
     }
-    
 }

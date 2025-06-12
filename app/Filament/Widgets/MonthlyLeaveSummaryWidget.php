@@ -18,7 +18,20 @@ class MonthlyLeaveSummaryWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return Auth::user()->hasRole('hrd');
+        $user = Auth::user();
+        $myLeave = request()->input('tableFilters.my_leave.value');
+        
+        // Hanya tampil di halaman cuti (LeaveResource) untuk HRD
+        $currentRoute = request()->route()?->getName();
+        $isLeaveRoute = str_contains($currentRoute ?? '', 'filament.admin.resources.leaves.index');
+        
+        if (!$isLeaveRoute || !$user->hasRole('hrd')) {
+            return false;
+        }
+        
+        // Untuk HRD: tampil secara default (tanpa filter) dan ketika filter "Semua Cuti Staff" (false)
+        // Tidak tampil ketika filter "Cuti Saya" (true)
+        return $myLeave !== 'true';
     }
 
     /**
