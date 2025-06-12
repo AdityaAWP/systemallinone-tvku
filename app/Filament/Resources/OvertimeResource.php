@@ -127,7 +127,7 @@ class OvertimeResource extends Resource
                         Select::make('is_holiday')
                             ->label('Status Hari')
                             ->options([
-                                0 => 'Hari Kerja Normal',
+                                0 => 'Hari Kerja',
                                 1 => 'Hari Libur'
                             ])
                             ->default(0)
@@ -288,7 +288,7 @@ class OvertimeResource extends Resource
                             'year' => $data['year']
                         ]);
                         
-                        return redirect()->away($url);
+                        return redirect($url);
                     }),
             ])
             ->columns([
@@ -365,7 +365,7 @@ class OvertimeResource extends Resource
                 Tables\Filters\SelectFilter::make('is_holiday')
                     ->label('Status Hari')
                     ->options([
-                        0 => 'Hari Kerja Normal',
+                        0 => 'Hari Kerja',
                         1 => 'Hari Libur'
                     ]),
 

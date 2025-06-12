@@ -74,7 +74,20 @@ class UserResource extends Resource
                             ->relationship('divisions', 'name')
                             ->multiple()
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                // When divisions are selected, set the first one as primary division
+                                if (is_array($state) && count($state) > 0) {
+                                    $set('division_id', $state[0]);
+                                }
+                            }),
+                        Select::make('division_id')
+                            ->label('Primary Division')
+                            ->relationship('division', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->helperText('This will be set automatically to the first selected division, but you can change it.')
+                            ->reactive(),
                     ])->columns(2),
 
                 Section::make('Informasi Personal')
