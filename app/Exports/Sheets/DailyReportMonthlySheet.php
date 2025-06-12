@@ -13,9 +13,9 @@ class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, Wit
 {
     private int $year;
     private int $month;
-    private int $userId;
+    private ?int $userId;
 
-    public function __construct(int $year, int $month, int $userId)
+    public function __construct(int $year, int $month, ?int $userId = null)
     {
         $this->year = $year;
         $this->month = $month;
@@ -27,12 +27,18 @@ class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, Wit
      */
     public function query()
     {
-        return DailyReport::query()
+        $query = DailyReport::query()
             ->with('user')
-            ->where('user_id', $this->userId)
             ->whereYear('entry_date', $this->year)
             ->whereMonth('entry_date', $this->month)
             ->orderBy('entry_date');
+
+        // Jika userId disediakan, filter berdasarkan user_id
+        if ($this->userId !== null) {
+            $query->where('user_id', $this->userId);
+        }
+
+        return $query;
     }
 
     /**
