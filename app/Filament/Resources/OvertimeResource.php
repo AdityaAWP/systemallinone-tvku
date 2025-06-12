@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\OvertimeYearlyExport;
 use App\Filament\Resources\OvertimeResource\Pages;
 use App\Models\Overtime;
 use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
@@ -33,9 +34,84 @@ class OvertimeResource extends Resource
     protected static ?string $label = 'Permohonan Lembur';
     protected static ?int $navigationSort = -1;
     
+    /**
+     * Check if user has any staff role
+     */
+    private static function isStaff($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'staff%')->exists();
+    }
+
+    /**
+     * Check if user has any manager role
+     */
+    private static function isManager($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'manager%')->exists();
+    }
+
+    private static function isKepala($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'kepala%')->exists();
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $user = Auth::user();
+
+        if ($user->hasRole('super_admin')) {
+            // Super admin: tampilkan jumlah semua data lembur
+            $count = Overtime::count();
+            return $count > 0 ? (string) $count : null;
+        }
+
+        if ($user->hasRole('hrd')) {
+            // HRD: tampilkan jumlah semua data lembur
+            $count = Overtime::count();
+            return $count > 0 ? (string) $count : null;
+        }
+
+        if (static::isManager($user)) {
+            // Manager: tampilkan jumlah lembur untuk divisinya sendiri
+            $divisionId = $user->division_id;
+            $count = Overtime::whereHas('user', function ($query) use ($divisionId) {
+                $query->where('division_id', $divisionId);
+            })->count();
+            return $count > 0 ? (string) $count : null;
+        }
+
+        return null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getNavigationBadge() > 0 ? 'primary' : null;
+    }
+    
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('user_id', Auth::user()?->id);
+        $user = Auth::user();
+
+        if (static::isStaff($user)) {
+            // Staff hanya bisa melihat lembur miliknya sendiri
+            return parent::getEloquentQuery()->where('user_id', $user->id);
+        } 
+
+        if ($user->hasRole('hrd')) {
+            // HRD bisa melihat semua data lembur
+            return parent::getEloquentQuery();
+        }
+
+        if (static::isManager($user) || static::isKepala($user)) {
+            // Manager & Kepala hanya bisa melihat data lembur di divisinya
+            $divisionId = $user->division_id;
+            return parent::getEloquentQuery()->whereHas('user', function ($query) use ($divisionId) {
+                $query->where('division_id', $divisionId);
+            });
+        }
+
+        // Default: hanya bisa melihat lembur sendiri
+        return parent::getEloquentQuery()->where('user_id', $user->id);
     }
 
     public static function form(Form $form): Form
@@ -148,7 +224,100 @@ class OvertimeResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->headerActions([
+                // HRD filtering actions - similar to Leave resource
+                Tables\Actions\Action::make('Lembur Saya')
+                    ->label('Lembur Saya')
+                    ->icon('heroicon-o-user')
+                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->url(fn () => url()->current() . '?tableFilters[my_overtime][value]=true')
+                    ->color('primary'),
+                Tables\Actions\Action::make('Semua Lembur Staff')
+                    ->label('Semua Lembur Staff')
+                    ->icon('heroicon-o-users')
+                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->url(fn () => url()->current() . '?tableFilters[my_overtime][value]=false')
+                    ->color('secondary'),
+                
+                // Download actions
+                Tables\Actions\Action::make('downloadAll')
+                    ->label('Download Semua')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->url(fn() => route('overtime.report'))
+                    ->openUrlInNewTab(),
+                
+                Tables\Actions\Action::make('downloadMonthly')
+                    ->label('Download Bulanan')
+                    ->icon('heroicon-o-calendar')
+                    ->color('primary')
+                    ->form([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Select::make('month')
+                                    ->label('Bulan')
+                                    ->options([
+                                        1 => 'Januari',
+                                        2 => 'Februari', 
+                                        3 => 'Maret',
+                                        4 => 'April',
+                                        5 => 'Mei',
+                                        6 => 'Juni',
+                                        7 => 'Juli',
+                                        8 => 'Agustus',
+                                        9 => 'September',
+                                        10 => 'Oktober',
+                                        11 => 'November',
+                                        12 => 'Desember',
+                                    ])
+                                    ->default(Carbon::now()->month)
+                                    ->required(),
+                                
+                                Forms\Components\TextInput::make('year')
+                                    ->label('Tahun')
+                                    ->numeric()
+                                    ->default(Carbon::now()->year)
+                                    ->minValue(2020)
+                                    ->maxValue(2030)
+                                    ->required(),
+                            ])
+                    ])
+                    ->action(function (array $data) {
+                        $url = route('overtime.monthly') . '?' . http_build_query([
+                            'month' => $data['month'],
+                            'year' => $data['year']
+                        ]);
+                        
+                        return redirect()->away($url);
+                    }),
+            ])
             ->columns([
+                // Add employee information columns for HRD view
+                TextColumn::make('user.name')
+                    ->label('Nama Karyawan')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user())),
+
+                TextColumn::make('user.npp')
+                    ->label('NPP')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user())),
+
+                TextColumn::make('user.division.name')
+                    ->label('Divisi')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user())),
+
+                TextColumn::make('user.position')
+                    ->label('Jabatan')
+                    ->formatStateUsing(fn($state) => $state ?: '-')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user())),
+
                 TextColumn::make('tanggal_overtime')
                     ->label('Tanggal Lembur')
                     ->searchable()
@@ -186,6 +355,11 @@ class OvertimeResource extends Resource
                 TextColumn::make('description')
                     ->searchable()
                     ->label('Deskripsi'),
+                TextColumn::make('created_at')
+                    ->label('Dibuat Pada')
+                    ->dateTime('d M Y H:i')
+                    ->sortable()
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user())),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('is_holiday')
@@ -193,76 +367,92 @@ class OvertimeResource extends Resource
                     ->options([
                         0 => 'Hari Kerja Normal',
                         1 => 'Hari Libur'
+                    ]),
+
+                Tables\Filters\Filter::make('date_range')
+                    ->form([
+                        Forms\Components\DatePicker::make('from'),
+                        Forms\Components\DatePicker::make('to'),
                     ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['from'],
+                                fn(Builder $query, $date): Builder => $query->whereDate('tanggal_overtime', '>=', $date),
+                            )
+                            ->when(
+                                $data['to'],
+                                fn(Builder $query, $date): Builder => $query->whereDate('tanggal_overtime', '<=', $date),
+                            );
+                    }),
+
+                Tables\Filters\TernaryFilter::make('my_overtime')
+                    ->label('Tampilkan Lembur Saya')
+                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->trueLabel('Lembur Saya')
+                    ->falseLabel('Semua Lembur Staff')
+                    ->queries(
+                        true: fn(Builder $query) => $query->where('user_id', Auth::id()),
+                        false: fn(Builder $query) => $query,
+                        blank: fn(Builder $query) => $query,
+                    ),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn($record) => 
+                        static::isStaff(Auth::user()) && $record->user_id === Auth::id() ||
+                        Auth::user()->hasRole('hrd') ||
+                        (static::isManager(Auth::user()) && $record->user->division_id === Auth::user()->division_id)
+                    ),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn($record) => 
+                        static::isStaff(Auth::user()) && $record->user_id === Auth::id() ||
+                        Auth::user()->hasRole('hrd') ||
+                        (static::isManager(Auth::user()) && $record->user->division_id === Auth::user()->division_id)
+                    ),
                 Tables\Actions\Action::make('download')
                     ->url(fn(Overtime $overtime) => route('overtime.single', $overtime))
-                    ->openUrlInNewTab()
-            ])
-            ->headerActions([
-                // Action untuk download semua data
-                Tables\Actions\Action::make('downloadAll')
-                    ->label('Download Semua')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('success')
-                    ->url(fn() => route('overtime.report'))
                     ->openUrlInNewTab(),
-                
-                // Action untuk download berdasarkan bulan
-                Tables\Actions\Action::make('downloadMonthly')
-                    ->label('Download Bulanan')
-                    ->icon('heroicon-o-calendar')
-                    ->color('primary')
+                Tables\Actions\Action::make('export_user_yearly')
+                    ->label('Export Excel')
+                    ->icon('heroicon-o-document-text')
+                    ->color('success')
+                    ->visible(fn () => Auth::user()->hasRole('hrd'))
                     ->form([
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Select::make('month')
-                                    ->label('Bulan')
-                                    ->options([
-                                        1 => 'Januari',
-                                        2 => 'Februari', 
-                                        3 => 'Maret',
-                                        4 => 'April',
-                                        5 => 'Mei',
-                                        6 => 'Juni',
-                                        7 => 'Juli',
-                                        8 => 'Agustus',
-                                        9 => 'September',
-                                        10 => 'Oktober',
-                                        11 => 'November',
-                                        12 => 'Desember',
-                                    ])
-                                    ->default(Carbon::now()->month)
-                                    ->required(),
-                                
-                                Forms\Components\TextInput::make('year')
-                                    ->label('Tahun')
-                                    ->numeric()
-                                    ->default(Carbon::now()->year)
-                                    ->minValue(2020)
-                                    ->maxValue(2030)
-                                    ->required(),
-                            ])
+                        Forms\Components\Select::make('year')
+                            ->label('Tahun')
+                            ->options(function ($record) {
+                                $years = Overtime::query()
+                                    ->where('user_id', $record->user_id)
+                                    ->selectRaw('DISTINCT YEAR(tanggal_overtime) as year')
+                                    ->orderBy('year', 'desc')
+                                    ->get()
+                                    ->pluck('year', 'year')
+                                    ->toArray();
+                                if (empty($years)) {
+                                    return [now()->year => now()->year];
+                                }
+                                return $years;
+                            })
+                            ->required()
+                            ->default(now()->year),
                     ])
-                    ->action(function (array $data) {
-                        // Buat URL dengan parameter
-                        $url = route('overtime.monthly') . '?' . http_build_query([
-                            'month' => $data['month'],
-                            'year' => $data['year']
-                        ]);
-                        
-                        // Redirect ke URL dengan membuka tab baru
-                        return redirect()->away($url);
+                    ->action(function (array $data, $record) {
+                        $year = $data['year'];
+                        $user = $record->user;
+                        $filename = "Laporan Lembur {$user->name} - {$year}.xlsx";
+                        return (new OvertimeYearlyExport($year, $user->id))->download($filename);
                     }),
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user())),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getRelations(): array
