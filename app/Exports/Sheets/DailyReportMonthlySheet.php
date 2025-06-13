@@ -7,9 +7,12 @@ use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\BeforeSheet;
 use Illuminate\Support\Carbon;
 
-class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMapping
+class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMapping, WithCustomStartCell, WithEvents
 {
     private int $year;
     private int $month;
@@ -57,8 +60,8 @@ class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, Wit
         return [
             'Nama',
             'Tanggal',
-            'Check In',
-            'Check Out',
+            'Waktu Mulai Bekerja',
+            'Waktu Selesai Bekerja',
             'Jam Kerja',
             'Keterangan',
         ];
@@ -77,6 +80,34 @@ class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, Wit
             $row->check_out ? Carbon::parse($row->check_out)->format('H:i') : '',
             "{$row->work_hours_component} jam {$row->work_minutes_component} menit",
             strip_tags($row->description ?? ''), // Remove HTML tags
+        ];
+    }
+
+    public function startCell(): string
+    {
+        return 'A6'; // Data dimulai dari baris ke-6 (setelah spasi)
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            BeforeSheet::class => function (BeforeSheet $event) {
+                // Ambil user jika userId diset
+                $user = null;
+                if ($this->userId) {
+                    $user = \App\Models\User::with('division')->find($this->userId);
+                }
+                $sheet = $event->getSheet();
+                $sheet->setCellValue('A1', 'Nama');
+                $sheet->setCellValue('B1', $user?->name ?? '-');
+                $sheet->setCellValue('A2', 'NPP');
+                $sheet->setCellValue('B2', $user?->npp ?? '-');
+                $sheet->setCellValue('A3', 'Divisi');
+                $sheet->setCellValue('B3', $user?->division?->name ?? '-');
+                $sheet->setCellValue('A4', 'Jabatan');
+                $sheet->setCellValue('B4', $user?->position ?? '-');
+                // Baris 5 dibiarkan kosong sebagai spasi
+            },
         ];
     }
 }
