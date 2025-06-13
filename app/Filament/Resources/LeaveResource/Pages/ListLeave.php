@@ -35,11 +35,6 @@ class ListLeave extends ListRecords
             $widgets[] = LeaveStatsWidget::class;
         }
         
-        // Widget MonthlyLeaveSummaryWidget - tampil pada "Semua Cuti Staff"
-        if (MonthlyLeaveSummaryWidget::canView()) {
-            $widgets[] = MonthlyLeaveSummaryWidget::class;
-        }
-        
         // Widget ManagerLeaveReminderWidget - existing logic
         if ($user->hasRole(['manager', 'manager_keuangan', 'manager_logistik'])) {
             $widgets[] = ManagerLeaveReminderWidget::class;
@@ -48,6 +43,14 @@ class ListLeave extends ListRecords
         return $widgets;
     }
     
+    protected function getFooterWidgets(): array
+    {
+        $widgets = [];
+        if (\App\Filament\Widgets\MonthlyLeaveSummaryWidget::canView()) {
+            $widgets[] = \App\Filament\Widgets\MonthlyLeaveSummaryWidget::class;
+        }
+        return $widgets;
+    }
 
     public function getTabs(): array
     {
