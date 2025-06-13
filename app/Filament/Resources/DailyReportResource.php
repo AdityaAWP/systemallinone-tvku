@@ -163,29 +163,12 @@ class DailyReportResource extends Resource
                             })
                             ->required()
                             ->default(now()->year),
-                        Select::make('export_type')
-                            ->label('Jenis Export')
-                            ->options([
-                                'personal' => 'Data Pribadi Saya',
-                                'all' => 'Semua Data Staff'
-                            ])
-                            ->default('personal')
-                            ->visible(fn() => Auth::user()->hasRole('hrd'))
-                            ->required(),
                     ])
                     ->action(function (array $data) {
                         $year = $data['year'];
                         $user = Auth::user();
-                        
-                        // Tentukan userId berdasarkan pilihan export
-                        if ($user->hasRole('hrd') && isset($data['export_type']) && $data['export_type'] === 'all') {
-                            $userId = null; // Export semua data
-                            $filename = "laporan_harian_semua_staff_{$year}.xlsx";
-                        } else {
-                            $userId = $user->id; // Export data pribadi
-                            $filename = "laporan_harian_{$year}.xlsx";
-                        }
-                        
+                        $userId = $user->id;
+                        $filename = "laporan_harian_{$year}.xlsx";
                         return (new DailyReportExcel($year, $userId))->download($filename);
                     }),
             ])
@@ -211,11 +194,11 @@ class DailyReportResource extends Resource
                     ->date('d F Y')
                     ->sortable(),
                 TextColumn::make('check_in')
-                ->label('Waktu Check-in')
+                ->label('Waktu Mulai Bekerja')
                     ->searchable()
                     ->dateTime('H:i'),
                 TextColumn::make('check_out')
-                    ->label('Waktu Check-out')
+                    ->label('Waktu Selesai Bekerja')
                     ->searchable()
                     ->dateTime('H:i'),
                 TextColumn::make('hours_formatted')
