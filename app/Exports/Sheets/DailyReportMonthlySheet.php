@@ -85,28 +85,28 @@ class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, Wit
 
     public function startCell(): string
     {
-        return 'A6'; // Data dimulai dari baris ke-6 (setelah spasi)
+        // Jika export per user, data mulai dari baris 6 (setelah header + 1 baris kosong)
+        // Jika export semua staff, data mulai dari baris 1
+        return $this->userId ? 'A6' : 'A1';
     }
 
     public function registerEvents(): array
     {
         return [
             BeforeSheet::class => function (BeforeSheet $event) {
-                // Ambil user jika userId diset
-                $user = null;
                 if ($this->userId) {
                     $user = \App\Models\User::with('division')->find($this->userId);
+                    $sheet = $event->getSheet();
+                    $sheet->setCellValue('A1', 'Nama');
+                    $sheet->setCellValue('B1', $user?->name ?? '-');
+                    $sheet->setCellValue('A2', 'NPP');
+                    $sheet->setCellValue('B2', $user?->npp ?? '-');
+                    $sheet->setCellValue('A3', 'Divisi');
+                    $sheet->setCellValue('B3', $user?->division?->name ?? '-');
+                    $sheet->setCellValue('A4', 'Jabatan');
+                    $sheet->setCellValue('B4', $user?->position ?? '-');
+                    // Baris 5 dibiarkan kosong sebagai spasi
                 }
-                $sheet = $event->getSheet();
-                $sheet->setCellValue('A1', 'Nama');
-                $sheet->setCellValue('B1', $user?->name ?? '-');
-                $sheet->setCellValue('A2', 'NPP');
-                $sheet->setCellValue('B2', $user?->npp ?? '-');
-                $sheet->setCellValue('A3', 'Divisi');
-                $sheet->setCellValue('B3', $user?->division?->name ?? '-');
-                $sheet->setCellValue('A4', 'Jabatan');
-                $sheet->setCellValue('B4', $user?->position ?? '-');
-                // Baris 5 dibiarkan kosong sebagai spasi
             },
         ];
     }
