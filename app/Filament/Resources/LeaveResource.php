@@ -92,6 +92,12 @@ class LeaveResource extends Resource
             return $pendingCount > 0 ? (string) $pendingCount : null;
         }
 
+        if (static::isStaff($user)) {
+            // Staff: tampilkan jumlah cuti miliknya sendiri
+            $count = Leave::where('user_id', $user->id)->count();
+            return $count > 0 ? (string) $count : null;
+        }
+
         return null;
     }
 
@@ -583,7 +589,8 @@ class LeaveResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->label('Lihat'),
                 Tables\Actions\EditAction::make()
-                    ->label('Edit'),
+                    ->label('Edit')
+                    ->disabled(fn(Leave $record) => $record->approval_manager || $record->approval_hrd),
                 Tables\Actions\Action::make('export_individual')
                     ->label('Export Data')
                     ->icon('heroicon-o-document-text')
