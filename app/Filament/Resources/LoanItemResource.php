@@ -59,7 +59,8 @@ class LoanItemResource extends Resource
         $categorySections = [];
         
         $categories = $itemsByCategory->keys()->toArray();
-        $categoryGroups = array_chunk($categories, ceil(count($categories) / 2));
+        $chunkSize = max(1, ceil(count($categories) / 2)); // Pastikan chunk size minimal 1
+        $categoryGroups = array_chunk($categories, $chunkSize);
         
         foreach ($categoryGroups as $groupIndex => $categoryGroup) {
             $columns = [];
@@ -212,6 +213,9 @@ class LoanItemResource extends Resource
                     ->label('Tanggal Booking')
                     ->date()
                     ->sortable(),
+                TextColumn::make('start_booking')
+                    ->label('Jam Peminjaman')
+                    ->formatStateUsing(fn ($state) => \Carbon\Carbon::parse($state)->format('H:i')),
                 TextColumn::make('items_list')
                     ->label('Item')
                     ->getStateUsing(function ($record) {
