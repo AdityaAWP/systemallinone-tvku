@@ -33,7 +33,7 @@ class OvertimeResource extends Resource
     protected static ?string $navigationLabel = 'Lembur';
     protected static ?string $label = 'Permohonan Lembur';
     protected static ?int $navigationSort = -1;
-    
+
     /**
      * Check if user has any staff role
      */
@@ -59,20 +59,20 @@ class OvertimeResource extends Resource
     {
         $user = Auth::user();
 
-        if ($user->hasRole('super_admin')) {
-            // Super admin: tampilkan jumlah semua data lembur
-            $count = Overtime::count();
+        if (static::isStaff($user)) {
+            // Staff: jumlah lembur miliknya sendiri
+            $count = Overtime::where('user_id', $user->id)->count();
             return $count > 0 ? (string) $count : null;
         }
 
         if ($user->hasRole('hrd')) {
-            // HRD: tampilkan jumlah semua data lembur
+            // HRD: jumlah semua data lembur
             $count = Overtime::count();
             return $count > 0 ? (string) $count : null;
         }
 
-        if (static::isManager($user)) {
-            // Manager: tampilkan jumlah lembur untuk divisinya sendiri
+        if (static::isManager($user) || static::isKepala($user)) {
+            // Manager & Kepala: jumlah lembur di divisinya
             $divisionId = $user->division_id;
             $count = Overtime::whereHas('user', function ($query) use ($divisionId) {
                 $query->where('division_id', $divisionId);
@@ -80,14 +80,16 @@ class OvertimeResource extends Resource
             return $count > 0 ? (string) $count : null;
         }
 
-        return null;
+        // Default: jumlah lembur miliknya sendiri
+        $count = Overtime::where('user_id', $user->id)->count();
+        return $count > 0 ? (string) $count : null;
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
         return static::getNavigationBadge() > 0 ? 'primary' : null;
     }
-    
+
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
@@ -95,7 +97,7 @@ class OvertimeResource extends Resource
         if (static::isStaff($user)) {
             // Staff hanya bisa melihat lembur miliknya sendiri
             return parent::getEloquentQuery()->where('user_id', $user->id);
-        } 
+        }
 
         if ($user->hasRole('hrd')) {
             // HRD bisa melihat semua data lembur
@@ -123,7 +125,7 @@ class OvertimeResource extends Resource
                         DatePicker::make('tanggal_overtime')
                             ->label('Tanggal Lembur')
                             ->required(),
-                        
+
                         Select::make('is_holiday')
                             ->label('Status Hari')
                             ->options([
@@ -134,7 +136,7 @@ class OvertimeResource extends Resource
                             ->required()
                             ->live()
                             ->columnSpan(1),
-                        
+
                         Forms\Components\Placeholder::make('spacer')
                             ->label('')
                             ->columnSpan(1),
@@ -144,16 +146,16 @@ class OvertimeResource extends Resource
                     ->schema([
                         TimePicker::make('normal_work_time_check_in')
                             ->label('Waktu Mulai Kerja Normal')
-                            ->required(fn (Get $get): bool => $get('is_holiday') == 0)
-                            ->hidden(fn (Get $get): bool => $get('is_holiday') == 1)
+                            ->required(fn(Get $get): bool => $get('is_holiday') == 0)
+                            ->hidden(fn(Get $get): bool => $get('is_holiday') == 1)
                             ->seconds(false),
                         TimePicker::make('normal_work_time_check_out')
                             ->label('Waktu Selesai Kerja Normal')
-                            ->required(fn (Get $get): bool => $get('is_holiday') == 0)
-                            ->hidden(fn (Get $get): bool => $get('is_holiday') == 1)
+                            ->required(fn(Get $get): bool => $get('is_holiday') == 0)
+                            ->hidden(fn(Get $get): bool => $get('is_holiday') == 1)
                             ->seconds(false),
                     ])
-                    ->hidden(fn (Get $get): bool => $get('is_holiday') == 1),
+                    ->hidden(fn(Get $get): bool => $get('is_holiday') == 1),
 
                 Forms\Components\Grid::make(2)
                     ->schema([
@@ -230,23 +232,23 @@ class OvertimeResource extends Resource
                     ->label('Lembur Saya')
                     ->icon('heroicon-o-user')
                     ->visible(fn() => Auth::user()->hasRole('hrd'))
-                    ->url(fn () => url()->current() . '?tableFilters[my_overtime][value]=true')
+                    ->url(fn() => url()->current() . '?tableFilters[my_overtime][value]=true')
                     ->color('primary'),
                 Tables\Actions\Action::make('Semua Lembur Staff')
                     ->label('Semua Lembur Staff')
                     ->icon('heroicon-o-users')
                     ->visible(fn() => Auth::user()->hasRole('hrd'))
-                    ->url(fn () => url()->current() . '?tableFilters[my_overtime][value]=false')
+                    ->url(fn() => url()->current() . '?tableFilters[my_overtime][value]=false')
                     ->color('secondary'),
-                
-                // Download actions
-                Tables\Actions\Action::make('downloadAll')
-                    ->label('Download Semua')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('success')
-                    ->url(fn() => route('overtime.report'))
-                    ->openUrlInNewTab(),
-                
+
+                // // Download actions
+                // Tables\Actions\Action::make('downloadAll')
+                //     ->label('Download Semua')
+                //     ->icon('heroicon-o-document-arrow-down')
+                //     ->color('success')
+                //     ->url(fn() => route('overtime.report'))
+                //     ->openUrlInNewTab(),
+
                 Tables\Actions\Action::make('downloadMonthly')
                     ->label('Download Bulanan')
                     ->icon('heroicon-o-calendar')
@@ -258,7 +260,7 @@ class OvertimeResource extends Resource
                                     ->label('Bulan')
                                     ->options([
                                         1 => 'Januari',
-                                        2 => 'Februari', 
+                                        2 => 'Februari',
                                         3 => 'Maret',
                                         4 => 'April',
                                         5 => 'Mei',
@@ -272,7 +274,7 @@ class OvertimeResource extends Resource
                                     ])
                                     ->default(Carbon::now()->month)
                                     ->required(),
-                                
+
                                 Forms\Components\TextInput::make('year')
                                     ->label('Tahun')
                                     ->numeric()
@@ -287,7 +289,7 @@ class OvertimeResource extends Resource
                             'month' => $data['month'],
                             'year' => $data['year']
                         ]);
-                        
+
                         return redirect($url);
                     }),
             ])
@@ -325,21 +327,21 @@ class OvertimeResource extends Resource
                     ->sortable(),
                 TextColumn::make('is_holiday')
                     ->label('Status Hari')
-                    ->formatStateUsing(fn (string $state): string => $state ? 'Hari Libur' : 'Hari Kerja')
+                    ->formatStateUsing(fn(string $state): string => $state ? 'Hari Libur' : 'Hari Kerja')
                     ->badge()
-                    ->color(fn (string $state): string => $state ? 'success' : 'primary'),
+                    ->color(fn(string $state): string => $state ? 'success' : 'primary'),
                 TextColumn::make('normal_work_time_check_in')
                     ->label('Waktu Mulai Kerja')
                     ->searchable()
                     ->dateTime('H:i')
                     ->placeholder('Hari Libur')
-                    ->hidden(fn ($record) => $record?->is_holiday),
+                    ->hidden(fn($record) => $record?->is_holiday),
                 TextColumn::make('normal_work_time_check_out')
                     ->label('Waktu Selesai Kerja')
                     ->searchable()
                     ->dateTime('H:i')
                     ->placeholder('Hari Libur')
-                    ->hidden(fn ($record) => $record?->is_holiday),
+                    ->hidden(fn($record) => $record?->is_holiday),
                 TextColumn::make('check_in')
                     ->label('Waktu Mulai Lembur')
                     ->searchable()
@@ -400,50 +402,52 @@ class OvertimeResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => 
+                    ->visible(
+                        fn($record) =>
                         static::isStaff(Auth::user()) && $record->user_id === Auth::id() ||
-                        Auth::user()->hasRole('hrd') ||
-                        (static::isManager(Auth::user()) && $record->user->division_id === Auth::user()->division_id)
+                            Auth::user()->hasRole('hrd') ||
+                            (static::isManager(Auth::user()) && $record->user->division_id === Auth::user()->division_id)
                     ),
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn($record) => 
+                    ->visible(
+                        fn($record) =>
                         static::isStaff(Auth::user()) && $record->user_id === Auth::id() ||
-                        Auth::user()->hasRole('hrd') ||
-                        (static::isManager(Auth::user()) && $record->user->division_id === Auth::user()->division_id)
+                            Auth::user()->hasRole('hrd') ||
+                            (static::isManager(Auth::user()) && $record->user->division_id === Auth::user()->division_id)
                     ),
                 Tables\Actions\Action::make('download')
                     ->url(fn(Overtime $overtime) => route('overtime.single', $overtime))
                     ->openUrlInNewTab(),
-                Tables\Actions\Action::make('export_user_yearly')
-                    ->label('Export Excel')
-                    ->icon('heroicon-o-document-text')
-                    ->color('success')
-                    ->visible(fn () => Auth::user()->hasRole('hrd'))
-                    ->form([
-                        Forms\Components\Select::make('year')
-                            ->label('Tahun')
-                            ->options(function ($record) {
-                                $years = Overtime::query()
-                                    ->where('user_id', $record->user_id)
-                                    ->selectRaw('DISTINCT YEAR(tanggal_overtime) as year')
-                                    ->orderBy('year', 'desc')
-                                    ->get()
-                                    ->pluck('year', 'year')
-                                    ->toArray();
-                                if (empty($years)) {
-                                    return [now()->year => now()->year];
-                                }
-                                return $years;
-                            })
-                            ->required()
-                            ->default(now()->year),
-                    ])
-                    ->action(function (array $data, $record) {
-                        $year = $data['year'];
-                        $user = $record->user;
-                        $filename = "Laporan Lembur {$user->name} - {$year}.xlsx";
-                        return (new OvertimeYearlyExport($year, $user->id))->download($filename);
-                    }),
+                // Tables\Actions\Action::make('export_user_yearly')
+                //     ->label('Export Excel')
+                //     ->icon('heroicon-o-document-text')
+                //     ->color('success')
+                //     ->visible(fn () => Auth::user()->hasRole('hrd'))
+                //     ->form([
+                //         Forms\Components\Select::make('year')
+                //             ->label('Tahun')
+                //             ->options(function ($record) {
+                //                 $years = Overtime::query()
+                //                     ->where('user_id', $record->user_id)
+                //                     ->selectRaw('DISTINCT YEAR(tanggal_overtime) as year')
+                //                     ->orderBy('year', 'desc')
+                //                     ->get()
+                //                     ->pluck('year', 'year')
+                //                     ->toArray();
+                //                 if (empty($years)) {
+                //                     return [now()->year => now()->year];
+                //                 }
+                //                 return $years;
+                //             })
+                //             ->required()
+                //             ->default(now()->year),
+                //     ])
+                //     ->action(function (array $data, $record) {
+                //         $year = $data['year'];
+                //         $user = $record->user;
+                //         $filename = "Laporan Lembur {$user->name} - {$year}.xlsx";
+                //         return (new OvertimeYearlyExport($year, $user->id))->download($filename);
+                //     }),
 
             ])
             ->bulkActions([
