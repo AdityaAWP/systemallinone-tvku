@@ -311,12 +311,14 @@ class LeaveResource extends Resource
                             ->label('Persetujuan Manager')
                             ->helperText('Setujui atau tolak permohonan cuti ini')
                             ->visible(fn() => $isManager && !$isCreating)
+                            ->hiddenOn('view')
                             ->reactive(),
 
                         Forms\Components\Toggle::make('approval_hrd')
                             ->label('Persetujuan HRD')
                             ->helperText('Setujui atau tolak permohonan cuti ini')
                             ->visible(fn() => $user->hasRole('hrd') && !$isCreating)
+                            ->hiddenOn('view')
                             ->reactive(),
 
                         Forms\Components\Textarea::make('rejection_reason')
@@ -345,7 +347,8 @@ class LeaveResource extends Resource
                                 }
 
                                 return false;
-                            }),
+                            })
+                            ->hiddenOn('view'),
                     ])
                     ->visible(!$isCreating),
 
