@@ -8,10 +8,14 @@ use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
 use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use App\Models\User;
 
-class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMapping
+class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMapping, WithCustomStartCell, WithEvents
 {
     private int $year;
     private int $month;
@@ -101,6 +105,35 @@ class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMappi
             ucfirst($leave->status),
             Carbon::parse($leave->created_at)->format('d M Y, H:i'),
             $leave->reason,
+        ];
+    }
+
+    public function startCell(): string
+    {
+        // Jika export per user, data mulai dari baris 6 (setelah header + 1 baris kosong)
+        // Jika export semua staff, data mulai dari baris 1
+        return $this->userId ? 'A6' : 'A1';
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function(AfterSheet $event) {
+                if ($this->userId) {
+                    $user = User::find($this->userId);
+                    if ($user) {
+                        $event->sheet->setCellValue('A1', 'Nama');
+                        $event->sheet->setCellValue('B1', $user->name);
+                        $event->sheet->setCellValue('A2', 'NPP');
+                        $event->sheet->setCellValue('B2', $user->npp);
+                        $event->sheet->setCellValue('A3', 'Divisi');
+                        $event->sheet->setCellValue('B3', $user->division ? $user->division->name : '-');
+                        $event->sheet->setCellValue('A4', 'Jabatan');
+                        $event->sheet->setCellValue('B4', $user->position ?? '-');
+                        // Baris 5 dibiarkan kosong sebagai spasi
+                    }
+                }
+            }
         ];
     }
 }
