@@ -142,7 +142,7 @@ class DailyReportResource extends Resource
                     ->url(fn() => request()->url() . '?tableFilters[my_reports][value]=true')
                     ->color(fn() => request()->input('tableFilters.my_reports.value') === 'true' ? 'primary' : 'gray'),
 
-                Action::make('export_monthly')
+                Action::make('export_monthly_excel')
                     ->label('Ekspor Excel')
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
@@ -152,25 +152,37 @@ class DailyReportResource extends Resource
                             ->options(function () {
                                 $years = [];
                                 $currentYear = now()->year;
-                                
-                                // Generate 5 tahun mundur dari tahun sekarang
                                 for ($i = 0; $i < 5; $i++) {
                                     $year = $currentYear - $i;
                                     $years[$year] = $year;
                                 }
-                                
                                 return $years;
                             })
                             ->required()
                             ->default(now()->year),
+                        Select::make('export_type')
+                            ->label('Jenis Export')
+                            ->options([
+                                'personal' => 'Data Pribadi Saya',
+                                'all' => 'Semua Data Staff'
+                            ])
+                            ->default('personal')
+                            ->visible(fn() => Auth::user()->hasRole('hrd'))
+                            ->required(),
                     ])
                     ->action(function (array $data) {
                         $year = $data['year'];
                         $user = Auth::user();
-                        $userId = $user->id;
-                        $filename = "laporan_harian_{$year}.xlsx";
+                        if ($user->hasRole('hrd') && isset($data['export_type']) && $data['export_type'] === 'all') {
+                            $userId = null;
+                            $filename = "laporan_harian_semua_staff_{$year}.xlsx";
+                        } else {
+                            $userId = $user->id;
+                            $filename = "laporan_harian_{$year}.xlsx";
+                        }
                         return (new DailyReportExcel($year, $userId))->download($filename);
-                    }),
+                    })
+                    ->visible(fn() => Auth::user()->hasRole('hrd')),
             ])
             ->columns([
                 TextColumn::make('user.name')
