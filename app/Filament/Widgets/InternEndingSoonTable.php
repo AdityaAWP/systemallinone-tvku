@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 
 class InternEndingSoonTable extends BaseWidget
 {
-    protected static ?int $sort = 1;
+    protected static ?int $sort = 2;
     
     protected int | string | array $columnSpan = 'full';
 
