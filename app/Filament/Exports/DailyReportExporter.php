@@ -21,9 +21,9 @@ class DailyReportExporter extends Exporter
             ExportColumn::make('entry_date')
                 ->label('Tanggal'),
             ExportColumn::make('check_in')
-                ->label('Check In'),
+                ->label('Waktu Mulai Bekerja'),
             ExportColumn::make('check_out')
-                ->label('Check Out'),
+                ->label('Waktu Selesai Bekerja'),
             ExportColumn::make('work_hours')
                 ->label('Jam Kerja'),
             ExportColumn::make('description')
