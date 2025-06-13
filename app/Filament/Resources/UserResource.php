@@ -69,24 +69,22 @@ class UserResource extends Resource
                             ->label('Jabatan')
                             ->required(),
                         Select::make('divisions')
-                            ->label('Divisions')
+                            ->label('Divisi')
                             ->required()
                             ->relationship('divisions', 'name')
                             ->multiple()
                             ->searchable()
                             ->preload()
                             ->afterStateUpdated(function ($state, callable $set) {
-                                // When divisions are selected, set the first one as primary division
                                 if (is_array($state) && count($state) > 0) {
                                     $set('division_id', $state[0]);
                                 }
                             }),
                         Select::make('division_id')
-                            ->label('Primary Division')
+                            ->label('Divisi Utama')
                             ->relationship('division', 'name')
                             ->searchable()
                             ->preload()
-                            ->helperText('This will be set automatically to the first selected division, but you can change it.')
                             ->reactive(),
                     ])->columns(2),
 

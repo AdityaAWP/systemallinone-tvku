@@ -229,7 +229,7 @@
 
     @php
     $direkturOperasional = \App\Models\User::whereHas('roles', function($query) {
-    $query->where('name', 'direktur_utama');
+    $query->where('name', 'direktur_operasional');
     })->first();
     @endphp
 
