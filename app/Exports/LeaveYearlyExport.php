@@ -25,29 +25,9 @@ class LeaveYearlyExport implements WithMultipleSheets
     {
         $sheets = [];
 
+        // Selalu buat sheet untuk setiap bulan Januari-Desember
         for ($month = 1; $month <= 12; $month++) {
-            // This check prevents creating empty sheets for months with no leave data.
-            $query = Leave::query();
-            
-            // Jika userId disediakan, filter berdasarkan user_id
-            if ($this->userId !== null) {
-                $query->where('user_id', $this->userId);
-            }
-            
-            $hasData = $query->where(function (Builder $query) use ($month) {
-                    $query->where(function(Builder $q) use ($month) {
-                        $q->whereYear('from_date', $this->year)
-                          ->whereMonth('from_date', $month);
-                    })->orWhere(function(Builder $q) use ($month) {
-                        $q->whereYear('to_date', $this->year)
-                          ->whereMonth('to_date', $month);
-                    });
-                })
-                ->exists();
-
-            if ($hasData) {
-                $sheets[] = new LeaveMonthlySheet($this->year, $month, $this->userId);
-            }
+            $sheets[] = new \App\Exports\Sheets\LeaveMonthlySheet($this->year, $month, $this->userId);
         }
 
         return $sheets;
