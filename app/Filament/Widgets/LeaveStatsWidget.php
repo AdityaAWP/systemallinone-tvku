@@ -57,26 +57,30 @@ class LeaveStatsWidget extends BaseWidget
     {
         $user = Auth::user();
         $myLeave = request()->input('tableFilters.my_leave.value');
-        
-        // Hanya tampil di halaman cuti (LeaveResource)
         $currentRoute = request()->route()?->getName();
+
+        // Tampilkan di dashboard untuk semua role
+        if (str_contains($currentRoute ?? '', 'filament.admin.pages.dashboard')) {
+            return true;
+        }
+
+        // Hanya tampil di halaman cuti (LeaveResource)
         $isLeaveRoute = str_contains($currentRoute ?? '', 'filament.admin.resources.leaves.index');
-        
         if (!$isLeaveRoute) {
             return false;
         }
-        
+
         // Untuk HRD: hanya tampil ketika filter "Cuti Saya" (true)
         if ($user->hasRole('hrd')) {
             return $myLeave === 'true';
         }
-        
+
         // Untuk role lain: selalu tampil di halaman cuti (karena mereka hanya lihat cuti sendiri)
         return true;
     }
 
     public static function getSort(): int
     {
-        return 1; // Memastikan widget ini berada di atas
+        return 2; // Memastikan widget ini berada di atas
     }
 }
