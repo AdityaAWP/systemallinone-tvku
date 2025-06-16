@@ -83,6 +83,6 @@ class CalendarWidget extends FullCalendarWidget
 
     public static function getSort(): int
     {
-        return 3;
+        return 5;
     }
 }
