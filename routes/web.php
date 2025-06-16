@@ -65,3 +65,5 @@ Route::get('pdfjournal', [PDFJournalController::class, 'downloadpdf'])->name('jo
 Route::get('pdfjournal/monthly', [PDFJournalController::class, 'downloadMonthlyPdf'])
     ->name('journal.monthly');
 
+Route::get('/overtime/user/{user_id}/monthly/pdf', [PDFController::class, 'downloadUserMonthlyPdf'])
+    ->name('overtime.user.monthly.pdf');
