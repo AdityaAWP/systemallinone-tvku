@@ -20,7 +20,7 @@ class EditAssignment extends EditRecord
             Actions\DeleteAction::make()
                 ->hidden(fn ($record) =>
                     $record->approval_status !== $record::STATUS_PENDING ||
-                    Auth::user()->hasRole('direktur_keuangan') ||
+                    Auth::user()->hasRole('direktur_utama') ||
                     (Auth::user()->hasRole('staff_keuangan') && $record->created_by !== Auth::id())),
         ];
     }
@@ -45,8 +45,8 @@ class EditAssignment extends EditRecord
             $data['submitted_at'] = now();
         }
 
-        // Handle approval status change by direktur_keuangan or direktur_utama
-        if ($user->hasAnyRole(['direktur_keuangan', 'direktur_utama']) &&
+        // Handle approval status change by direktur_utama or direktur_utama
+        if ($user->hasAnyRole(['direktur_utama']) &&
             isset($data['approval_status']) && // Add this check
             $record->approval_status !== $data['approval_status'] &&
             in_array($data['approval_status'], [Assignment::STATUS_APPROVED, Assignment::STATUS_DECLINED])) {
@@ -84,7 +84,7 @@ class EditAssignment extends EditRecord
         }
 
         // Notification for approval/decline
-        if ($user->hasAnyRole(['direktur_keuangan', 'direktur_utama']) &&
+        if ($user->hasAnyRole(['direktur_utama']) &&
             in_array($record->approval_status, [Assignment::STATUS_APPROVED, Assignment::STATUS_DECLINED])) {
             
             $status = $record->approval_status === Assignment::STATUS_APPROVED ? 'approved' : 'declined';
