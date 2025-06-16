@@ -28,21 +28,28 @@ class AssignmentResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
-    public static function getNavigationBadge(): ?string
+   public static function getNavigationBadge(): ?string
     {
         $user = Auth::user();
         
         if ($user && method_exists($user, 'hasRole')) {
-            // For direktur_keuangan: show submitted assignments waiting for approval
-            if ($user->hasRole('direktur_keuangan')) {
+            // For direktur_utama: show submitted assignments waiting for approval
+            if ($user->hasRole('direktur_utama')) {
                 return static::getModel()::where('approval_status', Assignment::STATUS_PENDING)
                     ->where('submit_status', Assignment::SUBMIT_SUDAH)
+                    ->where('type', Assignment::TYPE_PAID)
                     ->count() ?: null;
             }
             
-            // For manager_keuangan: show unsubmitted assignments
+            // For manager_keuangan: show pending assignments from staff
             if ($user->hasRole('manager_keuangan')) {
                 return static::getModel()::where('submit_status', Assignment::SUBMIT_BELUM)
+                    ->where('type', Assignment::TYPE_PAID)
+                    ->whereHas('creator', function ($q) {
+                        $q->whereHas('roles', function ($roleQuery) {
+                            $roleQuery->where('name', 'staff_keuangan');
+                        });
+                    })
                     ->count() ?: null;
             }
             
@@ -80,7 +87,7 @@ class AssignmentResource extends Resource
                                     ->required()
                                     ->live()
                                     ->default(Assignment::TYPE_FREE)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
 
                                 Forms\Components\DatePicker::make('created_date')
                                     ->required()
@@ -91,31 +98,31 @@ class AssignmentResource extends Resource
                                     ->required()
                                     ->minDate(Carbon::now())
                                     ->label('Batas Waktu')
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
 
                                 Forms\Components\TextInput::make('client')
                                     ->required()
                                     ->label('Klien')
                                     ->maxLength(255)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
 
                                 Forms\Components\TextInput::make('spp_number')
                                     ->label('Nomor SPP')
                                     ->required()
                                     ->maxLength(255)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
 
                                 Forms\Components\TextInput::make('spk_number')
                                     ->label('Nomor SPK')
                                     ->maxLength(255)
                                     ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
 
                                 Forms\Components\Textarea::make('description')
                                     ->required()
                                     ->label('Keterangan')
                                     ->columnSpanFull()
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
                             ]),
 
                         Forms\Components\Tabs\Tab::make('Detail Keuangan')
@@ -126,7 +133,7 @@ class AssignmentResource extends Resource
                                     ->prefix('Rp')
                                     ->inputMode('decimal')
                                     ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
 
                                 Forms\Components\TextInput::make('marketing_expense')
                                     ->label('Biaya Pemasaran')
@@ -134,7 +141,7 @@ class AssignmentResource extends Resource
                                     ->prefix('Rp')
                                     ->inputMode('decimal')
                                     ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
                             ])
                             ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE),
 
@@ -143,7 +150,7 @@ class AssignmentResource extends Resource
                                 Forms\Components\Textarea::make('production_notes')
                                     ->label('Catatan Produksi')
                                     ->columnSpanFull()
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
 
                                 Forms\Components\Select::make('priority')
                                     ->label('Tingkat Prioritas')
@@ -154,8 +161,8 @@ class AssignmentResource extends Resource
                                     ])
                                     ->default(Assignment::PRIORITY_NORMAL)
                                     ->hidden(fn(Forms\Get $get) => $get('type') !== Assignment::TYPE_PAID)
-                                    // MODIFIED: This field is now only enabled for direktur_keuangan
-                                    ->disabled(fn() => !Auth::user()->hasRole('direktur_keuangan')),
+                                    // MODIFIED: This field is now only enabled for direktur_utama
+                                    ->disabled(fn() => !Auth::user()->hasRole('direktur_utama')),
                             ]),
 
                         Forms\Components\Tabs\Tab::make('Status Pengajuan')
@@ -193,7 +200,7 @@ class AssignmentResource extends Resource
                                     ])
                                     ->default(Assignment::STATUS_PENDING)
                                     ->disabled(fn(Assignment $record = null) => 
-                                        !Auth::user()->hasAnyRole(['direktur_keuangan', 'direktur_utama']) ||
+                                        !Auth::user()->hasAnyRole(['direktur_utama']) ||
                                         ($record && $record->submit_status === Assignment::SUBMIT_BELUM)
                                     ),
 
@@ -225,7 +232,7 @@ class AssignmentResource extends Resource
                     ->label('Dibuat Oleh')
                     ->searchable()
                     ->sortable()
-                    ->visible(fn() => Auth::user()->hasAnyRole(['super_admin', 'direktur_keuangan', 'manager_keuangan'])),
+                    ->visible(fn() => Auth::user()->hasAnyRole(['super_admin', 'direktur_utama', 'manager_keuangan'])),
 
                 Tables\Columns\TextColumn::make('created_date')
                     ->label('Tanggal Dibuat')
@@ -331,7 +338,7 @@ class AssignmentResource extends Resource
                 Tables\Actions\DeleteAction::make()
                     ->hidden(fn(Assignment $record) =>
                         $record->approval_status !== Assignment::STATUS_PENDING ||
-                        Auth::user()->hasRole('direktur_keuangan') ||
+                        Auth::user()->hasRole('direktur_utama') ||
                         (Auth::user()->hasRole('staff_keuangan') && $record->created_by !== Auth::id())),
                 Tables\Actions\Action::make('download')
                     ->url(fn(Assignment $assignment) => route('assignment.single', $assignment))
@@ -340,12 +347,12 @@ class AssignmentResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->hidden(fn() => Auth::user()->hasRole('direktur_keuangan')),
+                        ->hidden(fn() => Auth::user()->hasRole('direktur_utama')),
                 ]),
             ])
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make()
-                    ->hidden(fn() => Auth::user()->hasRole('direktur_keuangan')),
+                    ->hidden(fn() => Auth::user()->hasRole('direktur_utama')),
             ])
             ->defaultSort('created_at', 'desc');
     }
@@ -383,15 +390,22 @@ class AssignmentResource extends Resource
 
         // Role-based filtering
         if ($user && method_exists($user, 'hasRole')) {
-            // Direktur keuangan: only see submitted assignments
-            if ($user->hasRole('direktur_keuangan')) {
+            // Direktur utama: tampilkan semua assignment yang sudah disubmit manager
+            if ($user->hasRole('direktur_utama')) {
+                // Base filter: hanya yang sudah disubmit manager
                 $query->where('submit_status', Assignment::SUBMIT_SUDAH);
                 
-                if ($statusFilter === 'pending') {
+                if ($statusFilter === 'responded') {
+                    // Tampilkan yang sudah di-approve/declined
+                    $query->whereIn('approval_status', [
+                        Assignment::STATUS_APPROVED,
+                        Assignment::STATUS_DECLINED,
+                    ]);
+                } elseif ($statusFilter === 'pending') {
+                    // Tampilkan yang pending approval
                     $query->where('approval_status', Assignment::STATUS_PENDING);
-                } elseif ($statusFilter === 'responded') {
-                    $query->whereIn('approval_status', [Assignment::STATUS_APPROVED, Assignment::STATUS_DECLINED]);
                 }
+                // Jika tidak ada filter status, tampilkan semua (pending, approved, declined)
             }
             
             // Staff keuangan: only see assignments they created
