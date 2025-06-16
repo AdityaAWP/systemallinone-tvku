@@ -150,8 +150,7 @@ class AssignmentResource extends Resource
                                         Assignment::STATUS_DECLINED => 'Ditolak',
                                     ])
                                     ->default(Assignment::STATUS_PENDING)
-                                    ->disabled(fn() => !Auth::user()->hasAnyRole(['direktur_keuangan', 'direktur_utama']))
-                                    ->hidden(fn(Forms\Get $get) => in_array($get('type'), [Assignment::TYPE_FREE, Assignment::TYPE_BARTER])),
+                                    ->disabled(fn() => !Auth::user()->hasAnyRole(['direktur_keuangan', 'direktur_utama'])),
 
                                 Forms\Components\Placeholder::make('approved_at')
                                     ->label('Tanggal Persetujuan/Penolakan')
@@ -261,19 +260,7 @@ class AssignmentResource extends Resource
             ->actions([
 
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->mutateRecordDataUsing(function (Model $record, array $data): array {
-                        // Set approver data when updating approval status
-                        if (
-                            Auth::user()->hasRole('direktur_keuangan') &&
-                            $record->approval_status !== $data['approval_status'] &&
-                            in_array($data['approval_status'], [Assignment::STATUS_APPROVED, Assignment::STATUS_DECLINED])
-                        ) {
-                            $data['approved_by'] = Auth::id();
-                            $data['approved_at'] = now();
-                        }
-                        return $data;
-                    }),
+                Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()
                     ->hidden(fn(Assignment $record) =>
                     $record->approval_status !== Assignment::STATUS_PENDING ||

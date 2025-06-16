@@ -19,16 +19,8 @@ class CreateAssignment extends CreateRecord
     
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // For paid assignments, set default approval status to pending
-        if ($data['type'] === Assignment::TYPE_PAID) {
-            $data['approval_status'] = Assignment::STATUS_PENDING;
-        } else {
-            // For free and barter assignments, auto-approve
-            $data['approval_status'] = Assignment::STATUS_APPROVED;
-            $data['approved_by'] = Auth::id();
-            $data['approved_at'] = now();
-        }
 
+        $data['approval_status'] = Assignment::STATUS_PENDING;
         return $data;
     }
 
