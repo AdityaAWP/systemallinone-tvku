@@ -76,6 +76,13 @@
             margin: 15px 0;
         }
 
+        .qr-code {
+            margin-top: -40px;
+            width: 100px;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+
         .checkbox-item {
             margin-bottom: 5px;
         }
@@ -185,14 +192,17 @@
                 </div>
 
                 <div class="signature">
-                    <div>{{ $assignment->approver ? $assignment->approver->name : 'Dr. Guruh Fajar Shidik, S.Kom, M.CS'
+                    @if($qrCode)
+                    <img src="data:image/png;base64,{{ $qrCode }}" class="qr-code">
+                    @endif <div>{{ $assignment->approver ? $assignment->approver->name : 'Dr. Guruh Fajar Shidik, S.Kom,
+                        M.CS'
                         }}</div>
                 </div>
             </div>
 
-            <div class="cc-list">
+            <div class="cc-list" style="margin-top: -5px">
                 <div>Tembusan :</div>
-                <ol>
+                <ol style="margin-top: -5px">
                     <li>Manager Operasional</li>
                     <li>Manager Teknik</li>
                     <li>Manager Marketing</li>

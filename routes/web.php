@@ -67,3 +67,5 @@ Route::get('pdfjournal/monthly', [PDFJournalController::class, 'downloadMonthlyP
 
 Route::get('/overtime/user/{user_id}/monthly/pdf', [PDFController::class, 'downloadUserMonthlyPdf'])
     ->name('overtime.user.monthly.pdf');
+
+Route::get('/assignments/{id}/xml', [PDFAssignmentController::class, 'generateXml'])->name('assignment.xml');
