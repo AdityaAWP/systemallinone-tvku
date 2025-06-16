@@ -249,49 +249,148 @@ class OvertimeResource extends Resource
                 //     ->url(fn() => route('overtime.report'))
                 //     ->openUrlInNewTab(),
 
-                Tables\Actions\Action::make('downloadMonthly')
-                    ->label('Download Bulanan')
-                    ->icon('heroicon-o-calendar')
-                    ->color('primary')
-                    ->form([
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Select::make('month')
-                                    ->label('Bulan')
-                                    ->options([
-                                        1 => 'Januari',
-                                        2 => 'Februari',
-                                        3 => 'Maret',
-                                        4 => 'April',
-                                        5 => 'Mei',
-                                        6 => 'Juni',
-                                        7 => 'Juli',
-                                        8 => 'Agustus',
-                                        9 => 'September',
-                                        10 => 'Oktober',
-                                        11 => 'November',
-                                        12 => 'Desember',
-                                    ])
-                                    ->default(Carbon::now()->month)
-                                    ->required(),
-
-                                Forms\Components\TextInput::make('year')
-                                    ->label('Tahun')
-                                    ->numeric()
-                                    ->default(Carbon::now()->year)
-                                    ->minValue(2020)
-                                    ->maxValue(2030)
-                                    ->required(),
-                            ])
+               Tables\Actions\Action::make('downloadMonthly')
+    ->label('Download Bulanan')
+    ->icon('heroicon-o-calendar')
+    ->color('primary')
+    ->form([
+        Forms\Components\Grid::make(2)
+            ->schema([
+                Forms\Components\Select::make('month')
+                    ->label('Bulan')
+                    ->options([
+                        1 => 'Januari',
+                        2 => 'Februari',
+                        3 => 'Maret',
+                        4 => 'April',
+                        5 => 'Mei',
+                        6 => 'Juni',
+                        7 => 'Juli',
+                        8 => 'Agustus',
+                        9 => 'September',
+                        10 => 'Oktober',
+                        11 => 'November',
+                        12 => 'Desember',
                     ])
-                    ->action(function (array $data) {
-                        $url = route('overtime.monthly') . '?' . http_build_query([
-                            'month' => $data['month'],
-                            'year' => $data['year']
-                        ]);
+                    ->default(Carbon::now()->month)
+                    ->required(),
 
-                        return redirect($url);
-                    }),
+                Forms\Components\TextInput::make('year')
+                    ->label('Tahun')
+                    ->numeric()
+                    ->default(Carbon::now()->year)
+                    ->minValue(2020)
+                    ->maxValue(2030)
+                    ->required(),
+
+                Forms\Components\Select::make('download_scope')
+                    ->label('Scope Download')
+                    ->options(function () {
+                        $user = Auth::user();
+                        $options = [];
+                        
+                        if (static::isStaff($user)) {
+                            $options['my_data'] = 'Data Lembur Saya';
+                        } elseif ($user->hasRole('hrd')) {
+                            $options['my_data'] = 'Data Lembur Saya';
+                            $options['all_data'] = 'Semua Data Lembur Staff';
+                        } elseif (static::isManager($user) || static::isKepala($user)) {
+                            $options['my_data'] = 'Data Lembur Saya';
+                            $options['division_data'] = 'Data Lembur Divisi';
+                        } else {
+                            $options['my_data'] = 'Data Lembur Saya';
+                        }
+                        
+                        return $options;
+                    })
+                    ->default('my_data')
+                    ->required(),
+            ])
+    ])
+    ->action(function (array $data) {
+        $user = Auth::user();
+        $month = $data['month'];
+        $year = $data['year'];
+        $scope = $data['download_scope'];
+        
+        // Build query berdasarkan scope dan role
+        $query = Overtime::with(['user', 'user.division'])
+            ->whereMonth('tanggal_overtime', $month)
+            ->whereYear('tanggal_overtime', $year);
+        
+        if ($scope === 'my_data') {
+            // Data user sendiri
+            $query->where('user_id', $user->id);
+        } elseif ($scope === 'all_data' && $user->hasRole('hrd')) {
+            // Semua data untuk HRD
+            // Query sudah mencakup semua data
+        } elseif ($scope === 'division_data' && (static::isManager($user) || static::isKepala($user))) {
+            // Data divisi untuk Manager/Kepala
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('division_id', $user->division_id);
+            });
+        } else {
+            // Fallback ke data sendiri jika scope tidak valid
+            $query->where('user_id', $user->id);
+        }
+        
+        $overtime = $query->orderBy('tanggal_overtime', 'asc')->get();
+        
+        if ($overtime->isEmpty()) {
+            \Filament\Notifications\Notification::make()
+                ->title('Tidak ada data')
+                ->body('Tidak ada data lembur untuk periode yang dipilih.')
+                ->warning()
+                ->send();
+            return;
+        }
+        
+        // Format nama bulan dalam bahasa Indonesia
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        
+        $monthName = $monthNames[$month] . ' ' . $year;
+        
+        // Tentukan title berdasarkan scope
+        $title = 'Surat Permohonan Ijin Lembur';
+        if ($scope === 'all_data') {
+            $title .= ' - Semua Staff';
+        } elseif ($scope === 'division_data') {
+            $title .= ' - Divisi ' . ($user->division->name ?? '');
+        } else {
+            $title .= ' - ' . $user->name;
+        }
+        $title .= ' - ' . $monthName;
+        
+        $data = [
+            'title' => $title,
+            'overtime' => $overtime,
+            'period' => $monthName,
+            'scope' => $scope
+        ];
+        
+        $pdf = FacadePdf::loadview('overtimePDF', $data);
+        
+        // Generate filename
+        $filename = 'surat-lembur-';
+        if ($scope === 'all_data') {
+            $filename .= 'semua-staff-';
+        } elseif ($scope === 'division_data') {
+            $filename .= 'divisi-' . strtolower(str_replace([' ', '.'], '-', $user->division->name ?? 'unknown')) . '-';
+        } else {
+            $filename .= strtolower(str_replace([' ', '.'], '-', $user->name)) . '-';
+        }
+        $filename .= strtolower(str_replace(' ', '-', $monthName)) . '.pdf';
+        
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, $filename, [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }),
             ])
             ->columns([
                 // Add employee information columns for HRD view

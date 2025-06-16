@@ -154,132 +154,215 @@
         </tr>
         {{-- Employee Details - Assuming data comes from the first overtime record's user --}}
         @if($overtime->count() > 0)
-        <tr>
-            <td class="info-label">Nama</td>
-            <td class="info-colon">:</td>
-            <td>{{Str::headline($overtime[0]->user->name ?? 'Nama Karyawan') }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Jabatan</td>
-            <td class="info-colon">:</td>
-            {{-- Using static data from image as role/division might not be directly available or match --}}
-            <td>{{ Str::headline($overtime[0]->user->roles->first()->name) }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Divisi</td>
-            <td class="info-colon">:</td>
-            <td>{{Str::headline($overtime[0]->user->division->name ?? 'Divisi') }}</td>
-        </tr>
+            @if(isset($scope) && ($scope === 'all_data' || $scope === 'division_data'))
+                {{-- Untuk semua data atau data divisi, tampilkan info umum --}}
+                <tr>
+                    <td class="info-label">Periode</td>
+                    <td class="info-colon">:</td>
+                    <td>{{ $period ?? 'Tidak diketahui' }}</td>
+                </tr>
+                <tr>
+                    <td class="info-label">Scope</td>
+                    <td class="info-colon">:</td>
+                    <td>
+                        @if($scope === 'all_data')
+                            Semua Staff
+                        @elseif($scope === 'division_data')
+                            Divisi {{ $overtime->first()->user->division->name ?? 'Tidak diketahui' }}
+                        @endif
+                    </td>
+                </tr>
+                <tr>
+                    <td class="info-label">Total Karyawan</td>
+                    <td class="info-colon">:</td>
+                    <td>{{ $overtime->unique('user_id')->count() }} orang</td>
+                </tr>
+                <tr>
+                    <td class="info-label">Total Lembur</td>
+                    <td class="info-colon">:</td>
+                    <td>{{ $overtime->count() }} hari</td>
+                </tr>
+            @else
+                {{-- Untuk data individual --}}
+                <tr>
+                    <td class="info-label">Nama</td>
+                    <td class="info-colon">:</td>
+                    <td>{{ Str::headline($overtime[0]->user->name ?? 'Nama Karyawan') }}</td>
+                </tr>
+                <tr>
+                    <td class="info-label">Jabatan</td>
+                    <td class="info-colon">:</td>
+                    <td>{{ Str::headline($overtime[0]->user->roles->first()->name ?? '-') }}</td>
+                </tr>
+                <tr>
+                    <td class="info-label">Divisi</td>
+                    <td class="info-colon">:</td>
+                    <td>{{ Str::headline($overtime[0]->user->division->name ?? 'Divisi') }}</td>
+                </tr>
+            @endif
         @else
-        {{-- Placeholder if no overtime data --}}
-        <tr>
-            <td colspan="3" style="padding-top: 5px;">(Detail Karyawan tidak tersedia)</td>
-        </tr>
+            {{-- Placeholder if no overtime data --}}
+            <tr>
+                <td colspan="3" style="padding-top: 5px;">(Detail tidak tersedia)</td>
+            </tr>
         @endif
     </table>
 
     @if($overtime->count() > 0)
-    <p style="margin-top: 20px; margin-left: 10px">Memohon untuk bekerja ekstra pada,</p>
+        @if(isset($scope) && ($scope === 'all_data' || $scope === 'division_data'))
+            <p style="margin-top: 20px; margin-left: 10px">Rekapitulasi lembur karyawan pada periode {{ $period ?? '' }},</p>
 
-    {{-- Overtime Details Table --}}
-    <table class="details-table">
-        <thead>
+            {{-- Table dengan kolom nama karyawan --}}
+            <table class="details-table">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Karyawan</th>
+                        <th>Divisi</th>
+                        <th>Hari/Tanggal</th>
+                        <th>Jam Kerja Normal</th>
+                        <th>Jam Lembur</th>
+                        <th>Guna</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($overtime as $index => $item)
+                        <tr>
+                            <td class="no">{{ $index + 1 }}</td>
+                            <td>{{ Str::headline($item->user->name ?? '') }}</td>
+                            <td>{{ Str::headline($item->user->division->name ?? '') }}</td>
+                            <td class="date">
+                                {{ \Carbon\Carbon::parse($item->tanggal_overtime)->locale('id')->isoFormat('dddd, D MMMM YYYY') }}
+                            </td>
+                            <td class="time">
+                                @if($item->is_holiday)
+                                    Hari Libur
+                                @else
+                                    @php
+                                        $normalIn = $item->normal_work_time_check_in ?
+                                            \Carbon\Carbon::parse($item->normal_work_time_check_in)->format('H.i') : 'N/A';
+                                        $normalOut = $item->normal_work_time_check_out ?
+                                            \Carbon\Carbon::parse($item->normal_work_time_check_out)->format('H.i') : 'N/A';
+                                        echo $normalIn . ' - ' . $normalOut;
+                                    @endphp
+                                @endif
+                            </td>
+                            <td class="time">
+                                @php
+                                    $overtimeIn = $item->check_in ? \Carbon\Carbon::parse($item->check_in)->format('H.i') : 'N/A';
+                                    $overtimeOut = $item->check_out ? \Carbon\Carbon::parse($item->check_out)->format('H.i') : 'N/A';
+                                    echo $overtimeIn . ' - ' . $overtimeOut;
+                                @endphp
+                            </td>
+                            <td>{{ $item->description ?? '' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @else
+            {{-- Table original untuk individual --}}
+            <p style="margin-top: 20px; margin-left: 10px">Memohon untuk bekerja ekstra pada,</p>
+
+            <table class="details-table">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Hari/Tanggal</th>
+                        <th>Jam Kerja Normal</th>
+                        <th>Jam Lembur</th>
+                        <th>Guna</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($overtime as $index => $item)
+                        <tr>
+                            <td class="no">{{ $index + 1 }}</td>
+                            <td class="date">
+                                {{ \Carbon\Carbon::parse($item->tanggal_overtime)->locale('id')->isoFormat('dddd, D MMMM YYYY') }}
+                            </td>
+                            <td class="time">
+                                @if($item->is_holiday)
+                                    Hari Libur
+                                @else
+                                    @php
+                                        $normalIn = $item->normal_work_time_check_in ?
+                                            \Carbon\Carbon::parse($item->normal_work_time_check_in)->format('H.i') : 'N/A';
+                                        $normalOut = $item->normal_work_time_check_out ?
+                                            \Carbon\Carbon::parse($item->normal_work_time_check_out)->format('H.i') : 'N/A';
+                                        echo $normalIn . ' - ' . $normalOut;
+                                    @endphp
+                                @endif
+                            </td>
+                            <td class="time">
+                                @php
+                                    $overtimeIn = $item->check_in ? \Carbon\Carbon::parse($item->check_in)->format('H.i') : 'N/A';
+                                    $overtimeOut = $item->check_out ? \Carbon\Carbon::parse($item->check_out)->format('H.i') : 'N/A';
+                                    echo $overtimeIn . ' - ' . $overtimeOut;
+                                @endphp
+                            </td>
+                            <td>{{ $item->description ?? '' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+
+        <p class="closing-text" style="margin-left: 10px">Demikian permohonan dari kami, atas persetujuannya kami ucapkan
+            terimakasih</p>
+
+        @php
+            $direkturOperasional = \App\Models\User::whereHas('roles', function ($query) {
+                $query->where('name', 'direktur_operasional');
+            })->first();
+        @endphp
+
+        <table class="signature-table">
             <tr>
-                <th>No</th>
-                <th>Hari/Tanggal</th>
-                <th>Jam Kerja Normal</th>
-                <th>Jam Lembur</th>
-                <th>Guna</th>
+                <td>Pemohon,</td>
+                <td>Mengetahui,</td>
+                <td>Menyetujui,</td>
             </tr>
-        </thead>
-        <tbody>
-            @foreach($overtime as $index => $item)
             <tr>
-                <td class="no">{{ $index + 1 }}</td>
-                <td class="date">
-                    {{-- Format date as in image: Day, DD Month YYYY (Indonesian) --}}
-                    {{ \Carbon\Carbon::parse($item->tanggal_overtime)->locale('id')->isoFormat('dddd, D MMMM YYYY') }}
-                </td>
-                <td class="time">
-                    @php
-                    // Format normal work time to HH.MM format
-                    $normalIn = $item->normal_work_time_check_in ?
-                    \Carbon\Carbon::parse($item->normal_work_time_check_in)->format('H.i') : 'N/A';
-                    $normalOut = $item->normal_work_time_check_out ?
-                    \Carbon\Carbon::parse($item->normal_work_time_check_out)->format('H.i') : 'N/A';
-                    echo $normalIn . ' - ' . $normalOut;
-                    @endphp
-                </td>
-                <td class="time">
-                    @php
-                    // Format overtime to HH.MM format
-                    $overtimeIn = $item->check_in ? \Carbon\Carbon::parse($item->check_in)->format('H.i') : 'N/A';
-                    $overtimeOut = $item->check_out ? \Carbon\Carbon::parse($item->check_out)->format('H.i') : 'N/A';
-                    echo $overtimeIn . ' - ' . $overtimeOut;
-                    @endphp
-                </td>
-                <td>{{ $item->description ?? '' }}</td>
+                <td class="signature-space"></td>
+                <td class="signature-space"></td>
+                <td class="signature-space"></td>
             </tr>
-            @endforeach
-        </tbody>
-    </table>
-
-    <p class="closing-text" style="margin-left: 10px">Demikian permohonan dari kami, atas persetujuannya kami ucapkan
-        terimakasih</p>
-
-    @php
-    $direkturOperasional = \App\Models\User::whereHas('roles', function($query) {
-    $query->where('name', 'direktur_operasional');
-    })->first();
-    @endphp
-
-    <table class="signature-table">
-        <tr>
-            <td>Pemohon,</td>
-            <td>Mengetahui,</td>
-            <td>Menyetujui,</td>
-        </tr>
-        <tr>
-            <td class="signature-space"></td>
-            <td class="signature-space"></td>
-            <td class="signature-space"></td>
-        </tr>
-        <tr>
-            <td>
-                <span class="text-bold">{{ Str::headline($overtime[0]->user->name ?? '') }}</span><br>
-                {{ Str::headline($overtime[0]->user->division->name ?? 'IT') }}
-            </td>
-            <td>
-                @if($overtime[0]->user->atasan)
-                <span class="text-bold">{{ Str::headline($overtime[0]->user->atasan->name) }}</span><br>
-                {{ $overtime[0]->user->jabatan_atasan }}
-                @else
-                <span class="text-bold">-</span><br>
-                -
-                @endif
-            </td>
-            <td>
-                @if($direkturOperasional)
-                <span class="text-bold">{{ Str::headline($direkturOperasional->name) }}</span><br>
-                Direktur Operasional
-                @else
-                <span class="text-bold">-</span><br>
-                Direktur Operasional
-                @endif
-            </td>
-        </tr>
-    </table>
+            <tr>
+                <td>
+                    <span class="text-bold">{{ Str::headline($overtime[0]->user->name ?? '') }}</span><br>
+                    {{ Str::headline($overtime[0]->user->division->name ?? 'IT') }}
+                </td>
+                <td>
+                    @if($overtime[0]->user->atasan)
+                        <span class="text-bold">{{ Str::headline($overtime[0]->user->atasan->name) }}</span><br>
+                        {{ $overtime[0]->user->jabatan_atasan }}
+                    @else
+                        <span class="text-bold">-</span><br>
+                        -
+                    @endif
+                </td>
+                <td>
+                    @if($direkturOperasional)
+                        <span class="text-bold">{{ Str::headline($direkturOperasional->name) }}</span><br>
+                        Direktur Operasional
+                    @else
+                        <span class="text-bold">-</span><br>
+                        Direktur Operasional
+                    @endif
+                </td>
+            </tr>
+        </table>
 
     @else
-    {{-- No Data Section --}}
-    <div class="no-data">
-        <h3>TIDAK ADA DATA LEMBUR</h3>
-        @isset($period)
-        <p>Tidak ada data lembur untuk periode <strong>{{ $period }}</strong>.</p>
-        @else
-        <p>Tidak ada data lembur yang tersedia.</p>
-        @endisset
-    </div>
+        {{-- No Data Section --}}
+        <div class="no-data">
+            <h3>TIDAK ADA DATA LEMBUR</h3>
+            @isset($period)
+                <p>Tidak ada data lembur untuk periode <strong>{{ $period }}</strong>.</p>
+            @else
+                <p>Tidak ada data lembur yang tersedia.</p>
+            @endisset
+        </div>
     @endif
 
 </body>
