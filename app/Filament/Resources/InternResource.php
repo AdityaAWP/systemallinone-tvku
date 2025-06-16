@@ -56,7 +56,7 @@ class InternResource extends Resource
                             ->afterStateUpdated(fn(Forms\Set $set) => $set('school_id', null)),
                         // School selector yang bergantung pada tipe institusi yang dipilih
                         Forms\Components\Select::make('school_id')
-                            ->label('Sekolah/Instansi')
+                            ->label('Universitas/Sekolah')
                             ->options(function (Forms\Get $get) {
                                 $type = $get('institution_type');
                                 if (!$type) return [];
@@ -122,7 +122,7 @@ class InternResource extends Resource
                     ->label('Email')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('school.name')
-                    ->label('Sekolah/Instansi')
+                    ->label('Universitas/Sekolah')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('division')
                     ->label('Divisi')
@@ -260,7 +260,7 @@ class InternResource extends Resource
                             ])
                             ->required(),
                         Forms\Components\Select::make('school_id')
-                            ->label('Pilih Jenjang Pendidikan')
+                            ->label('Pilih Universitas/Sekolah')
                             ->options(function (Forms\Get $get) {
                                 $type = $get('institution_type');
                                 if (!$type) return [];
