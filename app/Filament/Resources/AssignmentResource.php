@@ -30,13 +30,30 @@ class AssignmentResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        // Show pending count for staff_keuangan, otherwise total count
         $user = Auth::user();
-        if ($user && method_exists($user, 'hasRole') && $user->hasRole('staff_keuangan')) {
-            return static::getModel()::where('approval_status', Assignment::STATUS_PENDING)
-                ->where('created_by', Auth::id())
-                ->count() ?: null;
+        
+        if ($user && method_exists($user, 'hasRole')) {
+            // For direktur_keuangan: show submitted assignments waiting for approval
+            if ($user->hasRole('direktur_keuangan')) {
+                return static::getModel()::where('approval_status', Assignment::STATUS_PENDING)
+                    ->where('submit_status', Assignment::SUBMIT_SUDAH)
+                    ->count() ?: null;
+            }
+            
+            // For manager_keuangan: show unsubmitted assignments
+            if ($user->hasRole('manager_keuangan')) {
+                return static::getModel()::where('submit_status', Assignment::SUBMIT_BELUM)
+                    ->count() ?: null;
+            }
+            
+            // For staff_keuangan: show their pending assignments
+            if ($user->hasRole('staff_keuangan')) {
+                return static::getModel()::where('approval_status', Assignment::STATUS_PENDING)
+                    ->where('created_by', Auth::id())
+                    ->count() ?: null;
+            }
         }
+        
         return static::getModel()::count() ?: null;
     }
 
@@ -140,6 +157,30 @@ class AssignmentResource extends Resource
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
                             ]),
 
+                        Forms\Components\Tabs\Tab::make('Status Pengajuan')
+                            ->schema([
+                                Forms\Components\Select::make('submit_status')
+                                    ->label('Status Pengajuan')
+                                    ->options([
+                                        Assignment::SUBMIT_BELUM => 'Belum Diajukan',
+                                        Assignment::SUBMIT_SUDAH => 'Sudah Diajukan',
+                                    ])
+                                    ->default(Assignment::SUBMIT_BELUM)
+                                    ->disabled(fn() => !Auth::user()->hasRole('manager_keuangan'))
+                                    ->dehydrated(), // Keep dehydrated here, it's fine
+
+                                Forms\Components\Placeholder::make('submitted_at')
+                                    ->label('Tanggal Pengajuan')
+                                    ->content(fn(Assignment $record): string => $record->submitted_at ? $record->submitted_at->format('d M Y H:i') : '-')
+                                    ->hiddenOn('create'),
+
+                                Forms\Components\Placeholder::make('submitter')
+                                    ->label('Diajukan Oleh')
+                                    ->content(fn(Assignment $record): string => $record->submitter ? $record->submitter->name : '-')
+                                    ->hiddenOn('create'),
+                            ])
+                            ->hidden(fn($context) => $context === 'create'),
+
                         Forms\Components\Tabs\Tab::make('Persetujuan')
                             ->schema([
                                 Forms\Components\Select::make('approval_status')
@@ -150,7 +191,10 @@ class AssignmentResource extends Resource
                                         Assignment::STATUS_DECLINED => 'Ditolak',
                                     ])
                                     ->default(Assignment::STATUS_PENDING)
-                                    ->disabled(fn() => !Auth::user()->hasAnyRole(['direktur_keuangan', 'direktur_utama'])),
+                                    ->disabled(fn(Assignment $record = null) => 
+                                        !Auth::user()->hasAnyRole(['direktur_keuangan', 'direktur_utama']) ||
+                                        ($record && $record->submit_status === Assignment::SUBMIT_BELUM)
+                                    ),
 
                                 Forms\Components\Placeholder::make('approved_at')
                                     ->label('Tanggal Persetujuan/Penolakan')
@@ -166,10 +210,14 @@ class AssignmentResource extends Resource
                     ])
                     ->columnSpanFull(),
 
-                // Hidden field to store the creator's ID
+                // Hidden field to store creator's ID
                 Forms\Components\Hidden::make('created_by')
                     ->default(fn() => Auth::id())
                     ->dehydrated(fn($context) => $context === 'create'),
+
+                // --- FIX ---
+                // The conflicting Hidden 'submit_status' field has been removed from here.
+                // The Select field in the 'Status Pengajuan' tab is now the only source of this value.
             ]);
     }
 
@@ -181,7 +229,8 @@ class AssignmentResource extends Resource
                     ->label('Dibuat Oleh')
                     ->searchable()
                     ->sortable()
-                    ->visible(fn() => Auth::user()->hasAnyRole(['super_admin', 'direktur_keuangan'])),
+                    ->visible(fn() => Auth::user()->hasAnyRole(['super_admin', 'direktur_keuangan', 'manager_keuangan'])),
+
                 Tables\Columns\TextColumn::make('created_date')
                     ->label('Tanggal Dibuat')
                     ->date('d M Y')
@@ -227,8 +276,7 @@ class AssignmentResource extends Resource
                     ->date('d M Y')
                     ->sortable()
                     ->color(fn(Assignment $record) =>
-                    $record->deadline->isPast() ? 'danger' : ($record->deadline->isToday() ? 'warning' : 'success')),
-
+                        $record->deadline->isPast() ? 'danger' : ($record->deadline->isToday() ? 'warning' : 'success')),
 
                 Tables\Columns\TextColumn::make('priority')
                     ->label('Prioritas')
@@ -247,23 +295,46 @@ class AssignmentResource extends Resource
                         'danger' => Assignment::PRIORITY_VERY_IMPORTANT,
                     ]),
 
+                Tables\Columns\TextColumn::make('submit_status')
+                    ->label('Status Pengajuan')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        Assignment::SUBMIT_BELUM => 'gray',
+                        Assignment::SUBMIT_SUDAH => 'info',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            Assignment::SUBMIT_BELUM => 'Belum Diajukan',
+                            Assignment::SUBMIT_SUDAH => 'Sudah Diajukan',
+                            default => $state,
+                        };
+                    }),
+
                 Tables\Columns\TextColumn::make('approval_status')
-                    ->label('Approval Direktur')
+                    ->label('Status Persetujuan')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         Assignment::STATUS_PENDING => 'warning',
                         Assignment::STATUS_APPROVED => 'success',
                         Assignment::STATUS_DECLINED => 'danger',
                         default => 'gray',
+                    })
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            Assignment::STATUS_PENDING => 'Menunggu',
+                            Assignment::STATUS_APPROVED => 'Disetujui',
+                            Assignment::STATUS_DECLINED => 'Ditolak',
+                            default => $state,
+                        };
                     }),
             ])
             ->actions([
-
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()
                     ->hidden(fn(Assignment $record) =>
-                    $record->approval_status !== Assignment::STATUS_PENDING ||
+                        $record->approval_status !== Assignment::STATUS_PENDING ||
                         Auth::user()->hasRole('direktur_keuangan') ||
                         (Auth::user()->hasRole('staff_keuangan') && $record->created_by !== Auth::id())),
                 Tables\Actions\Action::make('download')
@@ -299,9 +370,11 @@ class AssignmentResource extends Resource
             'edit' => Pages\EditAssignment::route('/{record}/edit'),
         ];
     }
+
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
+        $user = Auth::user();
 
         // Get filter values from request
         $year = request('year');
@@ -312,18 +385,26 @@ class AssignmentResource extends Resource
             $query->whereYear('created_date', $year);
         }
 
-        // Apply status filter for direktur_keuangan
-        if (Auth::user()->hasRole('direktur_keuangan')) {
-            if ($statusFilter === 'pending') {
-                $query->where('approval_status', Assignment::STATUS_PENDING);
-            } elseif ($statusFilter === 'responded') {
-                $query->whereIn('approval_status', [Assignment::STATUS_APPROVED, Assignment::STATUS_DECLINED]);
+        // Role-based filtering
+        if ($user && method_exists($user, 'hasRole')) {
+            // Direktur keuangan: only see submitted assignments
+            if ($user->hasRole('direktur_keuangan')) {
+                $query->where('submit_status', Assignment::SUBMIT_SUDAH);
+                
+                if ($statusFilter === 'pending') {
+                    $query->where('approval_status', Assignment::STATUS_PENDING);
+                } elseif ($statusFilter === 'responded') {
+                    $query->whereIn('approval_status', [Assignment::STATUS_APPROVED, Assignment::STATUS_DECLINED]);
+                }
             }
-        }
-
-        // If user is staff_keuangan, only show assignments they created
-        if (Auth::user()->hasRole('staff_keuangan')) {
-            $query->where('created_by', Auth::id());
+            
+            // Staff keuangan: only see assignments they created
+            elseif ($user->hasRole('staff_keuangan')) {
+                $query->where('created_by', Auth::id());
+            }
+            
+            // Manager keuangan: see all assignments (for submission management)
+            // No additional filtering needed for manager_keuangan
         }
 
         return $query;

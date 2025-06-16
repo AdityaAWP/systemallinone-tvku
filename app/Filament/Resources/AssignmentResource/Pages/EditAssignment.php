@@ -33,14 +33,37 @@ class EditAssignment extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $record = $this->getRecord();
-        
-        // Check if approval status has changed and user has permission to approve
-        if (Auth::user()->hasAnyRole(['direktur_keuangan', 'direktur_utama']) &&
+        $user = Auth::user();
+
+        // Handle submission status change by manager_keuangan
+        if ($user->hasRole('manager_keuangan') &&
+            isset($data['submit_status']) && // Add this check
+            $record->submit_status !== $data['submit_status'] &&
+            $data['submit_status'] === Assignment::SUBMIT_SUDAH) {
+            
+            $data['submitted_by'] = Auth::id();
+            $data['submitted_at'] = now();
+        }
+
+        // Handle approval status change by direktur_keuangan or direktur_utama
+        if ($user->hasAnyRole(['direktur_keuangan', 'direktur_utama']) &&
+            isset($data['approval_status']) && // Add this check
             $record->approval_status !== $data['approval_status'] &&
             in_array($data['approval_status'], [Assignment::STATUS_APPROVED, Assignment::STATUS_DECLINED])) {
             
-            $data['approved_by'] = Auth::id();
-            $data['approved_at'] = now();
+            // Only allow approval if assignment is submitted
+            if ($record->submit_status === Assignment::SUBMIT_SUDAH) {
+                $data['approved_by'] = Auth::id();
+                $data['approved_at'] = now();
+            } else {
+                // Reset approval status if assignment is not submitted
+                $data['approval_status'] = Assignment::STATUS_PENDING;
+                Notification::make()
+                    ->warning()
+                    ->title('Cannot approve unsubmitted assignment')
+                    ->body('Assignment must be submitted by manager before it can be approved.')
+                    ->send();
+            }
         }
 
         return $data;
@@ -49,12 +72,22 @@ class EditAssignment extends EditRecord
     protected function afterSave(): void
     {
         $record = $this->getRecord();
-        
-        if (Auth::user()->hasAnyRole(['direktur_keuangan', 'direktur_utama']) &&
+        $user = Auth::user();
+
+        // Notification for submission
+        if ($user->hasRole('manager_keuangan') && $record->submit_status === Assignment::SUBMIT_SUDAH) {
+            Notification::make()
+                ->title('Assignment Submitted')
+                ->body("Assignment for {$record->client} has been submitted for approval.")
+                ->success()
+                ->send();
+        }
+
+        // Notification for approval/decline
+        if ($user->hasAnyRole(['direktur_keuangan', 'direktur_utama']) &&
             in_array($record->approval_status, [Assignment::STATUS_APPROVED, Assignment::STATUS_DECLINED])) {
             
             $status = $record->approval_status === Assignment::STATUS_APPROVED ? 'approved' : 'declined';
-            
             Notification::make()
                 ->title("Assignment {$status}")
                 ->body("The assignment for {$record->client} has been {$status}.")

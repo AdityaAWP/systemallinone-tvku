@@ -16,11 +16,13 @@ class CreateAssignment extends CreateRecord
     {
         return $this->getResource()::getUrl('index');
     }
-    
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-
+        // Set default statuses for new assignments
         $data['approval_status'] = Assignment::STATUS_PENDING;
+        $data['submit_status'] = Assignment::SUBMIT_BELUM;
+        
         return $data;
     }
 

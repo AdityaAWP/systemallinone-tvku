@@ -11,28 +11,33 @@ class Assignment extends Model
     use HasFactory;
 
     protected $fillable = [
+        'type',
         'client',
         'spp_number',
         'spk_number',
         'description',
         'amount',
         'marketing_expense',
-        'deadline',
         'production_notes',
-        'type',
         'priority',
+        'created_date',
+        'deadline',
         'approval_status',
         'approved_by',
         'approved_at',
-        'created_date',
         'created_by',
+        'submit_status',
+        'submitted_by',
+        'submitted_at',
     ];
 
     protected $casts = [
+        'created_date' => 'date',
         'deadline' => 'date',
         'amount' => 'decimal:2',
         'marketing_expense' => 'decimal:2',
         'approved_at' => 'datetime',
+        'submitted_at' => 'datetime',
     ];
 
     // Possible types
@@ -50,14 +55,23 @@ class Assignment extends Model
     const STATUS_APPROVED = 'approved';
     const STATUS_DECLINED = 'declined';
 
+    // Possible submit statuses
+    const SUBMIT_BELUM = 'belum';
+    const SUBMIT_SUDAH = 'sudah';
+
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
-    
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function submitter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_by');
     }
 
     public function isPending(): bool
@@ -88,5 +102,15 @@ class Assignment extends Model
     public function isBarter(): bool
     {
         return $this->type === self::TYPE_BARTER;
+    }
+
+    public function isSubmitted(): bool
+    {
+        return $this->submit_status === self::SUBMIT_SUDAH;
+    }
+
+    public function isNotSubmitted(): bool
+    {
+        return $this->submit_status === self::SUBMIT_BELUM;
     }
 }
