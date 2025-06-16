@@ -19,7 +19,7 @@ class ViewAssignments extends ViewRecord
             Actions\DeleteAction::make()
                 ->hidden(fn (Assignment $record) => 
                     $record->approval_status !== Assignment::STATUS_PENDING || 
-                    Auth::user()->hasRole('direktur_keuangan') || 
+                    Auth::user()->hasRole('direktur_utama') || 
                     (Auth::user()->hasRole('staff_keuangan') && $record->created_by !== Auth::id())),
         ];
     }
