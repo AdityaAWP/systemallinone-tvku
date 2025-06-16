@@ -228,6 +228,8 @@ class RoleSeeder extends Seeder
                 'update_overtime', 'delete_overtime', 'delete_any_overtime',
                 'view_any_event', 'view_event', 'create_event', 
                 'update_event', 'delete_event', 'delete_any_event',
+                'view_any_loan::item', 'view_loan::item', 'create_loan::item', 
+                'update_loan::item', 'delete_loan::item', 'delete_any_loan::item',
             ],
 
             'staff_it' => [
@@ -239,6 +241,8 @@ class RoleSeeder extends Seeder
                 'update_overtime', 'delete_overtime', 'delete_any_overtime',
                 'view_any_event', 'view_event', 'create_event', 
                 'update_event', 'delete_event', 'delete_any_event',
+                'view_any_loan::item', 'view_loan::item', 'create_loan::item', 
+                'update_loan::item', 'delete_loan::item', 'delete_any_loan::item',
             ],
 
             'staff_teknik' => [
@@ -250,6 +254,8 @@ class RoleSeeder extends Seeder
                 'update_overtime', 'delete_overtime', 'delete_any_overtime',
                 'view_any_event', 'view_event', 'create_event', 
                 'update_event', 'delete_event', 'delete_any_event',
+                'view_any_loan::item', 'view_loan::item', 'create_loan::item', 
+                'update_loan::item', 'delete_loan::item', 'delete_any_loan::item',
             ],
 
             'staff_keuangan' => [
