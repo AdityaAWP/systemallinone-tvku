@@ -154,7 +154,8 @@ class AssignmentResource extends Resource
                                     ])
                                     ->default(Assignment::PRIORITY_NORMAL)
                                     ->hidden(fn(Forms\Get $get) => $get('type') !== Assignment::TYPE_PAID)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_keuangan')),
+                                    // MODIFIED: This field is now only enabled for direktur_keuangan
+                                    ->disabled(fn() => !Auth::user()->hasRole('direktur_keuangan')),
                             ]),
 
                         Forms\Components\Tabs\Tab::make('Status Pengajuan')
@@ -167,7 +168,7 @@ class AssignmentResource extends Resource
                                     ])
                                     ->default(Assignment::SUBMIT_BELUM)
                                     ->disabled(fn() => !Auth::user()->hasRole('manager_keuangan'))
-                                    ->dehydrated(), // Keep dehydrated here, it's fine
+                                    ->dehydrated(),
 
                                 Forms\Components\Placeholder::make('submitted_at')
                                     ->label('Tanggal Pengajuan')
@@ -210,14 +211,9 @@ class AssignmentResource extends Resource
                     ])
                     ->columnSpanFull(),
 
-                // Hidden field to store creator's ID
                 Forms\Components\Hidden::make('created_by')
                     ->default(fn() => Auth::id())
                     ->dehydrated(fn($context) => $context === 'create'),
-
-                // --- FIX ---
-                // The conflicting Hidden 'submit_status' field has been removed from here.
-                // The Select field in the 'Status Pengajuan' tab is now the only source of this value.
             ]);
     }
 

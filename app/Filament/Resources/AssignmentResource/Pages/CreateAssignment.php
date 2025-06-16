@@ -23,6 +23,10 @@ class CreateAssignment extends CreateRecord
         $data['approval_status'] = Assignment::STATUS_PENDING;
         $data['submit_status'] = Assignment::SUBMIT_BELUM;
         
+        // MODIFIED: Ensure a default priority is always set on creation,
+        // since the field is disabled for non-directors.
+        $data['priority'] = $data['priority'] ?? Assignment::PRIORITY_NORMAL;
+        
         return $data;
     }
 
