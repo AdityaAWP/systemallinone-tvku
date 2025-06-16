@@ -151,11 +151,6 @@ class MonthlyOvertimeReminderWidget extends Widget
 
     public static function getSort(): int
     {
-        return 1; // High priority for reminder
+        return 2; // High priority for reminder
     }
-
-    /**
-     * Untuk debugging - hapus method ini setelah testing
-     */
-   
 }
