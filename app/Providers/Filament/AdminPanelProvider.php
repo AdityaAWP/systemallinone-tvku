@@ -32,7 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->brandLogo(asset('images/tvku-logo.png'))
             ->id('admin')
-            ->path('admin')
+            ->path('/')
             ->login(Login::class)
             ->passwordReset()
             ->colors([

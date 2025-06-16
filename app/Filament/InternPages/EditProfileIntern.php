@@ -65,7 +65,7 @@ class EditProfileIntern extends Page
                 Section::make('Academic Information')
                     ->schema([
                         TextEntry::make('school.name')
-                            ->label('Asal Sekolah/Institusi')
+                            ->label('Asal Sekolah')
                             ->icon('heroicon-o-academic-cap')
                             ->placeholder('Not provided'),
                         
@@ -80,12 +80,12 @@ class EditProfileIntern extends Page
                             ->placeholder('Not provided'),
                         
                         TextEntry::make('college_supervisor')
-                            ->label('Dosen Pembimbing')
+                            ->label('Dosen Pembimbing/Guru Pembimbing')
                             ->icon('heroicon-o-user-circle')
                             ->placeholder('Not provided'),
                         
                         TextEntry::make('college_supervisor_phone')
-                            ->label('No Telepon Dosen Pembimbing')
+                            ->label('No Telepon Dosen Pembimbing/Guru Pembimbing')
                             ->icon('heroicon-o-phone')
                             ->placeholder('Not provided'),
                     ])
@@ -140,7 +140,7 @@ class EditProfileIntern extends Page
                     ->default($intern->birth_date),
 
                 Select::make('school_id')
-                    ->label('Asal Sekolah/Institusi')
+                    ->label('Asal Sekolah')
                     ->options(InternSchool::all()->pluck('name', 'id'))
                     ->searchable()
                     ->placeholder('Select School/Institution')
@@ -168,12 +168,12 @@ class EditProfileIntern extends Page
                     ->default($intern->institution_supervisor),
 
                 TextInput::make('college_supervisor')
-                    ->label('Dosen Pembimbing')
+                    ->label('Dosen Pembimbing/Guru Pembimbing')
                     ->maxLength(255)
                     ->default($intern->college_supervisor),
 
                 TextInput::make('college_supervisor_phone')
-                    ->label('No Telepon Dosen Pembimbing')
+                    ->label('No Telepon Dosen Pembimbing/Guru Pembimbing')
                     ->tel()
                     ->maxLength(20)
                     ->default($intern->college_supervisor_phone),

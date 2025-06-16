@@ -11,9 +11,6 @@ use App\Http\Controllers\PDFAssignmentController;
 use App\Http\Controllers\InternController;
 use App\Http\Controllers\PDFJournalController;
 
-Route::get('/', function () {
-    return redirect()->route('filament.admin.pages.dashboard');
-});
 Route::get('/info', function () {
     return gd_info();
 });
@@ -27,9 +24,6 @@ Route::get('error/403', function () {
     return response()->view('errors.403', [], 403);
 })->name('error.403');
 
-Route::get('/login', function () {
-    return redirect()->route('filament.admin.auth.login');
-})->name('login');
 
 Route::get('download', [PDFController::class, 'downloadpdf'])->name('overtime.report');
 Route::get('downloadpdf/{id}', [PDFController::class, 'userpdf'])->name('overtime.single');

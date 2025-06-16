@@ -31,7 +31,17 @@ class AppServiceProvider extends ServiceProvider
         );
         FilamentView::registerRenderHook(
             PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
-            fn (): View => view('filament.pages.auth.google-button'),
+            fn (): View|string => 
+                request()->route()?->getName() !== 'filament.admin.auth.login'
+                    ? ''
+                    : view('filament.pages.auth.google-button'),
+        );
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+            fn (): View|string => 
+                request()->route()?->getName() !== 'filament.admin.auth.login'
+                    ? ''
+                    : view('filament.pages.auth.intern-redirect-link'),
         );
     }
 }

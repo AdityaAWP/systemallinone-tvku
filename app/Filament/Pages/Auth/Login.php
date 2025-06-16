@@ -25,7 +25,6 @@ class Login extends BaseLogin
                 $this->getPasswordFormComponent(),
                 $this->getRememberFormComponent(),
                 $this->getResetPasswordComponent(),
-                $this->getInternRedirectComponent(),
             ]);
     }
 
@@ -55,8 +54,4 @@ class Login extends BaseLogin
         return View::make('filament.pages.auth.reset-password-link');
     }
 
-    protected function getInternRedirectComponent(): Component
-    {
-        return View::make('filament.pages.auth.intern-redirect-link');
-    }
 }
