@@ -3,7 +3,7 @@
     $selectedYear = request('year');
     $statusFilter = request('status');
     
-    $isFinanceDirector = auth()->user()->hasRole('direktur_keuangan');
+    $isFinanceDirector = auth()->user()->hasRole('direktur_utama');
     $isFinanceAdmin = auth()->user()->hasRole('admin_keuangan');
     
     // Generate years range (e.g., from current year -5 to current year +5)
@@ -54,7 +54,7 @@
         </x-filament::dropdown>
     </div>
 
-    <!-- Status Filters (Only for direktur_keuangan) -->
+    <!-- Status Filters (Only for direktur_utama) -->
     @if($isFinanceDirector)
         <div class="flex items-center gap-2">
             @php
