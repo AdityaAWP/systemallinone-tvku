@@ -54,6 +54,8 @@ class Assignment extends Model
     const STATUS_PENDING = 'pending';
     const STATUS_APPROVED = 'approved';
     const STATUS_DECLINED = 'declined';
+    public const STATUS_SUBMITTED = 'submitted';
+    const STATUS_REJECTED = 'rejected';
 
     // Possible submit statuses
     const SUBMIT_BELUM = 'belum';
