@@ -22,7 +22,7 @@ class InternResource extends Resource
     protected static ?string $pluralModelLabel = 'Daftar Anak Magang';
     protected static ?string $navigationGroup = 'Manajemen Magang';
     protected static ?int $navigationSort = 5;
-    
+
     public static function form(Form $form): Form
     {
         return $form
@@ -53,14 +53,14 @@ class InternResource extends Resource
                             ])
                             ->required()
                             ->live()
-                            ->afterStateUpdated(fn (Forms\Set $set) => $set('school_id', null)),
+                            ->afterStateUpdated(fn(Forms\Set $set) => $set('school_id', null)),
                         // School selector yang bergantung pada tipe institusi yang dipilih
                         Forms\Components\Select::make('school_id')
                             ->label('Sekolah/Instansi')
                             ->options(function (Forms\Get $get) {
                                 $type = $get('institution_type');
                                 if (!$type) return [];
-                                
+
                                 return InternSchool::where('type', $type)
                                     ->pluck('name', 'id')
                                     ->toArray();
@@ -202,7 +202,7 @@ class InternResource extends Resource
                             'type' => $data['institution_type'],
                         ]);
                     }),
-                    
+
                 Tables\Actions\Action::make('export_excel')
                     ->label('Download Excel')
                     ->color('success')
@@ -224,7 +224,7 @@ class InternResource extends Resource
                             'type' => $data['institution_type'],
                         ]);
                     }),
-                    
+
                 Tables\Actions\Action::make('pre_register')
                     ->label('Pre-Register Anak Magang')
                     ->color('primary')
@@ -236,20 +236,35 @@ class InternResource extends Resource
                             ->label('Username')
                             ->required(),
                         Forms\Components\Select::make('institution_type')
-                            ->label('Tipe Institusi')
+                            ->label('Tipe Jenjang Pendidikan')
                             ->options([
                                 'Perguruan Tinggi' => 'Perguruan Tinggi',
                                 'SMA/SMK' => 'SMA/SMK',
                             ])
                             ->required()
                             ->live()
-                            ->afterStateUpdated(fn (Forms\Set $set) => $set('school_id', null)),
+                            ->afterStateUpdated(fn(Forms\Set $set) => $set('school_id', null)),
+
+                        Forms\Components\Select::make('division')
+                            ->label('Divisi')
+                            ->options([
+                                'IT' => 'IT',
+                                'Produksi' => 'Produksi',
+                                'DINUS FM' => 'DINUS FM',
+                                'TS' => 'TS',
+                                'MCR' => 'MCR',
+                                'DMO' => 'DMO',
+                                'Wardrobe' => 'Wardrobe',
+                                'News' => 'News',
+                                'Humas dan Marketing' => 'Humas dan Marketing',
+                            ])
+                            ->required(),
                         Forms\Components\Select::make('school_id')
-                            ->label('Pilih Institusi')
+                            ->label('Pilih Jenjang Pendidikan')
                             ->options(function (Forms\Get $get) {
                                 $type = $get('institution_type');
                                 if (!$type) return [];
-                                
+
                                 return InternSchool::where('type', $type)
                                     ->pluck('name', 'id')
                                     ->toArray();
