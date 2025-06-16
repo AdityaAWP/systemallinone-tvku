@@ -17,7 +17,8 @@ class OutgoingLetter extends Model
         'subject',
         'content',
         'letter_date',
-        'notes'
+        'notes',
+        'attachments',
     ];
 
     public static function boot()
@@ -34,6 +35,7 @@ class OutgoingLetter extends Model
 
     protected $casts = [
         'letter_date' => 'date',
+        'attachments' => 'array',
     ];
 
     public function attachments()

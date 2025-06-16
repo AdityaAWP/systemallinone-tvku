@@ -12,6 +12,8 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\ImageColumn;
 
 class OutgoingLetterResource extends Resource
 {
@@ -59,12 +61,12 @@ class OutgoingLetterResource extends Resource
                         Forms\Components\Grid::make()
                             ->schema([
 
-                                Forms\Components\TextArea::make('recipient')
+                                TextArea::make('recipient')
                                     ->required()
                                     ->maxLength(255)
                                     ->rows(2)
                                     ->label('Penerima'),
-                                Forms\Components\TextArea::make('subject')
+                                TextArea::make('subject')
                                     ->required()
                                     ->maxLength(255)
                                     ->rows(2)
@@ -139,6 +141,17 @@ class OutgoingLetterResource extends Resource
                     ->sortable()
                     ->hidden()
                     ->label('Diperbarui Pada'),
+                Tables\Columns\ImageColumn::make('attachments')
+                    ->label('Gambar')
+                    ->circular()
+                    ->getStateUsing(function ($record) {
+                        $attachments = $record->attachments;
+                        if (is_array($attachments) && !empty($attachments)) {
+                            return $attachments[0]; 
+                        }
+                        return null;
+                    })
+                    ->disk('public'),
             ])
             ->filters([
                 Tables\Filters\Filter::make('letter_date')
