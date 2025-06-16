@@ -401,13 +401,7 @@ class OvertimeResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->visible(
-                        fn($record) =>
-                        static::isStaff(Auth::user()) && $record->user_id === Auth::id() ||
-                            Auth::user()->hasRole('hrd') ||
-                            (static::isManager(Auth::user()) && $record->user->division_id === Auth::user()->division_id)
-                    ),
+                Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()
                     ->visible(
                         fn($record) =>
@@ -415,39 +409,82 @@ class OvertimeResource extends Resource
                             Auth::user()->hasRole('hrd') ||
                             (static::isManager(Auth::user()) && $record->user->division_id === Auth::user()->division_id)
                     ),
-                Tables\Actions\Action::make('download')
-                    ->url(fn(Overtime $overtime) => route('overtime.single', $overtime))
-                    ->openUrlInNewTab(),
-                // Tables\Actions\Action::make('export_user_yearly')
-                //     ->label('Export Excel')
-                //     ->icon('heroicon-o-document-text')
-                //     ->color('success')
-                //     ->visible(fn () => Auth::user()->hasRole('hrd'))
-                //     ->form([
-                //         Forms\Components\Select::make('year')
-                //             ->label('Tahun')
-                //             ->options(function ($record) {
-                //                 $years = Overtime::query()
-                //                     ->where('user_id', $record->user_id)
-                //                     ->selectRaw('DISTINCT YEAR(tanggal_overtime) as year')
-                //                     ->orderBy('year', 'desc')
-                //                     ->get()
-                //                     ->pluck('year', 'year')
-                //                     ->toArray();
-                //                 if (empty($years)) {
-                //                     return [now()->year => now()->year];
-                //                 }
-                //                 return $years;
-                //             })
-                //             ->required()
-                //             ->default(now()->year),
-                //     ])
-                //     ->action(function (array $data, $record) {
-                //         $year = $data['year'];
-                //         $user = $record->user;
-                //         $filename = "Laporan Lembur {$user->name} - {$year}.xlsx";
-                //         return (new OvertimeYearlyExport($year, $user->id))->download($filename);
-                //     }),
+                // Tables\Actions\Action::make('download')
+                //     ->url(fn(Overtime $overtime) => route('overtime.single', $overtime))
+                //     ->openUrlInNewTab(),
+
+                // Tambahkan di bagian actions() dalam table(), setelah export_user_yearly action
+                Tables\Actions\Action::make('download_monthly_pdf')
+                    ->label('Download PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('warning')
+                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->form([
+                        Forms\Components\Select::make('month')
+                            ->label('Bulan')
+                            ->options([
+                                1 => 'Januari',
+                                2 => 'Februari',
+                                3 => 'Maret',
+                                4 => 'April',
+                                5 => 'Mei',
+                                6 => 'Juni',
+                                7 => 'Juli',
+                                8 => 'Agustus',
+                                9 => 'September',
+                                10 => 'Oktober',
+                                11 => 'November',
+                                12 => 'Desember',
+                            ])
+                            ->default(Carbon::now()->month)
+                            ->required(),
+                        Forms\Components\TextInput::make('year')
+                            ->label('Tahun')
+                            ->numeric()
+                            ->default(Carbon::now()->year)
+                            ->minValue(2020)
+                            ->maxValue(2030)
+                            ->required(),
+                    ])
+                    ->action(function (array $data, $record) {
+                        $url = route('overtime.user.monthly.pdf', [
+                            'user_id' => $record->user_id,
+                            'month' => $data['month'],
+                            'year' => $data['year']
+                        ]);
+                        return redirect($url);
+                    }),
+
+                Tables\Actions\Action::make('export_user_yearly')
+                    ->label('Export Excel')
+                    ->icon('heroicon-o-document-text')
+                    ->color('success')
+                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->form([
+                        Forms\Components\Select::make('year')
+                            ->label('Tahun')
+                            ->options(function ($record) {
+                                $years = Overtime::query()
+                                    ->where('user_id', $record->user_id)
+                                    ->selectRaw('DISTINCT YEAR(tanggal_overtime) as year')
+                                    ->orderBy('year', 'desc')
+                                    ->get()
+                                    ->pluck('year', 'year')
+                                    ->toArray();
+                                if (empty($years)) {
+                                    return [now()->year => now()->year];
+                                }
+                                return $years;
+                            })
+                            ->required()
+                            ->default(now()->year),
+                    ])
+                    ->action(function (array $data, $record) {
+                        $year = $data['year'];
+                        $user = $record->user;
+                        $filename = "Laporan Lembur {$user->name} - {$year}.xlsx";
+                        return (new OvertimeYearlyExport($year, $user->id))->download($filename);
+                    }),
 
             ])
             ->bulkActions([
