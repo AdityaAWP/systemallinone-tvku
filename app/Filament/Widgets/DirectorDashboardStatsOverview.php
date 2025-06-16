@@ -15,56 +15,159 @@ class DirectorDashboardStatsOverview extends BaseWidget
     public static function canView(): bool
     {
         $user = Auth::user();
-        return $user->hasAnyRole(['direktur_keuangan', 'admin_keuangan']) && !$user->hasRole('staff_keuangan');
+        return $user->hasAnyRole(['direktur_utama', 'admin_keuangan', 'manager_keuangan']) && !$user->hasRole('staff_keuangan');
     }
 
     protected function getStats(): array
     {
         $user = Auth::user();
         
-        if (!$user->hasAnyRole(['direktur_keuangan', 'admin_keuangan']) || $user->hasRole('staff_keuangan')) {
+        if (!$user->hasAnyRole(['direktur_utama', 'admin_keuangan', 'manager_keuangan']) || $user->hasRole('staff_keuangan')) {
             return [];
         }
 
-        // Total semua surat
-        $totalAssignments = Assignment::where('type', Assignment::TYPE_PAID)->count();
+        $stats = [];
 
-        // Total pending assignments
-        $pendingCount = Assignment::where('approval_status', Assignment::STATUS_PENDING)
-            ->where('type', Assignment::TYPE_PAID)
-            ->count();
+        // Stats untuk Manager Keuangan
+        if ($user->hasRole('manager_keuangan')) {
+            
+            // Pending untuk submit oleh manager keuangan (yang belum disubmit)
+            $pendingSubmission = Assignment::where('submit_status', Assignment::SUBMIT_BELUM)
+                ->whereHas('creator', function ($q) {
+                    $q->whereHas('roles', function ($roleQuery) {
+                        $roleQuery->where('name', 'staff_keuangan');
+                    });
+                })
+                ->count();
 
-        // Pending assignments with deadline this week
-        $pendingThisWeek = Assignment::where('approval_status', Assignment::STATUS_PENDING)
-            ->where('type', Assignment::TYPE_PAID)
-            ->whereBetween('deadline', [Carbon::now(), Carbon::now()->endOfWeek()])
-            ->count();
+            // Pending submission dengan deadline minggu ini
+            $submissionThisWeek = Assignment::where('submit_status', Assignment::SUBMIT_BELUM)
+                ->whereHas('creator', function ($q) {
+                    $q->whereHas('roles', function ($roleQuery) {
+                        $roleQuery->where('name', 'staff_keuangan');
+                    });
+                })
+                ->whereBetween('deadline', [Carbon::now(), Carbon::now()->endOfWeek()])
+                ->count();
 
-        // Approved assignments this month
-        $approvedThisMonth = Assignment::where('approval_status', Assignment::STATUS_APPROVED)
-            ->whereBetween('approved_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
-            ->count();
+            // Submitted oleh manager bulan ini (hitung semua yang sudah di-submit ke direktur, bukan hanya yang disubmit oleh user ini)
+            $submittedThisMonth = Assignment::where('submit_status', Assignment::SUBMIT_SUDAH)
+                ->whereBetween('submitted_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
+                ->count();
 
-        return [
-            Stat::make('Total Surat', $totalAssignments)
-                ->description('Total semua surat')
-                ->descriptionIcon('heroicon-m-document-text')
-                ->color('primary'),
-                
-            Stat::make('Pending Assignments', $pendingCount)
-                ->description('Menunggu persetujuan')
-                ->descriptionIcon('heroicon-m-clock')
-                ->color('warning'),
+            $stats = array_merge($stats, [
+                Stat::make('Pending Submit', $pendingSubmission)
+                    ->description('Menunggu submit ke direktur')
+                    ->descriptionIcon('heroicon-m-clock')
+                    ->color('warning'),
 
-            Stat::make('Due This Week', $pendingThisWeek)
-                ->description('Batas waktu minggu ini')
-                ->descriptionIcon('heroicon-m-calendar')
-                ->color($pendingThisWeek > 0 ? 'danger' : 'success'),
+                Stat::make('Perlu Disubmit Minggu Ini', $submissionThisWeek)
+                    ->description('Batas waktu minggu ini')
+                    ->descriptionIcon('heroicon-m-calendar')
+                    ->color($submissionThisWeek > 0 ? 'danger' : 'success'),
 
-            Stat::make('Approved This Month', $approvedThisMonth)
-                ->description('Disetujui bulan ini')
-                ->descriptionIcon('heroicon-m-check-circle')
-                ->color('success'),
-        ];
+                Stat::make('Disubmit Bulan Ini', $submittedThisMonth)
+                    ->description('Surat yang sudah disubmit ke direktur')
+                    ->descriptionIcon('heroicon-m-paper-airplane')
+                    ->color('success'),
+            ]);
+        }
+
+        // Stats untuk Direktur Utama
+        if ($user->hasRole('direktur_utama')) {
+            // Pending untuk persetujuan direktur (yang sudah disubmit manager tapi belum di-approve/reject)
+            $pendingApproval = Assignment::where('submit_status', Assignment::SUBMIT_SUDAH)
+                ->where('approval_status', Assignment::STATUS_PENDING)
+                ->count();
+
+            // Pending approval dengan deadline minggu ini
+            $approvalThisWeek = Assignment::where('submit_status', Assignment::SUBMIT_SUDAH)
+                ->where('approval_status', Assignment::STATUS_PENDING)
+                ->whereBetween('deadline', [Carbon::now(), Carbon::now()->endOfWeek()])
+                ->count();
+
+            // Approved oleh direktur bulan ini
+            $approvedThisMonth = Assignment::where('approval_status', Assignment::STATUS_APPROVED)
+                ->where('approved_by', $user->id)
+                ->whereBetween('approved_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
+                ->count();
+
+            // Rejected oleh direktur bulan ini
+            $rejectedThisMonth = Assignment::where('approval_status', Assignment::STATUS_REJECTED)
+                ->where('approved_by', $user->id)
+                ->whereBetween('approved_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
+                ->count();
+
+            $stats = array_merge($stats, [
+                Stat::make('Pending Approval', $pendingApproval)
+                    ->description('Menunggu persetujuan Anda')
+                    ->descriptionIcon('heroicon-m-clock')
+                    ->color('warning'),
+
+                Stat::make('Perlu Disubmit Minggu Ini', $approvalThisWeek)
+                    ->description('Batas waktu minggu ini')
+                    ->descriptionIcon('heroicon-m-calendar')
+                    ->color($approvalThisWeek > 0 ? 'danger' : 'success'),
+
+                Stat::make('Disetujui Bulan Ini', $approvedThisMonth)
+                    ->description('Surat yang Anda setujui')
+                    ->descriptionIcon('heroicon-m-check-circle')
+                    ->color('success'),
+
+                Stat::make('Ditolak Bulan Ini', $rejectedThisMonth)
+                    ->description('Surat yang Anda tolak')
+                    ->descriptionIcon('heroicon-m-x-circle')
+                    ->color('danger'),
+            ]);
+        }
+
+        // Stats untuk Admin Keuangan (view only)
+        if ($user->hasRole('admin_keuangan') && !$user->hasAnyRole(['direktur_utama', 'manager_keuangan'])) {
+            $belumSubmitCount = Assignment::where('submit_status', Assignment::SUBMIT_BELUM)
+                ->where('type', Assignment::TYPE_PAID)
+                ->count();
+
+            $sudahSubmitCount = Assignment::where('submit_status', Assignment::SUBMIT_SUDAH)
+                ->where('approval_status', Assignment::STATUS_PENDING)
+                ->where('type', Assignment::TYPE_PAID)
+                ->count();
+
+            $approvedCount = Assignment::where('approval_status', Assignment::STATUS_APPROVED)
+                ->where('type', Assignment::TYPE_PAID)
+                ->count();
+
+            $rejectedCount = Assignment::where('approval_status', Assignment::STATUS_REJECTED)
+                ->where('type', Assignment::TYPE_PAID)
+                ->count();
+
+            $stats = array_merge($stats, [
+                Stat::make('Belum Submit', $belumSubmitCount)
+                    ->description('Menunggu submit manager')
+                    ->descriptionIcon('heroicon-m-clock')
+                    ->color('warning'),
+
+                Stat::make('Sudah Submit', $sudahSubmitCount)
+                    ->description('Menunggu approval direktur')
+                    ->descriptionIcon('heroicon-m-paper-airplane')
+                    ->color('info'),
+
+                Stat::make('Approved', $approvedCount)
+                    ->description('Sudah disetujui')
+                    ->descriptionIcon('heroicon-m-check-circle')
+                    ->color('success'),
+
+                Stat::make('Rejected', $rejectedCount)
+                    ->description('Ditolak direktur')
+                    ->descriptionIcon('heroicon-m-x-circle')
+                    ->color('danger'),
+            ]);
+        }
+
+        return $stats;
+    }
+
+    public static function getSort(): int
+    {
+        return 3; // Ensures this widget is at the top
     }
 }
