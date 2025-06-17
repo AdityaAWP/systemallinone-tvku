@@ -20,12 +20,14 @@ class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMappi
     private int $year;
     private int $month;
     private ?int $userId;
+    private ?array $divisionIds;
 
-    public function __construct(int $year, int $month, ?int $userId = null)
+    public function __construct(int $year, int $month, ?int $userId = null, ?array $divisionIds = null)
     {
         $this->year = $year;
         $this->month = $month;
         $this->userId = $userId;
+        $this->divisionIds = $divisionIds;
     }
 
     /**
@@ -41,6 +43,13 @@ class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMappi
         // Jika userId disediakan, filter berdasarkan user_id
         if ($this->userId !== null) {
             $query->where('user_id', $this->userId);
+        }
+        
+        // Jika divisionIds disediakan (untuk manager/kepala), filter berdasarkan divisi yang dikelola
+        if ($this->divisionIds !== null && !empty($this->divisionIds)) {
+            $query->whereHas('user', function ($q) {
+                $q->whereIn('division_id', $this->divisionIds);
+            });
         }
         
         return $query->where(function (Builder $query) {
@@ -71,6 +80,9 @@ class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMappi
     {
         return [
             'Nama Karyawan',
+            'NPP',
+            'Divisi',
+            'Jabatan',
             'Jenis Cuti',
             'Tanggal Mulai',
             'Tanggal Berakhir',
@@ -98,6 +110,10 @@ class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMappi
 
         return [
             $leave->user->name,
+            $leave->user->npp,
+            $leave->user->divisions->pluck('name')->implode(', ') ?: ($leave->user->division->name ?? '-'),
+            $leave->user->position ?? '-',
+            // Gunakan map untuk mendapatkan nama jenis cuti yang sesuai
             $leaveTypeMap[$leave->leave_type] ?? 'Tidak Diketahui',
             Carbon::parse($leave->from_date)->format('d F Y'),
             Carbon::parse($leave->to_date)->format('d F Y'),
