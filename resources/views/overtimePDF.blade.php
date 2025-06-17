@@ -161,34 +161,7 @@
                     <td class="info-colon">:</td>
                     <td>{{ $period ?? 'Tidak diketahui' }}</td>
                 </tr>
-                <tr>
-                    <td class="info-label">Scope</td>
-                    <td class="info-colon">:</td>
-                    <td>
-                        @if($scope === 'all_data')
-                            Semua Staff
-                        @elseif($scope === 'division_data')
-                            @php
-                                $user = $overtime->first()->user;
-                                $divisionName = '';
-                                
-                                // Cek apakah user memiliki divisions (relasi many-to-many)
-                                if ($user->divisions && $user->divisions->count() > 0) {
-                                    $divisionName = $user->divisions->pluck('name')->implode(', ');
-                                }
-                                // Fallback ke division (relasi belongsTo)
-                                elseif ($user->division) {
-                                    $divisionName = $user->division->name;
-                                }
-                                // Fallback terakhir
-                                else {
-                                    $divisionName = 'Tidak diketahui';
-                                }
-                            @endphp
-                            Divisi {{ $divisionName }}
-                        @endif
-                    </td>
-                </tr>
+                
                 <tr>
                     <td class="info-label">Total Karyawan</td>
                     <td class="info-colon">:</td>
