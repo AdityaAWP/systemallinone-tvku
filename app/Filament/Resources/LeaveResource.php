@@ -78,12 +78,12 @@ class LeaveResource extends Resource
         if (static::isManager($user)) {
             // Manager: tampilkan jumlah cuti 'pending' untuk semua divisi yang mereka kelola
             $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-            
+
             // Jika tidak ada divisi dari many-to-many, fallback ke primary division
             if (empty($userDivisionIds) && $user->division_id) {
                 $userDivisionIds = [$user->division_id];
             }
-            
+
             $pendingCount = Leave::where('status', 'pending')
                 ->whereHas('user', function ($query) use ($userDivisionIds) {
                     $query->whereIn('division_id', $userDivisionIds);
@@ -379,14 +379,14 @@ class LeaveResource extends Resource
                 Tables\Actions\Action::make('reset_to_all')
                     ->label('Semua Cuti Staff')
                     ->icon('heroicon-o-users')
-                    ->visible(fn() => $user->hasRole('hrd'))
+                    ->visible(fn() => $user->hasRole('hrd') || static::isManager($user) || static::isKepala($user))
                     ->url(fn() => request()->url())
                     ->color(fn() => !request()->hasAny(['tableFilters']) || request()->input('tableFilters.my_leave.value') === 'false' ? 'primary' : 'gray'),
 
                 Tables\Actions\Action::make('filter_my_leave')
                     ->label('Cuti Saya')
                     ->icon('heroicon-o-user')
-                    ->visible(fn() => $user->hasRole('hrd'))
+                    ->visible(fn() => $user->hasRole('hrd') || static::isManager($user) || static::isKepala($user))
                     ->url(fn() => request()->url() . '?tableFilters[my_leave][value]=true')
                     ->color(fn() => request()->input('tableFilters.my_leave.value') === 'true' ? 'primary' : 'gray'),
 
@@ -400,13 +400,13 @@ class LeaveResource extends Resource
                             ->options(function () {
                                 $years = [];
                                 $currentYear = now()->year;
-                                
+
                                 // Generate 5 tahun mundur dari tahun sekarang
                                 for ($i = 0; $i < 5; $i++) {
                                     $year = $currentYear - $i;
                                     $years[$year] = $year;
                                 }
-                                
+
                                 return $years;
                             })
                             ->required()
@@ -416,7 +416,7 @@ class LeaveResource extends Resource
                             ->options(function () {
                                 $user = Auth::user();
                                 $options = ['personal' => 'Data Pribadi Saya'];
-                                
+
                                 // Cek role HRD dengan method checking yang sudah ada
                                 $userRoles = [];
                                 if ($user && method_exists($user, 'getRoleNames')) {
@@ -424,13 +424,13 @@ class LeaveResource extends Resource
                                 } elseif ($user && property_exists($user, 'roles')) {
                                     $userRoles = collect($user->roles)->pluck('name')->toArray();
                                 }
-                                
+
                                 if (in_array('hrd', $userRoles)) {
                                     $options['all'] = 'Semua Data Staff';
                                 } elseif (static::isManager($user) || static::isKepala($user)) {
                                     $options['division'] = 'Semua Data Staff Divisi Saya';
                                 }
-                                
+
                                 return $options;
                             })
                             ->default('personal')
@@ -440,7 +440,7 @@ class LeaveResource extends Resource
                     ->action(function (array $data) {
                         $year = $data['year'];
                         $user = Auth::user();
-                        
+
                         // Tentukan userId dan divisionIds berdasarkan pilihan export
                         if ($user->hasRole('hrd') && isset($data['export_type']) && $data['export_type'] === 'all') {
                             $userId = null; // Export semua data
@@ -449,12 +449,12 @@ class LeaveResource extends Resource
                         } elseif ((static::isManager($user) || static::isKepala($user)) && isset($data['export_type']) && $data['export_type'] === 'division') {
                             $userId = null; // Export semua data staff dari divisi yang dikelola
                             $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-                            
+
                             // Jika tidak ada divisi dari many-to-many, fallback ke primary division
                             if (empty($userDivisionIds) && $user->division_id) {
                                 $userDivisionIds = [$user->division_id];
                             }
-                            
+
                             $divisionIds = $userDivisionIds;
                             $divisionNames = $user->divisions()->pluck('name')->implode('_');
                             if (empty($divisionNames) && $user->division) {
@@ -466,7 +466,7 @@ class LeaveResource extends Resource
                             $divisionIds = null;
                             $filename = "laporan_cuti_{$year}.xlsx";
                         }
-                        
+
                         return (new LeaveYearlyExport($year, $userId, $divisionIds))->download($filename);
                     }),
             ])
@@ -612,7 +612,7 @@ class LeaveResource extends Resource
 
                 Tables\Filters\TernaryFilter::make('my_leave')
                     ->label('Tampilkan Cuti Saya')
-                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                     ->trueLabel('Cuti Saya')
                     ->falseLabel('Semua Cuti Staff')
                     ->queries(
@@ -646,13 +646,13 @@ class LeaveResource extends Resource
                             ->options(function () {
                                 $years = [];
                                 $currentYear = now()->year;
-                                
+
                                 // Generate 5 tahun mundur dari tahun sekarang
                                 for ($i = 0; $i < 5; $i++) {
                                     $year = $currentYear - $i;
                                     $years[$year] = $year;
                                 }
-                                
+
                                 return $years;
                             })
                             ->required()
@@ -662,7 +662,7 @@ class LeaveResource extends Resource
                         $user = $record->user;
                         $year = $data['year'];
                         $userName = str_replace(' ', '_', $user->name);
-                        
+
                         $filename = "laporan_cuti_{$userName}_{$year}.xlsx";
                         return (new LeaveYearlyExport($year, $user->id))->download($filename);
                     }),
@@ -717,12 +717,12 @@ class LeaveResource extends Resource
         if (static::isManager($user) || static::isKepala($user)) {
             // Manager & Kepala bisa melihat data cuti dari semua divisi yang mereka kelola
             $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-            
+
             // Jika tidak ada divisi dari many-to-many, fallback ke primary division
             if (empty($userDivisionIds) && $user->division_id) {
                 $userDivisionIds = [$user->division_id];
             }
-            
+
             return parent::getEloquentQuery()->whereHas('user', function ($query) use ($userDivisionIds) {
                 $query->whereIn('division_id', $userDivisionIds);
             });
