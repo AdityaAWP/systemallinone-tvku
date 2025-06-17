@@ -92,6 +92,42 @@ class DailyReportResource extends Resource
         return parent::getEloquentQuery()->where('user_id', $user->id);
     }
 
+    public static function getNavigationBadge(): ?string
+    {
+        $user = Auth::user();
+
+        if (static::isStaff($user)) {
+            // Staff: jumlah lembur miliknya sendiri
+            $count = DailyReport::where('user_id', $user->id)->count();
+            return $count > 0 ? (string) $count : null;
+        }
+
+        if ($user->hasRole('hrd')) {
+            // HRD: jumlah semua data lembur
+            $count = DailyReport::count();
+            return $count > 0 ? (string) $count : null;
+        }
+
+        if (static::isManager($user) || static::isKepala($user)) {
+            // Manager & Kepala: jumlah lembur di divisinya (semua divisi yang dikelola)
+            $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
+            
+            // Jika tidak ada divisi dari many-to-many, fallback ke primary division
+            if (empty($userDivisionIds) && $user->division_id) {
+                $userDivisionIds = [$user->division_id];
+            }
+            
+            $count = DailyReport::whereHas('user', function ($query) use ($userDivisionIds) {
+                $query->whereIn('division_id', $userDivisionIds);
+            })->count();
+            return $count > 0 ? (string) $count : null;
+        }
+
+        // Default: jumlah lembur miliknya sendiri
+        $count = DailyReport::where('user_id', $user->id)->count();
+        return $count > 0 ? (string) $count : null;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -172,14 +208,14 @@ class DailyReportResource extends Resource
                 Tables\Actions\Action::make('reset_to_all')
                     ->label('Semua Laporan Staff')
                     ->icon('heroicon-o-users')
-                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                     ->url(fn() => request()->url())
                     ->color(fn() => !request()->hasAny(['tableFilters']) || request()->input('tableFilters.my_reports.value') === 'false' ? 'primary' : 'gray'),
 
                 Tables\Actions\Action::make('filter_my_reports')
                     ->label('Laporan Saya')
                     ->icon('heroicon-o-user')
-                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                     ->url(fn() => request()->url() . '?tableFilters[my_reports][value]=true')
                     ->color(fn() => request()->input('tableFilters.my_reports.value') === 'true' ? 'primary' : 'gray'),
 
