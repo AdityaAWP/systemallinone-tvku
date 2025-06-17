@@ -168,7 +168,24 @@
                         @if($scope === 'all_data')
                             Semua Staff
                         @elseif($scope === 'division_data')
-                            Divisi {{ $overtime->first()->user->division->name ?? 'Tidak diketahui' }}
+                            @php
+                                $user = $overtime->first()->user;
+                                $divisionName = '';
+                                
+                                // Cek apakah user memiliki divisions (relasi many-to-many)
+                                if ($user->divisions && $user->divisions->count() > 0) {
+                                    $divisionName = $user->divisions->pluck('name')->implode(', ');
+                                }
+                                // Fallback ke division (relasi belongsTo)
+                                elseif ($user->division) {
+                                    $divisionName = $user->division->name;
+                                }
+                                // Fallback terakhir
+                                else {
+                                    $divisionName = 'Tidak diketahui';
+                                }
+                            @endphp
+                            Divisi {{ $divisionName }}
                         @endif
                     </td>
                 </tr>
@@ -184,20 +201,37 @@
                 </tr>
             @else
                 {{-- Untuk data individual --}}
+                @php
+                    $user = $overtime[0]->user;
+                    $divisionName = '';
+                    
+                    // Cek apakah user memiliki divisions (relasi many-to-many)
+                    if ($user->divisions && $user->divisions->count() > 0) {
+                        $divisionName = $user->divisions->pluck('name')->implode(', ');
+                    }
+                    // Fallback ke division (relasi belongsTo)
+                    elseif ($user->division) {
+                        $divisionName = $user->division->name;
+                    }
+                    // Fallback terakhir
+                    else {
+                        $divisionName = 'Tidak diketahui';
+                    }
+                @endphp
                 <tr>
                     <td class="info-label">Nama</td>
                     <td class="info-colon">:</td>
-                    <td>{{ Str::headline($overtime[0]->user->name ?? 'Nama Karyawan') }}</td>
+                    <td>{{ Str::headline($user->name ?? 'Nama Karyawan') }}</td>
                 </tr>
                 <tr>
                     <td class="info-label">Jabatan</td>
                     <td class="info-colon">:</td>
-                    <td>{{ Str::headline($overtime[0]->user->roles->first()->name ?? '-') }}</td>
+                    <td>{{ Str::headline($user->roles->first()->name ?? '-') }}</td>
                 </tr>
                 <tr>
                     <td class="info-label">Divisi</td>
                     <td class="info-colon">:</td>
-                    <td>{{ Str::headline($overtime[0]->user->division->name ?? 'Divisi') }}</td>
+                    <td>{{ Str::headline($divisionName) }}</td>
                 </tr>
             @endif
         @else
@@ -227,10 +261,27 @@
                 </thead>
                 <tbody>
                     @foreach($overtime as $index => $item)
+                        @php
+                            $user = $item->user;
+                            $divisionName = '';
+                            
+                            // Cek apakah user memiliki divisions (relasi many-to-many)
+                            if ($user->divisions && $user->divisions->count() > 0) {
+                                $divisionName = $user->divisions->pluck('name')->implode(', ');
+                            }
+                            // Fallback ke division (relasi belongsTo)
+                            elseif ($user->division) {
+                                $divisionName = $user->division->name;
+                            }
+                            // Fallback terakhir
+                            else {
+                                $divisionName = 'Tidak diketahui';
+                            }
+                        @endphp
                         <tr>
                             <td class="no">{{ $index + 1 }}</td>
-                            <td>{{ Str::headline($item->user->name ?? '') }}</td>
-                            <td>{{ Str::headline($item->user->division->name ?? '') }}</td>
+                            <td>{{ Str::headline($user->name ?? '') }}</td>
+                            <td>{{ Str::headline($divisionName) }}</td>
                             <td class="date">
                                 {{ \Carbon\Carbon::parse($item->tanggal_overtime)->locale('id')->isoFormat('dddd, D MMMM YYYY') }}
                             </td>
@@ -314,6 +365,18 @@
             $direkturOperasional = \App\Models\User::whereHas('roles', function ($query) {
                 $query->where('name', 'direktur_operasional');
             })->first();
+            
+            // Get division name for signature section
+            $firstUser = $overtime[0]->user;
+            $signatureDivisionName = '';
+            
+            if ($firstUser->divisions && $firstUser->divisions->count() > 0) {
+                $signatureDivisionName = $firstUser->divisions->pluck('name')->implode(', ');
+            } elseif ($firstUser->division) {
+                $signatureDivisionName = $firstUser->division->name;
+            } else {
+                $signatureDivisionName = 'Divisi';
+            }
         @endphp
 
         <table class="signature-table">
@@ -330,7 +393,7 @@
             <tr>
                 <td>
                     <span class="text-bold">{{ Str::headline($overtime[0]->user->name ?? '') }}</span><br>
-                    {{ Str::headline($overtime[0]->user->division->name ?? 'IT') }}
+                    {{ Str::headline($signatureDivisionName) }}
                 </td>
                 <td>
                     @if($overtime[0]->user->atasan)
