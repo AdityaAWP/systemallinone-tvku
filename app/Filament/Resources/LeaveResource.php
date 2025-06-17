@@ -413,28 +413,61 @@ class LeaveResource extends Resource
                             ->default(now()->year),
                         Select::make('export_type')
                             ->label('Jenis Export')
-                            ->options([
-                                'personal' => 'Data Pribadi Saya',
-                                'all' => 'Semua Data Staff'
-                            ])
+                            ->options(function () {
+                                $user = Auth::user();
+                                $options = ['personal' => 'Data Pribadi Saya'];
+                                
+                                // Cek role HRD dengan method checking yang sudah ada
+                                $userRoles = [];
+                                if ($user && method_exists($user, 'getRoleNames')) {
+                                    $userRoles = $user->getRoleNames()->toArray();
+                                } elseif ($user && property_exists($user, 'roles')) {
+                                    $userRoles = collect($user->roles)->pluck('name')->toArray();
+                                }
+                                
+                                if (in_array('hrd', $userRoles)) {
+                                    $options['all'] = 'Semua Data Staff';
+                                } elseif (static::isManager($user) || static::isKepala($user)) {
+                                    $options['division'] = 'Semua Data Staff Divisi Saya';
+                                }
+                                
+                                return $options;
+                            })
                             ->default('personal')
-                            ->visible(fn() => Auth::user()->hasRole('hrd'))
+                            ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                             ->required(),
                     ])
                     ->action(function (array $data) {
                         $year = $data['year'];
                         $user = Auth::user();
                         
-                        // Tentukan userId berdasarkan pilihan export
+                        // Tentukan userId dan divisionIds berdasarkan pilihan export
                         if ($user->hasRole('hrd') && isset($data['export_type']) && $data['export_type'] === 'all') {
                             $userId = null; // Export semua data
+                            $divisionIds = null;
                             $filename = "laporan_cuti_semua_staff_{$year}.xlsx";
+                        } elseif ((static::isManager($user) || static::isKepala($user)) && isset($data['export_type']) && $data['export_type'] === 'division') {
+                            $userId = null; // Export semua data staff dari divisi yang dikelola
+                            $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
+                            
+                            // Jika tidak ada divisi dari many-to-many, fallback ke primary division
+                            if (empty($userDivisionIds) && $user->division_id) {
+                                $userDivisionIds = [$user->division_id];
+                            }
+                            
+                            $divisionIds = $userDivisionIds;
+                            $divisionNames = $user->divisions()->pluck('name')->implode('_');
+                            if (empty($divisionNames) && $user->division) {
+                                $divisionNames = $user->division->name;
+                            }
+                            $filename = "laporan_cuti_divisi_{$divisionNames}_{$year}.xlsx";
                         } else {
                             $userId = $user->id; // Export data pribadi
+                            $divisionIds = null;
                             $filename = "laporan_cuti_{$year}.xlsx";
                         }
                         
-                        return (new LeaveYearlyExport($year, $userId))->download($filename);
+                        return (new LeaveYearlyExport($year, $userId, $divisionIds))->download($filename);
                     }),
             ])
             ->columns([
