@@ -102,7 +102,10 @@ class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, Wit
                     $sheet->setCellValue('A2', 'NPP');
                     $sheet->setCellValue('B2', $user?->npp ?? '-');
                     $sheet->setCellValue('A3', 'Divisi');
-                    $sheet->setCellValue('B3', $user?->division?->name ?? '-');
+                    $divisions = ($user?->divisions && $user?->divisions->count() > 0)
+    ? $user?->divisions?->pluck('name')->implode(', ')
+    : ($user?->division?->name ?? '-');
+                    $sheet->setCellValue('B3', $divisions ?: '-');
                     $sheet->setCellValue('A4', 'Jabatan');
                     $sheet->setCellValue('B4', $user?->position ?? '-');
                     // Baris 5 dibiarkan kosong sebagai spasi
