@@ -288,7 +288,7 @@ class OvertimeResource extends Resource
                                     ->required(),
 
                                 Forms\Components\Select::make('download_scope')
-                                    ->label('Scope Download')
+                                    ->label('Jenis Download')
                                     ->options(function () {
                                         $user = Auth::user();
                                         $options = [];
