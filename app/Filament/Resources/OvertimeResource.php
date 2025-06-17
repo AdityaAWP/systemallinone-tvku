@@ -74,12 +74,12 @@ class OvertimeResource extends Resource
         if (static::isManager($user) || static::isKepala($user)) {
             // Manager & Kepala: jumlah lembur di divisinya (semua divisi yang dikelola)
             $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-            
+
             // Jika tidak ada divisi dari many-to-many, fallback ke primary division
             if (empty($userDivisionIds) && $user->division_id) {
                 $userDivisionIds = [$user->division_id];
             }
-            
+
             $count = Overtime::whereHas('user', function ($query) use ($userDivisionIds) {
                 $query->whereIn('division_id', $userDivisionIds);
             })->count();
@@ -113,12 +113,12 @@ class OvertimeResource extends Resource
         if (static::isManager($user) || static::isKepala($user)) {
             // Manager & Kepala bisa melihat data lembur dari semua divisi yang mereka kelola
             $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-            
+
             // Jika tidak ada divisi dari many-to-many, fallback ke primary division
             if (empty($userDivisionIds) && $user->division_id) {
                 $userDivisionIds = [$user->division_id];
             }
-            
+
             return parent::getEloquentQuery()->whereHas('user', function ($query) use ($userDivisionIds) {
                 $query->whereIn('division_id', $userDivisionIds);
             });
@@ -240,23 +240,22 @@ class OvertimeResource extends Resource
         return $table
             ->headerActions([
                 // HRD filtering actions - similar to Leave resource
-                Tables\Actions\Action::make('Lembur Saya')
-                    ->label('Lembur Saya')
-                    ->icon('heroicon-o-user')
-                    ->visible(fn() => Auth::user()->hasRole('hrd'))
-                    ->url(fn() => url()->current() . '?tableFilters[my_overtime][value]=true')
-                    ->color('primary'),
                 Tables\Actions\Action::make('Semua Lembur Staff')
                     ->label('Semua Lembur Staff')
                     ->icon('heroicon-o-users')
-                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                     ->url(fn() => url()->current() . '?tableFilters[my_overtime][value]=false')
-                    ->color('secondary'),
-
+                    ->color(fn() => !request()->hasAny(['tableFilters']) || request()->input('tableFilters.my_overtime.value') === 'false' ? 'primary' : 'gray'),
+                Tables\Actions\Action::make('Lembur Saya')
+                    ->label('Lembur Saya')
+                    ->icon('heroicon-o-user')
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
+                    ->url(fn() => url()->current() . '?tableFilters[my_overtime][value]=true')
+                    ->color(fn() => request()->input('tableFilters.my_overtime.value') === 'true' ? 'primary' : 'gray'),
                 Tables\Actions\Action::make('downloadMonthly')
                     ->label('Download Bulanan')
                     ->icon('heroicon-o-calendar')
-                    ->color('primary')
+                    ->color('green')
                     ->form([
                         Forms\Components\Grid::make(2)
                             ->schema([
@@ -292,7 +291,7 @@ class OvertimeResource extends Resource
                                     ->options(function () {
                                         $user = Auth::user();
                                         $options = [];
-                                        
+
                                         if (static::isStaff($user)) {
                                             $options['my_data'] = 'Data Lembur Saya';
                                         } elseif ($user->hasRole('hrd')) {
@@ -304,7 +303,7 @@ class OvertimeResource extends Resource
                                         } else {
                                             $options['my_data'] = 'Data Lembur Saya';
                                         }
-                                        
+
                                         return $options;
                                     })
                                     ->default('my_data')
@@ -316,12 +315,12 @@ class OvertimeResource extends Resource
                         $month = $data['month'];
                         $year = $data['year'];
                         $scope = $data['download_scope'];
-                        
+
                         // Build query berdasarkan scope dan role
                         $query = Overtime::with(['user', 'user.division'])
                             ->whereMonth('tanggal_overtime', $month)
                             ->whereYear('tanggal_overtime', $year);
-                        
+
                         if ($scope === 'my_data') {
                             // Data user sendiri
                             $query->where('user_id', $user->id);
@@ -331,12 +330,12 @@ class OvertimeResource extends Resource
                         } elseif ($scope === 'division_data' && (static::isManager($user) || static::isKepala($user))) {
                             // Data divisi untuk Manager/Kepala - FIXED: Now includes all managed divisions
                             $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-                            
+
                             // Jika tidak ada divisi dari many-to-many, fallback ke primary division
                             if (empty($userDivisionIds) && $user->division_id) {
                                 $userDivisionIds = [$user->division_id];
                             }
-                            
+
                             $query->whereHas('user', function ($q) use ($userDivisionIds) {
                                 $q->whereIn('division_id', $userDivisionIds);
                             });
@@ -344,9 +343,9 @@ class OvertimeResource extends Resource
                             // Fallback ke data sendiri jika scope tidak valid
                             $query->where('user_id', $user->id);
                         }
-                        
+
                         $overtime = $query->orderBy('tanggal_overtime', 'asc')->get();
-                        
+
                         if ($overtime->isEmpty()) {
                             \Filament\Notifications\Notification::make()
                                 ->title('Tidak ada data')
@@ -355,16 +354,25 @@ class OvertimeResource extends Resource
                                 ->send();
                             return;
                         }
-                        
+
                         // Format nama bulan dalam bahasa Indonesia
                         $monthNames = [
-                            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-                            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-                            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                            1 => 'Januari',
+                            2 => 'Februari',
+                            3 => 'Maret',
+                            4 => 'April',
+                            5 => 'Mei',
+                            6 => 'Juni',
+                            7 => 'Juli',
+                            8 => 'Agustus',
+                            9 => 'September',
+                            10 => 'Oktober',
+                            11 => 'November',
+                            12 => 'Desember'
                         ];
-                        
+
                         $monthName = $monthNames[$month] . ' ' . $year;
-                        
+
                         // Tentukan title berdasarkan scope
                         $title = 'Surat Permohonan Ijin Lembur';
                         if ($scope === 'all_data') {
@@ -380,16 +388,16 @@ class OvertimeResource extends Resource
                             $title .= ' - ' . $user->name;
                         }
                         $title .= ' - ' . $monthName;
-                        
+
                         $data = [
                             'title' => $title,
                             'overtime' => $overtime,
                             'period' => $monthName,
                             'scope' => $scope
                         ];
-                        
+
                         $pdf = FacadePdf::loadview('overtimePDF', $data);
-                        
+
                         // Generate filename
                         $filename = 'surat-lembur-';
                         if ($scope === 'all_data') {
@@ -404,7 +412,7 @@ class OvertimeResource extends Resource
                             $filename .= strtolower(str_replace([' ', '.'], '-', $user->name)) . '-';
                         }
                         $filename .= strtolower(str_replace(' ', '-', $monthName)) . '.pdf';
-                        
+
                         return response()->streamDownload(function () use ($pdf) {
                             echo $pdf->output();
                         }, $filename, [
@@ -509,7 +517,7 @@ class OvertimeResource extends Resource
 
                 Tables\Filters\TernaryFilter::make('my_overtime')
                     ->label('Tampilkan Lembur Saya')
-                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                     ->trueLabel('Lembur Saya')
                     ->falseLabel('Semua Lembur Staff')
                     ->queries(
