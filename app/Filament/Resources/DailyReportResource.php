@@ -38,16 +38,57 @@ class DailyReportResource extends Resource
     protected static ?string $label = 'Laporan Harian';
     protected static ?int $navigationSort = 1;
 
+    /**
+     * Check if user has any staff role
+     */
+    private static function isStaff($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'staff%')->exists();
+    }
+
+    /**
+     * Check if user has any manager role
+     */
+    private static function isManager($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'manager%')->exists();
+    }
+
+    /**
+     * Check if user has any kepala role
+     */
+    private static function isKepala($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'kepala%')->exists();
+    }
+
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
 
-        // Jika user adalah HRD, bisa melihat semua data laporan harian
+        // If user is HRD, they can see all daily reports
         if ($user->hasRole('hrd')) {
             return parent::getEloquentQuery();
         }
 
-        // Jika user adalah staff, hanya bisa melihat laporan harian miliknya sendiri
+        // If user is manager or kepala, they can see reports from all divisions they manage
+        if (static::isManager($user) || static::isKepala($user)) {
+            $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
+            
+            // If no many-to-many divisions, fallback to primary division
+            if (empty($userDivisionIds) && $user->division_id) {
+                $userDivisionIds = [$user->division_id];
+            }
+            
+            // If user has divisions, show reports from those divisions
+            if (!empty($userDivisionIds)) {
+                return parent::getEloquentQuery()->whereHas('user', function ($query) use ($userDivisionIds) {
+                    $query->whereIn('division_id', $userDivisionIds);
+                });
+            }
+        }
+
+        // For staff or users without specific divisions, only show their own reports
         return parent::getEloquentQuery()->where('user_id', $user->id);
     }
 
@@ -189,17 +230,17 @@ class DailyReportResource extends Resource
                     ->label('Nama Karyawan')
                     ->searchable()
                     ->sortable()
-                    ->visible(fn() => Auth::user()->hasRole('hrd')),
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user())),
                 TextColumn::make('user.npp')
                     ->label('NPP')
                     ->searchable()
                     ->sortable()
-                    ->visible(fn() => Auth::user()->hasRole('hrd')),
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user())),
                 TextColumn::make('user.division.name')
                     ->label('Divisi')
                     ->searchable()
                     ->sortable()
-                    ->visible(fn() => Auth::user()->hasRole('hrd')),
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user())),
                 TextColumn::make('entry_date')
                     ->label('Tanggal')
                     ->searchable()
@@ -225,7 +266,7 @@ class DailyReportResource extends Resource
             ->filters([
                 Tables\Filters\TernaryFilter::make('my_reports')
                     ->label('Tampilkan Laporan Saya')
-                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                     ->trueLabel('Laporan Saya')
                     ->falseLabel('Semua Laporan Staff')
                     ->queries(
@@ -249,7 +290,7 @@ class DailyReportResource extends Resource
                     })
                     ->searchable()
                     ->preload()
-                    ->visible(fn() => Auth::user()->hasRole('hrd')),
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user())),
                 Tables\Filters\SelectFilter::make('user')
                     ->label('Filter Karyawan')
                     ->options(function () {
@@ -265,16 +306,33 @@ class DailyReportResource extends Resource
                     })
                     ->searchable()
                     ->preload()
-                    ->visible(fn() => Auth::user()->hasRole('hrd')),
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user())),
                 Tables\Filters\SelectFilter::make('bulan')
                     ->label('Bulan')
                     ->options(function () {
                         $months = [];
                         $query = DailyReport::query();
                         
-                        // Jika bukan HRD, hanya tampilkan bulan dari laporan user sendiri
-                        if (!Auth::user()->hasRole('hrd')) {
-                            $query->where('user_id', Auth::id());
+                        // Apply same query logic as getEloquentQuery
+                        $user = Auth::user();
+                        if (!$user->hasRole('hrd')) {
+                            if (static::isManager($user) || static::isKepala($user)) {
+                                $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
+                                
+                                if (empty($userDivisionIds) && $user->division_id) {
+                                    $userDivisionIds = [$user->division_id];
+                                }
+                                
+                                if (!empty($userDivisionIds)) {
+                                    $query->whereHas('user', function ($q) use ($userDivisionIds) {
+                                        $q->whereIn('division_id', $userDivisionIds);
+                                    });
+                                } else {
+                                    $query->where('user_id', $user->id);
+                                }
+                            } else {
+                                $query->where('user_id', $user->id);
+                            }
                         }
                         
                         $reports = $query->selectRaw('DISTINCT DATE_FORMAT(entry_date, "%Y-%m") as month')
@@ -307,7 +365,7 @@ class DailyReportResource extends Resource
                     ->icon('heroicon-o-document-text')
                     ->color('success')
                     ->tooltip('Export laporan harian karyawan ini')
-                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                     ->modalHeading(fn(DailyReport $record) => 'Export Laporan - ' . $record->user->name)
                     ->modalDescription('Export laporan harian karyawan ini')
                     ->modalWidth('md')
