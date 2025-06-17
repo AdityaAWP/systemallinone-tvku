@@ -16,6 +16,11 @@ class Login extends BaseLogin
         return 'Login Admin Panel';
     }
 
+    public function getHeading(): string
+    {
+        return ''; // Menghapus teks "Masuk ke akun Anda"
+    }
+
     public function form(Form $form): Form
     {
         return parent::form($form)
