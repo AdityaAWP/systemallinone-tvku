@@ -207,8 +207,7 @@ class RoleSeeder extends Seeder
             ],
 
             'hrd' => [
-                'view_any_user', 'view_user', 'create_user', 
-                'update_user', 'delete_user', 'delete_any_user',
+                'view_any_user', 'view_user', 
                 'view_any_leave', 'view_leave', 'create_leave', 
                 'update_leave', 'delete_leave', 'delete_any_leave',
                 'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
