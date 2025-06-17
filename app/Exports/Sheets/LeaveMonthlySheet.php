@@ -127,7 +127,10 @@ class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMappi
                         $event->sheet->setCellValue('A2', 'NPP');
                         $event->sheet->setCellValue('B2', $user->npp);
                         $event->sheet->setCellValue('A3', 'Divisi');
-                        $event->sheet->setCellValue('B3', $user->division ? $user->division->name : '-');
+                        $divisions = ($user->divisions && $user->divisions->count() > 0)
+                            ? $user->divisions->pluck('name')->implode(', ')
+                            : ($user->division->name ?? '-');
+                        $event->sheet->setCellValue('B3', $divisions ?: '-');
                         $event->sheet->setCellValue('A4', 'Jabatan');
                         $event->sheet->setCellValue('B4', $user->position ?? '-');
                         // Baris 5 dibiarkan kosong sebagai spasi
