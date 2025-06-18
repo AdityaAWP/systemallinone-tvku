@@ -15,8 +15,11 @@ class RoleSeeder extends Seeder
         // Define roles
         $roles = [
             'direktur_utama',
+            'direktur_operasional',
+            'manager_humas&marketing',
             'manager_produksi', 
             'kepala_produksi',
+            'manager_keuangan&hrd',
             'kepala_it',
             'manager_teknik',
             'kepala_teknik',
@@ -29,7 +32,11 @@ class RoleSeeder extends Seeder
             'staff_it',
             'staff_teknik',
             'staff_keuangan',
+            'staff_news',
             'admin_keuangan',
+            'staff_humas&marketing',
+            'staff_umum',
+            'staff_digital_marketing_officer',
             'admin_magang',
             'admin_surat',
             'admin_logistik',
@@ -112,6 +119,32 @@ class RoleSeeder extends Seeder
             ],
             
             'manager_produksi' => [
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
+            ],
+            'direktur_operasional' => [
+                'view_any_incoming::letter', 'view_incoming::letter', 
+                'view_any_outgoing::letter', 'view_outgoing::letter',
+            ],
+
+            'manager_humas&marketing' => [
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
+            ],
+            
+            'manager_keuangan&hrd' => [
                 'view_any_leave', 'view_leave', 'create_leave', 
                 'update_leave', 'delete_leave', 'delete_any_leave',
                 'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
@@ -230,6 +263,19 @@ class RoleSeeder extends Seeder
                 'view_any_loan::item', 'view_loan::item', 'create_loan::item', 
                 'update_loan::item', 'delete_loan::item', 'delete_any_loan::item',
             ],
+            
+            'staff_humas&marketing' => [
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
+                'view_any_loan::item', 'view_loan::item', 'create_loan::item', 
+                'update_loan::item', 'delete_loan::item', 'delete_any_loan::item',
+            ],
 
             'staff_it' => [
                 'view_any_leave', 'view_leave', 'create_leave', 
@@ -257,6 +303,18 @@ class RoleSeeder extends Seeder
                 'update_loan::item', 'delete_loan::item', 'delete_any_loan::item',
             ],
 
+            'staff_digital_marketing_officer' => [
+                'view_any_leave', 'view_leave', 'create_leave', 
+                'update_leave', 'delete_leave', 'delete_any_leave',
+                'view_any_daily::report', 'view_daily::report', 'create_daily::report', 
+                'update_daily::report', 'delete_daily::report', 'delete_any_daily::report',
+                'view_any_overtime', 'view_overtime', 'create_overtime', 
+                'update_overtime', 'delete_overtime', 'delete_any_overtime',
+                'view_any_event', 'view_event', 'create_event', 
+                'update_event', 'delete_event', 'delete_any_event',
+                'view_any_loan::item', 'view_loan::item', 'create_loan::item', 
+                'update_loan::item', 'delete_loan::item', 'delete_any_loan::item',
+            ],
             'staff_keuangan' => [
                 'view_any_assignment', 'view_assignment', 'create_assignment', 
                 'update_assignment', 'delete_assignment', 'delete_any_assignment',
