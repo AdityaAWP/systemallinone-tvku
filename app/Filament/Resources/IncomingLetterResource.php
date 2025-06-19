@@ -101,8 +101,15 @@ class IncomingLetterResource extends Resource
                             ->maxSize(5120)
                             ->directory('letters/incoming')
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                            ->disk('public')
+                            ->visibility('public')
                             ->columnSpanFull()
-                            ->label('Lampiran (Maks 5MB per file)'),
+                            ->label('Lampiran (Maks 5MB per file)')
+                            ->getUploadedFileNameForStorageUsing(function ($file, $livewire) {
+                                $reference = $livewire->data['reference_number'] ?? 'lampiran';
+                                $original = $file->getClientOriginalName();
+                                return $reference . '_' . $original;
+                            }),
                     ]),
             ]);
     }
@@ -154,6 +161,25 @@ class IncomingLetterResource extends Resource
                     ->date('d/m/Y')
                     ->sortable()
                     ->label('Tanggal Agenda'),
+
+                Tables\Columns\IconColumn::make('attachments')
+                    ->label('Lampiran')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->getStateUsing(function ($record) {
+                        $attachments = $record->attachments;
+                        if (is_array($attachments)) {
+                            foreach ($attachments as $file) {
+                                if (is_string($file) && trim($file) !== '') {
+                                    return true;
+                                }
+                            }
+                        } elseif (is_string($attachments) && trim($attachments) !== '') {
+                            return true;
+                        }
+                        return false;
+                    }),
             ])
             ->filters([
                 Tables\Filters\Filter::make('dates')
@@ -188,7 +214,59 @@ class IncomingLetterResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->form([
+                        Forms\Components\Section::make('Informasi Surat')
+                            ->schema([
+                                Forms\Components\TextInput::make('reference_number')
+                                    ->label('No. Agenda')
+                                    ->disabled(),
+                                Forms\Components\TextInput::make('type')
+                                    ->label('Jenis Surat')
+                                    ->formatStateUsing(function ($state) {
+                                        return match ($state) {
+                                            'internal' => 'Internal',
+                                            'general' => 'Umum',
+                                            'visit' => 'Kunjungan/Prakerin',
+                                            default => $state
+                                        };
+                                    })
+                                    ->disabled(),
+                                Forms\Components\DatePicker::make('received_date')
+                                    ->label('Tanggal Agenda')
+                                    ->disabled(),
+                                Forms\Components\TextInput::make('sender')
+                                    ->label('Dari')
+                                    ->disabled(),
+                                Forms\Components\TextInput::make('letter_number')
+                                    ->label('No. Surat')
+                                    ->disabled(),
+                                Forms\Components\DatePicker::make('letter_date')
+                                    ->label('Tanggal Surat')
+                                    ->disabled(),
+                                Forms\Components\Textarea::make('subject')
+                                    ->label('Hal')
+                                    ->disabled(),
+                                Forms\Components\RichEditor::make('content')
+                                    ->label('Isi Surat')
+                                    ->disabled(),
+                                Forms\Components\Textarea::make('notes')
+                                    ->label('Catatan')
+                                    ->disabled(),
+                            ])
+                            ->columns(2),
+                        Forms\Components\Section::make('Lampiran')
+                            ->schema([
+                                Forms\Components\FileUpload::make('attachments')
+                                    ->label('File Lampiran')
+                                    ->multiple()
+                                    ->disabled()
+                                    ->downloadable()
+                                    ->openable()
+                                    ->columnSpanFull(),
+                            ])
+                            ->collapsible(),
+                    ]),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
