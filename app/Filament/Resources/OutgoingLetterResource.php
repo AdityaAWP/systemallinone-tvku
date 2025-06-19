@@ -63,11 +63,11 @@ class OutgoingLetterResource extends Resource
                                     }),
 
                                 Forms\Components\TextInput::make('reference_number')
-                                    ->label('Nomor Referensi')
+                                    ->label('Nomor Surat')
                                     ->required()
                                     ->disabled()
                                     ->dehydrated()
-                                    ->helperText('Nomor referensi akan dibuat otomatis berdasarkan jenis surat'),
+                                    ->helperText('Nomor Surat akan dibuat otomatis berdasarkan jenis surat'),
                                 Forms\Components\DatePicker::make('letter_date')
                                     ->required()
                                     ->default(now())
@@ -138,7 +138,7 @@ class OutgoingLetterResource extends Resource
                 Tables\Columns\TextColumn::make('reference_number')
                     ->searchable()
                     ->sortable()
-                    ->label('Nomor Referensi'),
+                    ->label('Nomor Surat'),
                 Tables\Columns\TextColumn::make('recipient')
                     ->searchable()
                     ->label('Penerima'),
