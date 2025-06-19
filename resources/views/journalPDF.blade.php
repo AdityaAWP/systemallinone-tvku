@@ -88,7 +88,7 @@
         <tr>
             <td>Divisi</td>
             <td class="colon">:</td>
-            <td>{{ $journal[0]->intern->division ?? 'N/A' }}</td>
+            <td>{{ $journal[0]->intern->internDivision->name ?? 'N/A' }}</td>
         </tr>
         <tr>
             <td>Nama Pembimbing</td>

@@ -64,8 +64,8 @@
                 <th>Nama</th>
                 <th>Sekolah/Instansi</th>
                 <th>Divisi</th>
-                <th>Pembimbing Asal</th>
                 <th>Pembimbing TVKU</th>
+                <th>Pembimbing Asal</th>
                 <th>Tanggal Mulai</th>
                 <th>Tanggal Selesai</th>
             </tr>
@@ -96,7 +96,7 @@
                     <td>{{ $index + 1 }}</td>
                     <td>{{ $intern->name }}</td>
                     <td>{{ $intern->school->name ?? '-' }}</td>
-                    <td>{{ $intern->division }}</td>
+                    <td>{{ $intern->internDivision->name ?? '-' }}</td>
                     <td>{{ $intern->institution_supervisor }}</td>
                     <td>{{ $intern->college_supervisor }}</td>
                     <td>{{ $intern->start_date ? $intern->start_date->format('d/m/Y') : '-' }}</td>
