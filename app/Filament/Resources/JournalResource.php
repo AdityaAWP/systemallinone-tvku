@@ -28,27 +28,52 @@ class JournalResource extends Resource
     protected static ?string $model = Journal::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
-    protected static ?string $navigationGroup = 'Menu Magang';
-    protected static ?string $navigationLabel = 'Jurnal';
-    protected static ?string $title = 'Jurnal';
-    protected static ?string $label = 'Jurnal';
-    protected static ?int $navigationSort = 0;
-    public static function getPanel(): ?string
+    protected static ?int $navigationSort = 5;
+
+    public static function getNavigationGroup(): ?string
     {
-        return 'intern';
+        if (Auth::guard('intern')->check()) {
+            return 'Main Menu';
+        }
+        return 'Manajemen Magang';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        if (Auth::guard('intern')->check()) {
+            return 'Jurnal';
+        }
+        return 'Jurnal Magang';
+    }
+
+    public static function getModelLabel(): string
+    {
+        if (Auth::guard('intern')->check()) {
+            return 'Jurnal';
+        }
+        return 'Jurnal Magang';
     }
 
     public static function canViewAny(): bool
     {
-        return Auth::guard('intern')->check();
+        return Auth::guard('intern')->check() || Auth::guard('web')->check();
     }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
+                Select::make('intern_id')
+                    ->label('Nama Magang')
+                    ->relationship('intern', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->visible(fn() => Auth::guard('web')->check())
+                    ->default(null),
                 Hidden::make('intern_id')
-                    ->default(fn() => Auth::id()),
+                    ->default(fn() => Auth::guard('intern')->check() ? Auth::guard('intern')->id() : null)
+                    ->visible(fn() => Auth::guard('intern')->check()),
                 DatePicker::make('entry_date')
                     ->label('Tanggal')
                     ->required()
@@ -77,11 +102,13 @@ class JournalResource extends Resource
                     ->image()
                     ->directory('journal-images')
                     ->preserveFilenames()
-                    ->nullable(),
+                    ->nullable()
+                    ->label('Bukti Gambar'),
                 Textarea::make('reason_of_absence')
+                    ->label('Alasan Ketidak hadiran')
                     ->visible(fn(Forms\Get $get): bool => in_array($get('status'), ['Izin', 'Sakit']))
                     ->required(fn(Forms\Get $get): bool => in_array($get('status'), ['Izin', 'Sakit']))
-                    ->placeholder('Please provide reason for absence'),
+                    ->placeholder('Silakan isi alasan ketidakhadiran'),
             ]);
     }
 
@@ -89,6 +116,11 @@ class JournalResource extends Resource
     {
         return $table
             ->columns([
+                TextColumn::make('intern.name')
+                    ->label('Nama Magang')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(fn() => Auth::guard('web')->check()),
                 TextColumn::make('entry_date')
                     ->date()
                     ->label('Tanggal')
@@ -112,7 +144,7 @@ class JournalResource extends Resource
                         return $state;
                     }),
                 TextColumn::make('reason_of_absence')
-                    ->label('Alasan Ketidakhadiran')
+                    ->label('Alasan Ketidak hadiran')
                     ->limit(50)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
                         $state = $column->getState();
@@ -134,7 +166,36 @@ class JournalResource extends Resource
                     ->circular(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'Hadir' => 'Hadir',
+                        'Izin' => 'Izin',
+                        'Sakit' => 'Sakit',
+                    ]),
+                Tables\Filters\SelectFilter::make('intern_id')
+                    ->label('Nama Magang')
+                    ->relationship('intern', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn() => Auth::guard('web')->check()),
+                Tables\Filters\Filter::make('entry_date')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')
+                            ->label('Dari Tanggal'),
+                        Forms\Components\DatePicker::make('until')
+                            ->label('Sampai Tanggal'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('entry_date', '>=', $date),
+                            )
+                            ->when(
+                                $data['until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('entry_date', '<=', $date),
+                            );
+                    }),
             ])
             ->headerActions([
                 // Action untuk download semua data
@@ -197,7 +258,13 @@ class JournalResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->modifyQueryUsing(function (Builder $query) {
+                if (Auth::guard('intern')->check()) {
+                    return $query->where('intern_id', Auth::guard('intern')->id());
+                }
+                return $query;
+            });
     }
 
     public static function getRelations(): array
