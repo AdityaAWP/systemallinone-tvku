@@ -13,7 +13,7 @@ class InternStatsTable extends Widget
 {
     protected static string $view = 'filament.widgets.intern-stats-table';
     protected int|string|array $columnSpan = 'full';
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 3;
     
     public static function canView(): bool
     {
