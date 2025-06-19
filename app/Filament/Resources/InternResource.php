@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\InternResource\Pages;
 use App\Models\Intern;
 use App\Models\InternSchool;
+use App\Models\InternDivision;
 use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -44,9 +45,8 @@ class InternResource extends Resource
                         Forms\Components\TextInput::make('nis_nim')
                             ->label('NIS/NIM')
                             ->maxLength(50),
-                        // Menambahkan pemilihan tipe institusi terlebih dahulu
                         Forms\Components\Select::make('institution_type')
-                            ->label('Tipe Institusi')
+                            ->label('Jenjang Pendidikan')
                             ->options([
                                 'Perguruan Tinggi' => 'Perguruan Tinggi',
                                 'SMA/SMK' => 'SMA/SMK',
@@ -54,9 +54,12 @@ class InternResource extends Resource
                             ->required()
                             ->live()
                             ->afterStateUpdated(fn(Forms\Set $set) => $set('school_id', null)),
-                        // School selector yang bergantung pada tipe institusi yang dipilih
+
                         Forms\Components\Select::make('school_id')
-                            ->label('Universitas/Sekolah')
+                            ->label(function (Forms\Get $get) {
+                                $type = $get('institution_type');
+                                return $type === 'Perguruan Tinggi' ? 'Perguruan Tinggi' : 'Asal Sekolah';
+                            })
                             ->options(function (Forms\Get $get) {
                                 $type = $get('institution_type');
                                 if (!$type) return [];
@@ -68,28 +71,25 @@ class InternResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
-                        Forms\Components\Select::make('division')
-                            ->label('Divisi')
-                            ->options([
-                                'IT' => 'IT',
-                                'Produksi' => 'Produksi',
-                                'DINUS FM' => 'DINUS FM',
-                                'TS' => 'TS',
-                                'MCR' => 'MCR',
-                                'DMO' => 'DMO',
-                                'Wardrobe' => 'Wardrobe',
-                                'News' => 'News',
-                                'Humas dan Marketing' => 'Humas dan Marketing',
-                            ])
+                        Forms\Components\Select::make('intern_division_id')
+                            ->label('Divisi Magang')
+                            ->options(function () {
+                                return InternDivision::all()->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->preload()
                             ->required(),
                         Forms\Components\TextInput::make('no_phone')
                             ->label('Telepon Magang')
                             ->tel()
                             ->maxLength(20),
-                        Forms\Components\TextInput::make('institution_supervisor')
-                            ->label('Pembimbing Asal')
-                            ->maxLength(255),
                         Forms\Components\TextInput::make('college_supervisor')
+                            ->label(function (Forms\Get $get) {
+                                $type = $get('institution_type');
+                                return $type === 'Perguruan Tinggi' ? 'Dosen Pembimbing' : 'Guru Pembimbing';
+                            })
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('institution_supervisor')
                             ->label('Pembimbing TVKU')
                             ->maxLength(255),
                         Forms\Components\TextInput::make('college_supervisor_phone')
@@ -122,19 +122,36 @@ class InternResource extends Resource
                     ->label('Email')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('school.name')
-                    ->label('Universitas/Sekolah')
+                    ->label(function ($record) {
+                        if (!$record || !$record->institution_type) {
+                            return 'Universitas/Sekolah';
+                        }
+                        return $record->institution_type === 'Perguruan Tinggi' ? 'Perguruan Tinggi' : 'Asal Sekolah';
+                    })
+                    ->getStateUsing(function ($record) {
+                        return $record?->school?->name ?? '-';
+                    })
                     ->sortable(),
-                Tables\Columns\TextColumn::make('division')
-                    ->label('Divisi')
+                Tables\Columns\TextColumn::make('institution_type')
+                    ->label('Jenjang Pendidikan')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('internDivision.name')
+                    ->label('Divisi Magang')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('no_phone')
                     ->label('Telepon Magang'),
                 Tables\Columns\TextColumn::make('institution_supervisor')
-                    ->label('Pembimbing Asal'),
+                    ->label('Pembimbing TVKU'),
+                Tables\Columns\TextColumn::make('college_supervisor')
+                    ->label(function ($record) {
+                        if (!$record || !$record->institution_type) {
+                            return 'Pembimbing Asal';
+                        }
+                        return $record->institution_type === 'Perguruan Tinggi' ? 'Dosen Pembimbing' : 'Guru Pembimbing';
+                    })
+                    ->getStateUsing(fn($record) => $record?->college_supervisor ?? ''),
                 Tables\Columns\TextColumn::make('college_supervisor_phone')
                     ->label('Telepon Pembimbing'),
-                Tables\Columns\TextColumn::make('college_supervisor')
-                    ->label('Pembimbing TVKU'),
                 Tables\Columns\TextColumn::make('start_date')
                     ->label('Mulai Magang')
                     ->date('d/m/Y')
@@ -187,7 +204,7 @@ class InternResource extends Resource
                     ->icon('heroicon-o-document')
                     ->form([
                         Forms\Components\Select::make('institution_type')
-                            ->label('Pilih Tipe Institusi')
+                            ->label('Pilih Jenjang Pendidikan')
                             ->options([
                                 'all' => 'Semua',
                                 'Perguruan Tinggi' => 'Perguruan Tinggi',
@@ -209,7 +226,7 @@ class InternResource extends Resource
                     ->icon('heroicon-o-arrow-down-tray')
                     ->form([
                         Forms\Components\Select::make('institution_type')
-                            ->label('Pilih Tipe Institusi')
+                            ->label('Pilih Jenjang Pendidikan')
                             ->options([
                                 'all' => 'Semua',
                                 'Perguruan Tinggi' => 'Perguruan Tinggi',
@@ -235,6 +252,16 @@ class InternResource extends Resource
                         Forms\Components\TextInput::make('username')
                             ->label('Username')
                             ->required(),
+
+                        Forms\Components\Select::make('intern_division_id')
+                            ->label('Divisi Magang')
+                            ->options(function () {
+                                return InternDivision::all()->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->required(),
+
                         Forms\Components\Select::make('institution_type')
                             ->label('Tipe Jenjang Pendidikan')
                             ->options([
@@ -245,22 +272,11 @@ class InternResource extends Resource
                             ->live()
                             ->afterStateUpdated(fn(Forms\Set $set) => $set('school_id', null)),
 
-                        Forms\Components\Select::make('division')
-                            ->label('Divisi')
-                            ->options([
-                                'IT' => 'IT',
-                                'Produksi' => 'Produksi',
-                                'DINUS FM' => 'DINUS FM',
-                                'TS' => 'TS',
-                                'MCR' => 'MCR',
-                                'DMO' => 'DMO',
-                                'Wardrobe' => 'Wardrobe',
-                                'News' => 'News',
-                                'Humas dan Marketing' => 'Humas dan Marketing',
-                            ])
-                            ->required(),
                         Forms\Components\Select::make('school_id')
-                            ->label('Pilih Universitas/Sekolah')
+                            ->label(function (Forms\Get $get) {
+                                $type = $get('institution_type');
+                                return $type === 'Perguruan Tinggi' ? 'Perguruan Tinggi' : 'Asal Sekolah';
+                            })
                             ->options(function (Forms\Get $get) {
                                 $type = $get('institution_type');
                                 if (!$type) return [];
@@ -283,6 +299,8 @@ class InternResource extends Resource
                         Intern::create([
                             'name' => $data['username'],
                             'school_id' => $data['school_id'],
+                            'institution_type' => $data['institution_type'],
+                            'intern_division_id' => $data['intern_division_id'],
                             'start_date' => $data['start_date'],
                             'end_date' => $data['end_date'],
                         ]);
