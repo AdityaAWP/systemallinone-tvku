@@ -528,13 +528,17 @@ class OvertimeResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(
+                        fn($record) =>
+                        $record->user_id === Auth::id() ||
+                            Auth::user()->hasRole('hrd')
+                    ),
                 Tables\Actions\DeleteAction::make()
                     ->visible(
                         fn($record) =>
-                        static::isStaff(Auth::user()) && $record->user_id === Auth::id() ||
-                            Auth::user()->hasRole('hrd') ||
-                            (static::isManager(Auth::user()) && $record->user->division_id === Auth::user()->division_id)
+                        $record->user_id === Auth::id() ||
+                            Auth::user()->hasRole('hrd')
                     ),
 
                 Tables\Actions\Action::make('download_monthly_pdf')
@@ -613,7 +617,7 @@ class OvertimeResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user())),
+                        ->visible(fn() => Auth::user()->hasRole('hrd')),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');

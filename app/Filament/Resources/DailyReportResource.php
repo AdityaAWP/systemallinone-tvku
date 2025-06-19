@@ -409,9 +409,19 @@ class DailyReportResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->label('Lihat'),
                 Tables\Actions\EditAction::make()
-                    ->label('Edit'),
+                    ->label('Edit')
+                    ->visible(
+                        fn($record) =>
+                        $record->user_id === Auth::id() ||
+                            Auth::user()->hasRole('hrd')
+                    ),
                 Tables\Actions\DeleteAction::make()
-                    ->label('Hapus'),
+                    ->label('Hapus')
+                    ->visible(
+                        fn($record) =>
+                        $record->user_id === Auth::id() ||
+                            Auth::user()->hasRole('hrd')
+                    ),
                 Tables\Actions\Action::make('export_individual')
                     ->label('Export Data')
                     ->icon('heroicon-o-document-text')
@@ -455,9 +465,11 @@ class DailyReportResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn() => Auth::user()->hasRole('hrd')),
                     ExportBulkAction::make()
                         ->exporter(DailyReportExporter::class)
+                        ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                         
                 ]),
             ]);
