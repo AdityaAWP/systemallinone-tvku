@@ -15,6 +15,30 @@ class EditLeave extends EditRecord
 {
     protected static string $resource = LeaveResource::class;
 
+    /**
+     * Check if user has any kepala role
+     */
+    private function isKepala($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'kepala%')->exists();
+    }
+
+    /**
+     * Check if user has HRD role
+     */
+    private function isHrd($user): bool
+    {
+        return $user->roles()->where('name', 'hrd')->exists();
+    }
+
+    /**
+     * Check if user has any manager role
+     */
+    private function isManager($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'manager%')->exists();
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -29,7 +53,7 @@ class EditLeave extends EditRecord
         $statusChanged = false;
 
         // If user is HRD and changed their approval
-        if ($user->hasRole('hrd') && isset($data['approval_hrd']) && $record->approval_hrd !== $data['approval_hrd']) {
+        if ($this->isHrd($user) && isset($data['approval_hrd']) && $record->approval_hrd !== $data['approval_hrd']) {
             // If HRD rejected the leave
             if ($data['approval_hrd'] === false) {
                 $data['status'] = 'rejected';
@@ -42,14 +66,14 @@ class EditLeave extends EditRecord
             }
         }
 
-        // If user is Manager and changed their approval
-        if ($user->hasRole('manager') && isset($data['approval_manager']) && $record->approval_manager !== $data['approval_manager']) {
-            // If Manager rejected the leave
+        // If user is Manager or Kepala and changed their approval
+        if (($this->isManager($user) || $this->isKepala($user)) && isset($data['approval_manager']) && $record->approval_manager !== $data['approval_manager']) {
+            // If Manager/Kepala rejected the leave
             if ($data['approval_manager'] === false) {
                 $data['status'] = 'rejected';
                 $statusChanged = true;
             }
-            // If Manager approved and HRD already approved (or no HRD approval needed)
+            // If Manager/Kepala approved and HRD already approved (or no HRD approval needed)
             elseif ($data['approval_manager'] === true && ($record->approval_hrd === true || $record->approval_hrd === null)) {
                 $data['status'] = 'approved';
                 $statusChanged = true;
