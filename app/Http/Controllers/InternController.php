@@ -14,7 +14,7 @@ class InternController extends Controller
     {
         $type = $request->query('type', 'all');
         
-        $query = Intern::with('school');
+        $query = Intern::with(['school', 'internDivision']);
         
         // Filter berdasarkan tipe institusi
         if ($type !== 'all') {
