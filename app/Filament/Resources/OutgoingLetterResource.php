@@ -39,19 +39,35 @@ class OutgoingLetterResource extends Resource
                                         'general' => 'Umum',
                                     ])
                                     ->required()
+                                    ->label('Jenis Surat')
                                     ->live()
-                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                        $prefix = $state == 'internal' ? 'I-' : 'U-';
-                                        $set('reference_number', $prefix . '000');
+                                    ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get, $context) {
+                                        if ($state && $context === 'create') {
+                                            $nextNumber = OutgoingLetter::generateNextReferenceNumber($state);
+                                            $set('reference_number', $nextNumber);
+                                        } elseif ($state && $context === 'edit') {
+                                            // Pada mode edit, hanya update jika jenis surat berubah
+                                            $currentRefNumber = $get('reference_number');
+                                            $currentPrefix = match ($state) {
+                                                'internal' => 'I-',
+                                                'general' => 'U-',
+                                                default => ''
+                                            };
+                                            
+                                            // Jika prefix tidak cocok dengan yang sekarang, generate ulang
+                                            if (!str_starts_with($currentRefNumber, $currentPrefix)) {
+                                                $nextNumber = OutgoingLetter::generateNextReferenceNumber($state);
+                                                $set('reference_number', $nextNumber);
+                                            }
+                                        }
                                     }),
 
                                 Forms\Components\TextInput::make('reference_number')
                                     ->label('Nomor Referensi')
                                     ->required()
-                                    ->default(function (Forms\Get $get) {
-                                        $prefix = $get('type') == 'internal' ? 'I-' : 'U-';
-                                        return $prefix . '000';
-                                    }),
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->helperText('Nomor referensi akan dibuat otomatis berdasarkan jenis surat'),
                                 Forms\Components\DatePicker::make('letter_date')
                                     ->required()
                                     ->default(now())
