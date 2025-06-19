@@ -69,7 +69,7 @@ class DirectorDashboardStatsOverview extends BaseWidget
                 Stat::make('Disubmit Bulan Ini', $submittedThisMonth)
                     ->description('Surat yang sudah disubmit ke direktur')
                     ->descriptionIcon('heroicon-m-paper-airplane')
-                    ->color('success'),
+                    ->color('primary'),
             ]);
         }
 
@@ -88,7 +88,6 @@ class DirectorDashboardStatsOverview extends BaseWidget
 
             // Approved oleh direktur bulan ini
             $approvedThisMonth = Assignment::where('approval_status', Assignment::STATUS_APPROVED)
-                ->where('approved_by', $user->id)
                 ->whereBetween('approved_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
                 ->count();
 
@@ -107,7 +106,7 @@ class DirectorDashboardStatsOverview extends BaseWidget
                 Stat::make('Perlu Disubmit Minggu Ini', $approvalThisWeek)
                     ->description('Batas waktu minggu ini')
                     ->descriptionIcon('heroicon-m-calendar')
-                    ->color($approvalThisWeek > 0 ? 'danger' : 'success'),
+                    ->color($approvalThisWeek > 0 ? 'orange' : 'indigo'),
 
                 Stat::make('Disetujui Bulan Ini', $approvedThisMonth)
                     ->description('Surat yang Anda setujui')

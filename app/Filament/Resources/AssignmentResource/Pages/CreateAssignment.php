@@ -23,9 +23,23 @@ class CreateAssignment extends CreateRecord
         $data['approval_status'] = Assignment::STATUS_PENDING;
         $data['submit_status'] = Assignment::SUBMIT_BELUM;
         
-        // MODIFIED: Ensure a default priority is always set on creation,
-        // since the field is disabled for non-directors.
-        $data['priority'] = $data['priority'] ?? Assignment::PRIORITY_NORMAL;
+        // MODIFIED: Set default priority berdasarkan role user
+        $user = Auth::user();
+        if ($user && method_exists($user, 'hasRole')) {
+            // Untuk staff_keuangan, biarkan priority kosong (null)
+            if ($user->hasRole('staff_keuangan')) {
+                // Jangan set default priority untuk staff_keuangan
+                if (!isset($data['priority'])) {
+                    $data['priority'] = null;
+                }
+            } else {
+                // Untuk role lain, set default priority normal jika tidak ada nilai
+                $data['priority'] = $data['priority'] ?? Assignment::PRIORITY_NORMAL;
+            }
+        } else {
+            // Fallback jika tidak ada role system
+            $data['priority'] = $data['priority'] ?? Assignment::PRIORITY_NORMAL;
+        }
         
         return $data;
     }
