@@ -4,6 +4,8 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Auth\LoginIntern;
 use App\Filament\Resources\JournalResource; // Add this import
+use App\Filament\InternWidgets\JournalReminderWidget;
+use App\Filament\InternWidgets\InternProfileWidget;
 use App\Http\Middleware\CheckProfileCompletion;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -60,6 +62,10 @@ class InternPanelProvider extends PanelProvider
                 \Filament\Pages\Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/InternWidgets'), for: 'App\\Filament\\InternWidgets')
+            ->widgets([
+                InternProfileWidget::class,
+                JournalReminderWidget::class,
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
