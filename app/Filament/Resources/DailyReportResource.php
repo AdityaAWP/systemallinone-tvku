@@ -244,22 +244,38 @@ class DailyReportResource extends Resource
                                 'all' => 'Semua Data Staff'
                             ])
                             ->default('personal')
-                            ->visible(fn() => Auth::user()->hasRole('hrd'))
+                            ->visible(fn() => Auth::user()->hasRole('hrd') || 
+                                DailyReportResource::isManager(Auth::user()) || 
+                                DailyReportResource::isKepala(Auth::user()))
                             ->required(),
                     ])
                     ->action(function (array $data) {
                         $year = $data['year'];
                         $user = Auth::user();
-                        if ($user->hasRole('hrd') && isset($data['export_type']) && $data['export_type'] === 'all') {
+
+                        // Jika HRD, Manager, atau Kepala dan pilih "all", export semua data staff/divisi
+                        if (
+                            ($user->hasRole('hrd') || DailyReportResource::isManager($user) || DailyReportResource::isKepala($user))
+                            && isset($data['export_type']) && $data['export_type'] === 'all'
+                        ) {
+                            // Untuk HRD: semua data staff
+                            // Untuk Manager/Kepala: semua data staff di divisi yang dikelola
                             $userId = null;
                             $filename = "laporan_harian_semua_staff_{$year}.xlsx";
+                            // Untuk Manager/Kepala, filter di dalam DailyReportExcel jika perlu
+                            return (new DailyReportExcel($year, $userId, $user))->download($filename);
                         } else {
+                            // Untuk staff, manager, kepala, atau HRD yang pilih "personal"
                             $userId = $user->id;
-                            $filename = "laporan_harian_{$year}.xlsx";
+                            $userName = str_replace(' ', '_', $user->name);
+                            $filename = "laporan_harian_{$userName}_{$year}.xlsx";
+                            return (new DailyReportExcel($year, $userId))->download($filename);
                         }
-                        return (new DailyReportExcel($year, $userId))->download($filename);
                     })
-                    ->visible(fn() => Auth::user()->hasRole('hrd')),
+                    ->visible(fn() => Auth::user()->hasRole('hrd') 
+                        || DailyReportResource::isStaff(Auth::user()) 
+                        || DailyReportResource::isManager(Auth::user()) 
+                        || DailyReportResource::isKepala(Auth::user())),
             ])
             ->columns([
                 TextColumn::make('user.name')

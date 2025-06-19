@@ -59,6 +59,9 @@ class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, Wit
     {
         return [
             'Nama',
+            'NPP',
+            'Divisi',
+            'Jabatan',
             'Tanggal',
             'Waktu Mulai Bekerja',
             'Waktu Selesai Bekerja',
@@ -75,6 +78,9 @@ class DailyReportMonthlySheet implements FromQuery, WithTitle, WithHeadings, Wit
     {
         return [
             $row->user->name ?? '',
+            $row->user->npp ?? '',
+            $row->user->division?->name ?? '',
+            $row->user->position ?? '',
             $row->entry_date ? Carbon::parse($row->entry_date)->format('d F Y') : '',
             $row->check_in ? Carbon::parse($row->check_in)->format('H:i') : '',
             $row->check_out ? Carbon::parse($row->check_out)->format('H:i') : '',
