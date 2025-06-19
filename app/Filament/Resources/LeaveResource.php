@@ -34,6 +34,14 @@ class LeaveResource extends Resource
     protected static ?string $label = 'Permohonan Cuti';
 
     /**
+     * Check if user has HRD role
+     */
+    private static function isHrd($user): bool
+    {
+        return $user->roles()->where('name', 'hrd')->exists();
+    }
+
+    /**
      * Check if user has any staff role
      */
     private static function isStaff($user): bool
@@ -54,6 +62,30 @@ class LeaveResource extends Resource
         return $user->roles()->where('name', 'like', 'kepala%')->exists();
     }
 
+    /**
+     * Check if user can edit leave record based on approval status
+     */
+    private static function canEditLeave($user, $record): bool
+    {
+        // Staff tidak bisa edit jika sudah ada approval
+        if (static::isStaff($user)) {
+            return !($record->approval_manager || $record->approval_hrd);
+        }
+        
+        // HRD bisa edit jika HRD belum approve
+        if (static::isHrd($user)) {
+            return $record->approval_hrd !== true;
+        }
+        
+        // Manager/Kepala bisa edit jika Manager/Kepala belum approve
+        if (static::isManager($user) || static::isKepala($user)) {
+            return $record->approval_manager !== true;
+        }
+        
+        // Default: tidak bisa edit
+        return false;
+    }
+
     public static function getNavigationBadgeColor(): ?string
     {
         return static::getNavigationBadge() > 0 ? 'primary' : null;
@@ -63,7 +95,7 @@ class LeaveResource extends Resource
     {
         $user = Auth::user();
 
-        if ($user->hasRole('super_admin')) {
+        if ($user->roles()->where('name', 'super_admin')->exists()) {
             // Super admin: tampilkan jumlah semua data cuti
             $count = Leave::count();
             return $count > 0 ? (string) $count : null;
@@ -152,6 +184,8 @@ class LeaveResource extends Resource
         $user = Auth::user();
         $isStaff = static::isStaff($user);
         $isManager = static::isManager($user);
+        $isKepala = static::isKepala($user);
+        $isHrd = static::isHrd($user);
         $isCreating = $form->getOperation() === 'create';
 
         return $form
@@ -626,7 +660,10 @@ class LeaveResource extends Resource
                     ->label('Lihat'),
                 Tables\Actions\EditAction::make()
                     ->label('Edit')
-                    ->disabled(fn(Leave $record) => $record->approval_manager || $record->approval_hrd),
+                    ->disabled(function (Leave $record) {
+                        $user = Auth::user();
+                        return !static::canEditLeave($user, $record);
+                    }),
                 Tables\Actions\Action::make('export_individual')
                     ->label('Export Data')
                     ->icon('heroicon-o-document-text')
