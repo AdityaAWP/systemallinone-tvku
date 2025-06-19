@@ -6,13 +6,13 @@ use App\Models\Journal;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PDFJournalController extends Controller
 {
     public function downloadpdf() {
         // Use Auth::guard('intern')->user()->id instead of Auth::user()->id
-        $journal = Journal::with('intern')
+        $journal = Journal::with(['intern', 'intern.internDivision'])
             ->where('intern_id', Auth::guard('intern')->user()->id)
             ->get();
         
@@ -21,7 +21,7 @@ class PDFJournalController extends Controller
             'journal' => $journal
         ];
         
-        $pdf = PDF::loadview('journalPDF', $data);
+        $pdf = Pdf::loadview('journalPDF', $data);
         return $pdf->download('laporan-jurnal.pdf');
     }
 
@@ -29,7 +29,7 @@ class PDFJournalController extends Controller
         $month = $request->input('month', Carbon::now()->month);
         $year = $request->input('year', Carbon::now()->year);
         
-        $journal = Journal::with('intern')
+        $journal = Journal::with(['intern', 'intern.internDivision'])
         ->where('intern_id', Auth::guard('intern')->user()->id)
         ->whereMonth('entry_date', $month)
             ->whereYear('entry_date', $year)
@@ -45,13 +45,13 @@ class PDFJournalController extends Controller
         $monthName = $monthNames[$month] . ' ' . $year;
         
         $data = [
-            'title' => 'Laporan Magang - ' . $monthName,
+            'title' => 'Laporan Jurnal - ' . $monthName,
             'journal' => $journal,
             'period' => $monthName
         ];
         
-        $pdf = PDF::loadview('journalPDF', $data);
-        $filename = 'surat-lembur-' . strtolower(str_replace(' ', '-', $monthName)) . '.pdf';
+        $pdf = Pdf::loadview('journalPDF', $data);
+        $filename = 'laporan-jurnal-' . strtolower(str_replace(' ', '-', $monthName)) . '.pdf';
         
         return $pdf->download($filename);
     }
