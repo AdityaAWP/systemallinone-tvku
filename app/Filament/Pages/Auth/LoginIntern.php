@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
 use Filament\Http\Responses\Auth\Contracts\LoginResponse;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
-use App\Models\Intern; // Use Intern model instead of User
+use App\Models\Intern;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Filament\Notifications\Notification;
@@ -23,14 +23,19 @@ class LoginIntern extends BaseLogin
         return 'Login Magang Panel';
     }
 
+    public function getHeading(): string
+    {
+        return ''; // Menghapus teks "Masuk ke akun Anda"
+    }
+
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                View::make('filament.pages.auth.flash-message'),
                 $this->getNameFormComponent(),
                 $this->getPasswordFormComponent(),
-            ]);
+            ])
+            ->extraAttributes(['class' => 'my-16']); // Menambahkan padding y yang tinggi
     }
 
     protected function getNameFormComponent(): Component
@@ -55,8 +60,8 @@ class LoginIntern extends BaseLogin
         } catch (ThrottleRequestsException $exception) {
             throw ValidationException::withMessages([
                 'data.name' => __('filament-panels::pages/auth/login.messages.throttled', [
-                    'seconds' => $exception->secondsUntilAvailable,
-                    'minutes' => ceil($exception->secondsUntilAvailable / 60),
+                    'seconds' => $exception->getHeaders()['Retry-After'] ?? 60,
+                    'minutes' => ceil(($exception->getHeaders()['Retry-After'] ?? 60) / 60),
                 ]),
             ]);
         }
