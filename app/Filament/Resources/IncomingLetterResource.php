@@ -36,19 +36,34 @@ class IncomingLetterResource extends Resource
                                     ->required()
                                     ->label('Jenis Surat')
                                     ->live()
-                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                        $prefix = match ($state) {
-                                            'internal' => 'I-',
-                                            'general' => 'U-',
-                                            'visit' => 'KP-',
-                                            default => ''
-                                        };
-                                        $set('reference_number', $prefix . '000');
+                                    ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get, $context) {
+                                        if ($state && $context === 'create') {
+                                            $nextNumber = IncomingLetter::generateNextReferenceNumber($state);
+                                            $set('reference_number', $nextNumber);
+                                        } elseif ($state && $context === 'edit') {
+                                            // Pada mode edit, hanya update jika jenis surat berubah
+                                            $currentRefNumber = $get('reference_number');
+                                            $currentPrefix = match ($state) {
+                                                'internal' => 'I-',
+                                                'general' => 'U-',
+                                                'visit' => 'KP-',
+                                                default => ''
+                                            };
+                                            
+                                            // Jika prefix tidak cocok dengan yang sekarang, generate ulang
+                                            if (!str_starts_with($currentRefNumber, $currentPrefix)) {
+                                                $nextNumber = IncomingLetter::generateNextReferenceNumber($state);
+                                                $set('reference_number', $nextNumber);
+                                            }
+                                        }
                                     }),
 
                                 Forms\Components\TextInput::make('reference_number')
                                     ->label('No.Agenda')
-                                    ->required(),
+                                    ->required()
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->helperText('Nomor agenda akan dibuat otomatis berdasarkan jenis surat'),
 
                                 Forms\Components\DatePicker::make('received_date')
                                     ->required()
