@@ -299,9 +299,18 @@ class UserResource extends Resource
                 $isHrd = $roleNames->contains('hrd');
             }
         }
-        if ($isSuperAdmin || $isHrd) {
+        
+        if ($isSuperAdmin) {
+            // Super admin can see all users
             return parent::getEloquentQuery();
+        } elseif ($isHrd) {
+            // HRD can see all users except super admin
+            return parent::getEloquentQuery()
+                ->whereDoesntHave('roles', function ($query) {
+                    $query->where('name', 'super_admin');
+                });
         } else {
+            // Other users can only see users they created
             return parent::getEloquentQuery()
                 ->where('created_by', $user ? $user->id : null);
         }
