@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Overtime;
 use App\Models\User;
+use App\Models\DailyReport;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
@@ -56,6 +57,9 @@ class MonthlyOvertimeReminderWidget extends Widget
         // Check if user has submitted overtime this month
         $hasSubmittedThisMonth = $currentMonthCount > 0;
         
+        // Daily Report Data
+        $dailyReportData = $this->getDailyReportData($user, $currentDate);
+        
         // Logic untuk menentukan kapan reminder harus ditampilkan
         $shouldShowReminder = $this->shouldShowReminder($currentDate, $hasSubmittedThisMonth, $previousMonthCount);
         
@@ -71,6 +75,7 @@ class MonthlyOvertimeReminderWidget extends Widget
             'recent_overtimes' => $recentOvertimes,
             'should_show_reminder' => $shouldShowReminder,
             'reminder_reason' => $this->getReminderReason($currentDate, $hasSubmittedThisMonth, $previousMonthCount),
+            'daily_report' => $dailyReportData,
         ];
     }
 
@@ -126,6 +131,127 @@ class MonthlyOvertimeReminderWidget extends Widget
         }
         
         return 'Saatnya mengajukan lembur bulanan Anda';
+    }
+
+    /**
+     * Mendapatkan data laporan harian untuk reminder
+     */
+    private function getDailyReportData($user, $currentDate)
+    {
+        $today = $currentDate->toDateString();
+        $yesterday = $currentDate->copy()->subDay()->toDateString();
+        $currentWeekStart = $currentDate->copy()->startOfWeek();
+        $currentWeekEnd = $currentDate->copy()->endOfWeek();
+        
+        // Check if user has submitted today's report
+        $todayReport = DailyReport::where('user_id', $user->id)
+            ->where('entry_date', $today)
+            ->first();
+        
+        // Check if user has submitted yesterday's report (only on weekdays)
+        $yesterdayReport = null;
+        $yesterdayDate = $currentDate->copy()->subDay();
+        if ($yesterdayDate->isWeekday()) {
+            $yesterdayReport = DailyReport::where('user_id', $user->id)
+                ->where('entry_date', $yesterday)
+                ->first();
+        }
+        
+        // Get this week's reports count
+        $thisWeekReportsCount = DailyReport::where('user_id', $user->id)
+            ->whereBetween('entry_date', [$currentWeekStart->toDateString(), $currentWeekEnd->toDateString()])
+            ->count();
+        
+        // Get recent reports (last 5)
+        $recentReports = DailyReport::where('user_id', $user->id)
+            ->orderBy('entry_date', 'desc')
+            ->limit(5)
+            ->get();
+        
+        // Check missing reports in current week (weekdays only)
+        $missingDaysCount = 0;
+        $currentWeekDays = [];
+        for ($date = $currentWeekStart->copy(); $date->lte($currentWeekEnd) && $date->lte($currentDate); $date->addDay()) {
+            if ($date->isWeekday()) {
+                $currentWeekDays[] = $date->toDateString();
+                $hasReport = DailyReport::where('user_id', $user->id)
+                    ->where('entry_date', $date->toDateString())
+                    ->exists();
+                if (!$hasReport) {
+                    $missingDaysCount++;
+                }
+            }
+        }
+        
+        return [
+            'has_today_report' => !is_null($todayReport),
+            'has_yesterday_report' => !is_null($yesterdayReport),
+            'yesterday_is_weekday' => $yesterdayDate->isWeekday(),
+            'this_week_reports_count' => $thisWeekReportsCount,
+            'missing_days_count' => $missingDaysCount,
+            'recent_reports' => $recentReports,
+            'should_show_daily_reminder' => $this->shouldShowDailyReportReminder($currentDate, $todayReport, $yesterdayReport, $missingDaysCount),
+            'daily_reminder_reason' => $this->getDailyReminderReason($currentDate, $todayReport, $yesterdayReport, $missingDaysCount),
+        ];
+    }    /**
+     * Logika untuk menentukan kapan daily report reminder harus ditampilkan
+     */
+    private function shouldShowDailyReportReminder($currentDate, $todayReport, $yesterdayReport, $missingDaysCount): bool
+    {
+        // Jangan tampilkan di weekend
+        if ($currentDate->isWeekend()) {
+            return false;
+        }
+        
+        // Jangan tampilkan jika sudah buat laporan hari ini
+        if ($todayReport) {
+            return false;
+        }
+        
+        // Tampilkan jika belum buat laporan hari ini
+        if (!$todayReport) {
+            return true;
+        }
+        
+        // Tampilkan jika kemarin hari kerja dan belum buat laporan kemarin
+        $yesterday = $currentDate->copy()->subDay();
+        if ($yesterday->isWeekday() && !$yesterdayReport) {
+            return true;
+        }
+        
+        // Tampilkan jika ada hari yang terlewat minggu ini
+        if ($missingDaysCount > 0) {
+            return true;
+        }
+        
+        return false;
+    }    /**
+     * Mendapatkan alasan kenapa daily report reminder ditampilkan
+     */
+    private function getDailyReminderReason($currentDate, $todayReport, $yesterdayReport, $missingDaysCount): string
+    {
+        if ($currentDate->isWeekend()) {
+            return '';
+        }
+        
+        if ($todayReport) {
+            return '';
+        }
+        
+        if (!$todayReport) {
+            return 'Jangan lupa buat laporan harian untuk hari ini';
+        }
+        
+        $yesterday = $currentDate->copy()->subDay();
+        if ($yesterday->isWeekday() && !$yesterdayReport) {
+            return 'Anda belum membuat laporan harian untuk kemarin (' . $yesterday->translatedFormat('d F Y') . ')';
+        }
+        
+        if ($missingDaysCount > 0) {
+            return "Ada {$missingDaysCount} hari kerja minggu ini yang belum diisi laporannya";
+        }
+        
+        return 'Pastikan laporan harian Anda selalu up to date';
     }
 
     /**
