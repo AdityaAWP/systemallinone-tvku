@@ -19,12 +19,14 @@ class IncomingLetter extends Model
         'content',
         'letter_date',
         'received_date',
-        'notes'
+        'notes',
+        'attachments',
     ];
 
     protected $casts = [
         'letter_date' => 'date',
         'received_date' => 'date',
+        'attachments' => 'array',
     ];
 
     public function attachments()
