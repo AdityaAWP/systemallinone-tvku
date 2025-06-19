@@ -43,10 +43,18 @@ class InternEndingSoonTable extends BaseWidget
                     ->label('Email')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('school.name')
-                    ->label('Sekolah/Instansi')
+                    ->label(function ($record) {
+                        if (!$record || !$record->institution_type) {
+                            return 'Universitas/Sekolah';
+                        }
+                        return $record->institution_type === 'Perguruan Tinggi' ? 'Perguruan Tinggi' : 'Asal Sekolah';
+                    })
+                    ->getStateUsing(function ($record) {
+                        return $record?->school?->name ?? '-';
+                    })
                     ->sortable(),
-                Tables\Columns\TextColumn::make('division')
-                    ->label('Divisi')
+                Tables\Columns\TextColumn::make('internDivision.name')
+                    ->label('Divisi Magang')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('end_date')
                     ->label('Tanggal Selesai')

@@ -3,7 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Intern;
-use App\Models\InternSchool;
+use App\Models\InternDivision;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\DB;
@@ -37,24 +37,22 @@ class InternStatsTable extends Widget
             ->pluck('total', 'intern_schools.type')
             ->toArray();
 
-        $divisionCounts = DB::table('interns')
-            ->select('division', DB::raw('count(*) as total'))
-            ->whereNotNull('division')
-            ->groupBy('division')
-            ->pluck('total', 'division')
+        $divisionCounts = DB::table('intern_divisions')
+            ->join('interns', 'intern_divisions.id', '=', 'interns.intern_division_id')
+            ->select('intern_divisions.name', DB::raw('count(*) as total'))
+            ->groupBy('intern_divisions.name')
+            ->pluck('total', 'intern_divisions.name')
             ->toArray();
 
-        $divisions = [
-            'IT', 'Produksi', 'DINUS FM', 'TS', 'MCR',
-            'DMO', 'Wardrobe', 'News', 'Humas dan Marketing'
-        ];
+        // Get all divisions from database instead of hardcoded array
+        $allDivisions = InternDivision::pluck('name')->toArray();
 
         return [
             ['label' => 'Total Anak Magang', 'value' => $totalInterns],
             ['label' => 'Anak Magang Aktif', 'value' => $activeInterns],
             ['label' => 'Total Perguruan Tinggi', 'value' => $schoolTypeCounts['Perguruan Tinggi'] ?? 0],
             ['label' => 'Total SMA/SMK', 'value' => $schoolTypeCounts['SMA/SMK'] ?? 0],
-            ...collect($divisions)->map(fn($div) => [
+            ...collect($allDivisions)->map(fn($div) => [
                 'label' => "Divisi $div",
                 'value' => $divisionCounts[$div] ?? 0,
             ])->toArray()
