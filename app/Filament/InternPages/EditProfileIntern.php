@@ -6,11 +6,14 @@ use Filament\Pages\Page;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Intern;
 use App\Models\InternSchool;
+use App\Models\InternDivision;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Infolists\Components\TextEntry;
@@ -64,28 +67,43 @@ class EditProfileIntern extends Page
                 
                 Section::make('Academic Information')
                     ->schema([
-                        TextEntry::make('school.name')
-                            ->label('Asal Sekolah')
+                        TextEntry::make('institution_type')
+                            ->label('Jenjang Pendidikan')
                             ->icon('heroicon-o-academic-cap')
                             ->placeholder('Not provided'),
                         
-                        TextEntry::make('division')
-                            ->label('Divisi')
+                        TextEntry::make('school.name')
+                            ->label(function ($record) {
+                                if (!$record || !$record->institution_type) {
+                                    return 'Universitas/Sekolah';
+                                }
+                                return $record->institution_type === 'Perguruan Tinggi' ? 'Perguruan Tinggi' : 'Asal Sekolah';
+                            })
+                            ->icon('heroicon-o-academic-cap')
+                            ->placeholder('Not provided'),
+                        
+                        TextEntry::make('internDivision.name')
+                            ->label('Divisi Magang')
                             ->icon('heroicon-o-building-office')
                             ->placeholder('Not provided'),
                         
                         TextEntry::make('institution_supervisor')
-                            ->label('Nama Pembimbing')
+                            ->label('Pembimbing TVKU')
                             ->icon('heroicon-o-user-circle')
                             ->placeholder('Not provided'),
                         
                         TextEntry::make('college_supervisor')
-                            ->label('Dosen Pembimbing/Guru Pembimbing')
+                            ->label(function ($record) {
+                                if (!$record || !$record->institution_type) {
+                                    return 'Pembimbing Asal';
+                                }
+                                return $record->institution_type === 'Perguruan Tinggi' ? 'Dosen Pembimbing' : 'Guru Pembimbing';
+                            })
                             ->icon('heroicon-o-user-circle')
                             ->placeholder('Not provided'),
                         
                         TextEntry::make('college_supervisor_phone')
-                            ->label('No Telepon Dosen Pembimbing/Guru Pembimbing')
+                            ->label('Telepon Pembimbing')
                             ->icon('heroicon-o-phone')
                             ->placeholder('Not provided'),
                     ])
@@ -94,13 +112,13 @@ class EditProfileIntern extends Page
                 Section::make('Internship Period')
                     ->schema([
                         TextEntry::make('start_date')
-                            ->label('Start Date')
+                            ->label('Mulai Magang')
                             ->date()
                             ->icon('heroicon-o-calendar-days')
                             ->placeholder('Not set'),
                         
                         TextEntry::make('end_date')
-                            ->label('End Date')
+                            ->label('Selesai Magang')
                             ->date()
                             ->icon('heroicon-o-calendar-days')
                             ->placeholder('Not set'),
@@ -122,7 +140,7 @@ class EditProfileIntern extends Page
             ->form([
                 TextInput::make('name')
                     ->required()
-                    ->label('Nama Lengkap')
+                    ->label('Nama')
                     ->maxLength(255)
                     ->default($intern->name),
 
@@ -136,54 +154,87 @@ class EditProfileIntern extends Page
 
                 DatePicker::make('birth_date')
                     ->label('Tanggal Lahir')
+                    ->required()
                     ->maxDate(now())
                     ->default($intern->birth_date),
 
-                Select::make('school_id')
-                    ->label('Asal Sekolah')
-                    ->options(InternSchool::all()->pluck('name', 'id'))
-                    ->searchable()
-                    ->placeholder('Select School/Institution')
-                    ->default($intern->school_id),
-
-                TextInput::make('division')
-                    ->label('Divisi')
-                    ->maxLength(255)
-                    ->default($intern->division),
-
                 TextInput::make('nis_nim')
                     ->label('NIS/NIM')
-                    ->maxLength(255)
+                    ->maxLength(50)
                     ->default($intern->nis_nim),
 
+                Select::make('institution_type')
+                    ->label('Jenjang Pendidikan')
+                    ->options([
+                        'Perguruan Tinggi' => 'Perguruan Tinggi',
+                        'SMA/SMK' => 'SMA/SMK',
+                    ])
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(fn(Set $set) => $set('school_id', null))
+                    ->default($intern->institution_type),
+
+                Select::make('school_id')
+                    ->label(function (Get $get) {
+                        $type = $get('institution_type');
+                        return $type === 'Perguruan Tinggi' ? 'Perguruan Tinggi' : 'Asal Sekolah';
+                    })
+                    ->options(function (Get $get) {
+                        $type = $get('institution_type');
+                        if (!$type) return [];
+
+                        return InternSchool::where('type', $type)
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->default($intern->school_id),
+
+                Select::make('intern_division_id')
+                    ->label('Divisi Magang')
+                    ->options(function () {
+                        return InternDivision::all()->pluck('name', 'id');
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->default($intern->intern_division_id),
+
                 TextInput::make('no_phone')
-                    ->label('No Telepon')
+                    ->label('Telepon Magang')
                     ->tel()
                     ->maxLength(20)
                     ->default($intern->no_phone),
 
-                TextInput::make('institution_supervisor')
-                    ->label('Nama Pembimbing')
-                    ->maxLength(255)
-                    ->default($intern->institution_supervisor),
-
                 TextInput::make('college_supervisor')
-                    ->label('Dosen Pembimbing/Guru Pembimbing')
+                    ->label(function (Get $get) {
+                        $type = $get('institution_type');
+                        return $type === 'Perguruan Tinggi' ? 'Dosen Pembimbing' : 'Guru Pembimbing';
+                    })
                     ->maxLength(255)
                     ->default($intern->college_supervisor),
 
+                TextInput::make('institution_supervisor')
+                    ->label('Pembimbing TVKU')
+                    ->maxLength(255)
+                    ->default($intern->institution_supervisor),
+
                 TextInput::make('college_supervisor_phone')
-                    ->label('No Telepon Dosen Pembimbing/Guru Pembimbing')
+                    ->label('Telepon Pembimbing')
                     ->tel()
                     ->maxLength(20)
                     ->default($intern->college_supervisor_phone),
 
                 DatePicker::make('start_date')
                     ->label('Mulai Magang')
+                    ->required()
                     ->default($intern->start_date),
 
                 DatePicker::make('end_date')
                     ->label('Selesai Magang')
+                    ->required()
                     ->after('start_date')
                     ->default($intern->end_date),
             ])
