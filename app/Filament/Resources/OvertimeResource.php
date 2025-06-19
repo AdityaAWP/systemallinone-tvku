@@ -299,7 +299,7 @@ class OvertimeResource extends Resource
                                             $options['all_data'] = 'Semua Data Lembur Staff';
                                         } elseif (static::isManager($user) || static::isKepala($user)) {
                                             $options['my_data'] = 'Data Lembur Saya';
-                                            $options['division_data'] = 'Data Lembur Divisi';
+                                            $options['division_data'] = 'Semua Data Lembur Staff';
                                         } else {
                                             $options['my_data'] = 'Data Lembur Saya';
                                         }
@@ -545,7 +545,7 @@ class OvertimeResource extends Resource
                     ->label('Download PDF')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('warning')
-                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                     ->form([
                         Forms\Components\Select::make('month')
                             ->label('Bulan')

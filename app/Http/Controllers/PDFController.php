@@ -10,6 +10,22 @@ use Carbon\Carbon;
 
 class PDFController extends Controller
 {
+    /**
+     * Check if user has any manager role
+     */
+    private function isManager($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'manager%')->exists();
+    }
+
+    /**
+     * Check if user has any kepala role
+     */
+    private function isKepala($user): bool
+    {
+        return $user->roles()->where('name', 'like', 'kepala%')->exists();
+    }
+
     // Download semua PDF (existing function)
     public function downloadpdf()
     {
@@ -95,9 +111,33 @@ class PDFController extends Controller
 
     public function downloadUserMonthlyPdf(Request $request, $user_id)
     {
-        // Pastikan hanya HRD yang bisa mengakses
-        if (!Auth::user()->hasRole('hrd')) {
+        $user = Auth::user();
+        
+        // Pastikan hanya HRD, Manager, atau Kepala yang bisa mengakses
+        if (!$user->hasRole('hrd') && !$this->isManager($user) && !$this->isKepala($user)) {
             return redirect()->back()->with('error', 'Unauthorized access');
+        }
+
+        // Jika bukan HRD, validasi akses divisi
+        if (!$user->hasRole('hrd')) {
+            // Get user yang akan didownload datanya
+            $targetUser = \App\Models\User::find($user_id);
+            if (!$targetUser) {
+                return redirect()->back()->with('error', 'User tidak ditemukan');
+            }
+
+            // Get divisi yang dikelola user yang login
+            $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
+            
+            // Jika tidak ada divisi dari many-to-many, fallback ke primary division
+            if (empty($userDivisionIds) && $user->division_id) {
+                $userDivisionIds = [$user->division_id];
+            }
+
+            // Cek apakah target user ada di divisi yang dikelola
+            if (!in_array($targetUser->division_id, $userDivisionIds)) {
+                return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk mendownload data user dari divisi lain');
+            }
         }
 
         $month = $request->input('month', Carbon::now()->month);
