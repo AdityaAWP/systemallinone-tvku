@@ -25,7 +25,9 @@ class Intern extends Authenticatable implements FilamentUser
         'password',
         'birth_date',
         'school_id',
+        'institution_type',
         'division',
+        'intern_division_id',
         'nis_nim',
         'no_phone',
         'institution_supervisor',
@@ -73,6 +75,14 @@ class Intern extends Authenticatable implements FilamentUser
     public function school()
     {
         return $this->belongsTo(InternSchool::class, 'school_id');
+    }
+
+    /**
+     * Get the intern division that the intern belongs to.
+     */
+    public function internDivision()
+    {
+        return $this->belongsTo(InternDivision::class, 'intern_division_id');
     }
     // public function getAuthIdentifierName()
     // {
