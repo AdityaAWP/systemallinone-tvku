@@ -88,13 +88,16 @@ class OutgoingLetterResource extends Resource
                             ->multiple()
                             ->maxSize(5120) // Batas 5MB
                             ->directory('letters/outgoing')
-                            ->storeFileNamesIn('original_filename')
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) {
-                                return $file->storeAs('letters/outgoing', Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
-                            })
+                            ->disk('public')
+                            ->visibility('public')
                             ->columnSpanFull()
-                            ->label('Lampiran (Maksimal 5MB per file)'),
+                            ->label('Lampiran (Maksimal 5MB per file)')
+                            ->getUploadedFileNameForStorageUsing(function ($file, $livewire) {
+                                $reference = $livewire->data['reference_number'] ?? 'lampiran';
+                                $original = $file->getClientOriginalName();
+                                return $reference . '_' . $original;
+                            }),
                     ]),
             ]);
     }
@@ -141,17 +144,24 @@ class OutgoingLetterResource extends Resource
                     ->sortable()
                     ->hidden()
                     ->label('Diperbarui Pada'),
-                Tables\Columns\ImageColumn::make('attachments')
-                    ->label('Gambar')
-                    ->circular()
-                    ->getStateUsing(function ($record) {
+                Tables\Columns\IconColumn::make('attachments')
+                    ->label('Lampiran')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->state(function ($record) {
                         $attachments = $record->attachments;
-                        if (is_array($attachments) && !empty($attachments)) {
-                            return $attachments[0]; 
+                        if (is_array($attachments)) {
+                            foreach ($attachments as $file) {
+                                if (is_string($file) && trim($file) !== '') {
+                                    return true;
+                                }
+                            }
+                        } elseif (is_string($attachments) && trim($attachments) !== '') {
+                            return true;
                         }
-                        return null;
-                    })
-                    ->disk('public'),
+                        return false;
+                    }),
             ])
             ->filters([
                 Tables\Filters\Filter::make('letter_date')
@@ -174,7 +184,46 @@ class OutgoingLetterResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->form([
+                        Forms\Components\Section::make('Informasi Surat')
+                            ->schema([
+                                Forms\Components\TextInput::make('reference_number')
+                                    ->label('Nomor Referensi')
+                                    ->disabled(),
+                                Forms\Components\TextInput::make('type')
+                                    ->label('Jenis Surat')
+                                    ->formatStateUsing(fn ($state) => $state === 'internal' ? 'Internal' : 'Umum')
+                                    ->disabled(),
+                                Forms\Components\DatePicker::make('letter_date')
+                                    ->label('Tanggal Surat')
+                                    ->disabled(),
+                                Forms\Components\Textarea::make('recipient')
+                                    ->label('Penerima')
+                                    ->disabled(),
+                                Forms\Components\Textarea::make('subject')
+                                    ->label('Perihal')
+                                    ->disabled(),
+                                Forms\Components\RichEditor::make('content')
+                                    ->label('Isi Surat')
+                                    ->disabled(),
+                                Forms\Components\Textarea::make('notes')
+                                    ->label('Catatan')
+                                    ->disabled(),
+                            ])
+                            ->columns(2),
+                        Forms\Components\Section::make('Lampiran')
+                            ->schema([
+                                Forms\Components\FileUpload::make('attachments')
+                                    ->label('File Lampiran')
+                                    ->multiple()
+                                    ->disabled()
+                                    ->downloadable()
+                                    ->openable()
+                                    ->columnSpanFull(),
+                            ])
+                            ->collapsible(),
+                    ]),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
