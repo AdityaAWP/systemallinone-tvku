@@ -411,16 +411,12 @@ class DailyReportResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('Edit')
                     ->visible(
-                        fn($record) =>
-                        $record->user_id === Auth::id() ||
-                            Auth::user()->hasRole('hrd')
+                        fn($record) => $record->user_id === Auth::id()
                     ),
                 Tables\Actions\DeleteAction::make()
                     ->label('Hapus')
                     ->visible(
-                        fn($record) =>
-                        $record->user_id === Auth::id() ||
-                            Auth::user()->hasRole('hrd')
+                        fn($record) => $record->user_id === Auth::id()
                     ),
                 Tables\Actions\Action::make('export_individual')
                     ->label('Export Data')
@@ -465,8 +461,7 @@ class DailyReportResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => Auth::user()->hasRole('hrd')),
+                    // Bulk delete dihapus karena tidak ada yang boleh melakukan bulk delete
                     ExportBulkAction::make()
                         ->exporter(DailyReportExporter::class)
                         ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))

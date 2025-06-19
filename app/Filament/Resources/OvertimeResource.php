@@ -530,15 +530,11 @@ class OvertimeResource extends Resource
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
                     ->visible(
-                        fn($record) =>
-                        $record->user_id === Auth::id() ||
-                            Auth::user()->hasRole('hrd')
+                        fn($record) => $record->user_id === Auth::id()
                     ),
                 Tables\Actions\DeleteAction::make()
                     ->visible(
-                        fn($record) =>
-                        $record->user_id === Auth::id() ||
-                            Auth::user()->hasRole('hrd')
+                        fn($record) => $record->user_id === Auth::id()
                     ),
 
                 Tables\Actions\Action::make('download_monthly_pdf')
@@ -616,8 +612,7 @@ class OvertimeResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => Auth::user()->hasRole('hrd')),
+                    // Bulk delete dihapus karena tidak ada yang boleh melakukan bulk delete
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
