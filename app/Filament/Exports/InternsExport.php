@@ -36,7 +36,7 @@ class InternsExport implements FromCollection, WithHeadings, WithMapping, WithTi
     
     public function collection()
     {
-        $query = Intern::with('school');
+        $query = Intern::with(['school', 'internDivision']);
         
         // Filter berdasarkan tipe institusi
         if ($this->institutionType !== 'all') {
@@ -58,8 +58,8 @@ class InternsExport implements FromCollection, WithHeadings, WithMapping, WithTi
             'Sekolah/Instansi',
             'Divisi',
             'No. Telepon',
-            'Pembimbing Asal',
             'Pembimbing TVKU',
+            'Pembimbing Asal',
             'Telepon Pembimbing',
             'Tanggal Mulai',
             'Tanggal Selesai',
@@ -91,7 +91,7 @@ class InternsExport implements FromCollection, WithHeadings, WithMapping, WithTi
             $intern->email,
             $intern->school ? $intern->school->type : '',
             $intern->school ? $intern->school->name : '',
-            $intern->division,
+            $intern->internDivision ? $intern->internDivision->name : '',
             $intern->no_phone,
             $intern->institution_supervisor,
             $intern->college_supervisor,
