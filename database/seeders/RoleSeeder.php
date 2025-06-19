@@ -40,6 +40,7 @@ class RoleSeeder extends Seeder
             'admin_magang',
             'admin_surat',
             'admin_logistik',
+            'intern_division',
         ];
 
         // Create roles
@@ -88,7 +89,7 @@ class RoleSeeder extends Seeder
     {
         $resources = [
             'assignment', 'daily_report', 'event', 'incoming_letter', 
-            'intern', 'intern_school', 'leave', 'loan_item', 
+            'intern', 'intern_school', 'intern_division', 'leave', 'loan_item', 
             'logistics', 'outgoing_letter', 'overtime', 'user'
         ];
 
@@ -341,6 +342,8 @@ class RoleSeeder extends Seeder
                 'update_intern', 'delete_intern', 'delete_any_intern',
                 'view_any_intern::school', 'view_intern::school', 'create_intern::school', 
                 'update_intern::school', 'delete_intern::school', 'delete_any_intern::school',
+                'view_any_intern::division', 'view_intern::division', 'create_intern::division', 
+                'update_intern::division', 'delete_intern::division', 'delete_any_intern::division',
                 'view_any_event', 'view_event', 'create_event', 
                 'update_event', 'delete_event', 'delete_any_event',
             ],
@@ -353,6 +356,8 @@ class RoleSeeder extends Seeder
                 'view_any_event', 'view_event', 'create_event', 
                 'update_event', 'delete_event', 'delete_any_event',
             ],
+
+          
         ];
     }
 }
