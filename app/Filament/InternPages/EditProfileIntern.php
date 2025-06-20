@@ -29,7 +29,7 @@ class EditProfileIntern extends Page
     protected static ?string $navigationGroup = 'Profile Management';
     protected static ?int $navigationSort = 5;
     protected static string $view = 'filament.intern-pages.edit-profile-intern';
-    protected static ?string $title = 'Edit Profile';
+    protected static ?string $title = 'Profile';
     
     public function profileInfolist(Infolist $infolist): Infolist
     {
