@@ -40,10 +40,9 @@ class AssignmentResource extends Resource
                     ->count() ?: null;
             }
 
-            // For manager_keuangan: show pending assignments from staff
+            // For manager_keuangan: show pending assignments from staff that need to be submitted
             if ($user->hasRole('manager_keuangan')) {
                 return static::getModel()::where('submit_status', Assignment::SUBMIT_BELUM)
-
                     ->whereHas('creator', function ($q) {
                         $q->whereHas('roles', function ($roleQuery) {
                             $roleQuery->where('name', 'staff_keuangan');
@@ -52,14 +51,15 @@ class AssignmentResource extends Resource
                     ->count() ?: null;
             }
 
-            // For staff_keuangan: show their pending assignments
+            // For staff_keuangan: show their own assignments that are still pending (not yet approved/declined)
             if ($user->hasRole('staff_keuangan')) {
-                return static::getModel()::where('approval_status', Assignment::STATUS_PENDING)
-                    ->where('created_by', Auth::id())
+                return static::getModel()::where('created_by', Auth::id())
+                    ->where('approval_status', Assignment::STATUS_PENDING)
                     ->count() ?: null;
             }
         }
 
+        // Default for other roles or if no specific role matches
         return static::getModel()::count() ?: null;
     }
 
@@ -150,21 +150,6 @@ class AssignmentResource extends Resource
                                     ->label('Catatan Produksi')
                                     ->columnSpanFull()
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
-
-                                Forms\Components\Select::make('priority')
-                                    ->label('Tingkat Prioritas')
-                                    ->options([
-                                        Assignment::PRIORITY_NORMAL => 'Normal',
-                                        Assignment::PRIORITY_IMPORTANT => 'Penting',
-                                        Assignment::PRIORITY_VERY_IMPORTANT => 'Sangat Penting',
-                                    ])
-                                    ->placeholder('Pilih prioritas')
-                                    ->hidden(fn(Forms\Get $get) => $get('type') !== Assignment::TYPE_PAID)
-                                    // MODIFIED: This field is now only enabled for direktur_utama
-                                    ->disabled(function () {
-                                        $user = Auth::user();
-                                        return !($user && method_exists($user, 'hasRole') && $user->hasRole('direktur_utama'));
-                                    }),
                             ]),
 
                         Forms\Components\Tabs\Tab::make('Status Pengajuan')
@@ -193,6 +178,22 @@ class AssignmentResource extends Resource
 
                         Forms\Components\Tabs\Tab::make('Persetujuan')
                             ->schema([
+                                Forms\Components\Select::make('priority')
+                                    ->label('Tingkat Prioritas')
+                                    ->options([
+                                        Assignment::PRIORITY_NORMAL => 'Normal',
+                                        Assignment::PRIORITY_IMPORTANT => 'Penting',
+                                        Assignment::PRIORITY_VERY_IMPORTANT => 'Sangat Penting',
+                                    ])
+                                    ->placeholder('Pilih prioritas')
+                                    ->hidden(fn(Forms\Get $get) => $get('type') !== Assignment::TYPE_PAID)
+                                    // MODIFIED: This field is now enabled for direktur_utama and manager_keuangan
+                                    ->disabled(function () {
+                                        $user = Auth::user();
+                                        return !($user && method_exists($user, 'hasRole') && 
+                                               ($user->hasRole('direktur_utama') || $user->hasRole('manager_keuangan')));
+                                    }),
+
                                 Forms\Components\Select::make('approval_status')
                                     ->label('Status Persetujuan')
                                     ->options([
