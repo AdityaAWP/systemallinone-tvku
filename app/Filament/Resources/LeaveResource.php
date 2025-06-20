@@ -71,17 +71,17 @@ class LeaveResource extends Resource
         if (static::isStaff($user)) {
             return !($record->approval_manager || $record->approval_hrd);
         }
-
+        
         // HRD bisa edit jika HRD belum approve
         if (static::isHrd($user)) {
             return $record->approval_hrd !== true;
         }
-
+        
         // Manager/Kepala bisa edit jika Manager/Kepala belum approve
         if (static::isManager($user) || static::isKepala($user)) {
             return $record->approval_manager !== true;
         }
-
+        
         // Default: tidak bisa edit
         return false;
     }
@@ -103,12 +103,12 @@ class LeaveResource extends Resource
 
         if ($user->hasRole('hrd')) {
             // HRD: tampilkan jumlah cuti dengan status 'pending' untuk semua data
-            $count = Leave::count();
-            return $count > 0 ? (string) $count : null;
+            $pendingCount = Leave::where('status', 'pending')->count();
+            return $pendingCount > 0 ? (string) $pendingCount : null;
         }
 
-        if (static::isManager($user) || static::isKepala($user)) {
-            // Manager & Kepala: tampilkan jumlah cuti 'pending' untuk semua divisi yang mereka kelola
+        if (static::isManager($user)) {
+            // Manager: tampilkan jumlah cuti 'pending' untuk semua divisi yang mereka kelola
             $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
 
             // Jika tidak ada divisi dari many-to-many, fallback ke primary division
@@ -116,11 +116,12 @@ class LeaveResource extends Resource
                 $userDivisionIds = [$user->division_id];
             }
 
-            $count = Leave::whereHas('user', function ($query) use ($userDivisionIds) {
+            $pendingCount = Leave::where('status', 'pending')
+                ->whereHas('user', function ($query) use ($userDivisionIds) {
                     $query->whereIn('division_id', $userDivisionIds);
                 })
                 ->count();
-             return $count > 0 ? (string) $count : null;
+            return $pendingCount > 0 ? (string) $pendingCount : null;
         }
 
         if (static::isStaff($user)) {
@@ -341,9 +342,9 @@ class LeaveResource extends Resource
                 Forms\Components\Section::make('Bagian Persetujuan')
                     ->schema([
                         Forms\Components\Toggle::make('approval_manager')
-                            ->label('Persetujuan Manager/Kepala')
+                            ->label('Persetujuan Manager')
                             ->helperText('Setujui atau tolak permohonan cuti ini')
-                            ->visible(fn() => ($isManager || $isKepala) && !$isCreating)
+                            ->visible(fn() => $isManager && !$isCreating)
                             ->hiddenOn('view')
                             ->reactive(),
 
@@ -357,10 +358,10 @@ class LeaveResource extends Resource
                         Forms\Components\Textarea::make('rejection_reason')
                             ->label('Alasan Penolakan')
                             ->maxLength(500)
-                            ->visible(function (callable $get) use ($user, $isCreating, $isManager, $isKepala) {
+                            ->visible(function (callable $get) use ($user, $isCreating, $isManager) {
                                 if ($isCreating) return false;
 
-                                if (($isManager || $isKepala) && $get('approval_manager') === false) {
+                                if ($isManager && $get('approval_manager') === false) {
                                     return true;
                                 }
 
@@ -370,8 +371,8 @@ class LeaveResource extends Resource
 
                                 return false;
                             })
-                            ->required(function (callable $get) use ($user, $isManager, $isKepala) {
-                                if (($isManager || $isKepala) && $get('approval_manager') === false) {
+                            ->required(function (callable $get) use ($user, $isManager) {
+                                if ($isManager && $get('approval_manager') === false) {
                                     return true;
                                 }
 
@@ -587,7 +588,7 @@ class LeaveResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('approval_manager')
-                    ->label('Manager/Kepala')
+                    ->label('Manager')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
