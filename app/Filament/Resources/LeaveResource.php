@@ -96,36 +96,30 @@ class LeaveResource extends Resource
         $user = Auth::user();
 
         if ($user->roles()->where('name', 'super_admin')->exists()) {
-            // Super admin: tampilkan jumlah semua data cuti
             $count = Leave::count();
             return $count > 0 ? (string) $count : null;
         }
 
         if ($user->hasRole('hrd')) {
-            // HRD: tampilkan jumlah cuti dengan status 'pending' untuk semua data
-            $pendingCount = Leave::where('status', 'pending')->count();
-            return $pendingCount > 0 ? (string) $pendingCount : null;
+            $count = Leave::count();
+            return $count > 0 ? (string) $count : null;
         }
 
-        if (static::isManager($user)) {
-            // Manager: tampilkan jumlah cuti 'pending' untuk semua divisi yang mereka kelola
+        if (static::isManager($user) || static::isKepala($user)) {
             $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
 
-            // Jika tidak ada divisi dari many-to-many, fallback ke primary division
             if (empty($userDivisionIds) && $user->division_id) {
-                $userDivisionIds = [$user->division_id];
+            $userDivisionIds = [$user->division_id];
             }
 
-            $pendingCount = Leave::where('status', 'pending')
-                ->whereHas('user', function ($query) use ($userDivisionIds) {
-                    $query->whereIn('division_id', $userDivisionIds);
-                })
-                ->count();
-            return $pendingCount > 0 ? (string) $pendingCount : null;
+            $count = Leave::whereHas('user', function ($query) use ($userDivisionIds) {
+                $query->whereIn('division_id', $userDivisionIds);
+            })
+            ->count();
+            return $count > 0 ? (string) $count : null;
         }
 
         if (static::isStaff($user)) {
-            // Staff: tampilkan jumlah cuti miliknya sendiri
             $count = Leave::where('user_id', $user->id)->count();
             return $count > 0 ? (string) $count : null;
         }
@@ -133,16 +127,12 @@ class LeaveResource extends Resource
         return null;
     }
 
-    /**
-     * Menghitung hari kerja (tidak termasuk weekend dan hari libur)
-     */
     public static function calculateWorkingDays($fromDate, $toDate): int
     {
         $from = Carbon::parse($fromDate);
         $to = Carbon::parse($toDate);
 
-        // Daftar hari libur nasional Indonesia 2025 (bisa disesuaikan atau diambil dari database)
-        $holidays = [
+         $holidays = [
             '2025-01-01', // Tahun Baru
             '2025-01-29', // Tahun Baru Imlek
             '2025-02-12', // Isra Mi'raj
@@ -342,9 +332,9 @@ class LeaveResource extends Resource
                 Forms\Components\Section::make('Bagian Persetujuan')
                     ->schema([
                         Forms\Components\Toggle::make('approval_manager')
-                            ->label('Persetujuan Manager')
+                            ->label('Persetujuan Manager/Kepala')
                             ->helperText('Setujui atau tolak permohonan cuti ini')
-                            ->visible(fn() => $isManager && !$isCreating)
+                            ->visible(fn() => ($isManager || $isKepala) && !$isCreating)
                             ->hiddenOn('view')
                             ->reactive(),
 
@@ -358,10 +348,10 @@ class LeaveResource extends Resource
                         Forms\Components\Textarea::make('rejection_reason')
                             ->label('Alasan Penolakan')
                             ->maxLength(500)
-                            ->visible(function (callable $get) use ($user, $isCreating, $isManager) {
+                            ->visible(function (callable $get) use ($user, $isCreating, $isManager, $isKepala) {
                                 if ($isCreating) return false;
 
-                                if ($isManager && $get('approval_manager') === false) {
+                                if (($isManager || $isKepala) && $get('approval_manager') === false) {
                                     return true;
                                 }
 
@@ -371,8 +361,8 @@ class LeaveResource extends Resource
 
                                 return false;
                             })
-                            ->required(function (callable $get) use ($user, $isManager) {
-                                if ($isManager && $get('approval_manager') === false) {
+                            ->required(function (callable $get) use ($user, $isManager, $isKepala) {
+                                if (($isManager || $isKepala) && $get('approval_manager') === false) {
                                     return true;
                                 }
 
