@@ -29,6 +29,13 @@ class JournalResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
     protected static ?int $navigationSort = 5;
+    public static function getNavigationSort(): ?int
+    {
+        if (Auth::guard('intern')->check()) {
+            return -2;
+        }
+        return static::$navigationSort;
+    }
 
     public static function getNavigationGroup(): ?string
     {
@@ -41,7 +48,7 @@ class JournalResource extends Resource
     public static function getNavigationLabel(): string
     {
         if (Auth::guard('intern')->check()) {
-            return 'Jurnal';
+            return 'Rangkuman Jurnal';
         }
         return 'Jurnal Magang';
     }
@@ -49,7 +56,7 @@ class JournalResource extends Resource
     public static function getModelLabel(): string
     {
         if (Auth::guard('intern')->check()) {
-            return 'Jurnal';
+            return 'Rangkuman Jurnal';
         }
         return 'Jurnal Magang';
     }
