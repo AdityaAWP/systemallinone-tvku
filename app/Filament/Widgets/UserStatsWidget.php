@@ -6,6 +6,7 @@ use Filament\Widgets\StatsOverviewWidget as Widget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
 use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
+use Illuminate\Support\Str;
 
 class UserStatsWidget extends Widget
 {
@@ -14,19 +15,25 @@ class UserStatsWidget extends Widget
     {
         $user = Auth::user();
         $roleName = $user->roles->first()->name ?? 'No Role';
+        
+        // Wrap long role names to prevent overflow
+        $wrappedRoleName = wordwrap($roleName, 20, "\n", true);
 
         return [
-            Stat::make('Positions', $roleName)
-            ->description('Jabatan Anda dalam sistem')->icon('heroicon-o-user')
-            ->color('primary'),
+            Stat::make('Positions', $wrappedRoleName)
+                ->description('Jabatan Anda dalam sistem')
+                ->icon('heroicon-o-user')
+                ->color('primary'),
 
-            Stat::make('Akun Dibuat', $user->created_at->isoFormat('D MMMM Y'))->icon('heroicon-o-calendar')
-                ->description($user->created_at->diffForHumans())
-                ->color('success'),
+            Stat::make('Akun Dibuat', $user->created_at->isoFormat('D MMMM Y'))
+            ->icon('heroicon-o-calendar')
+            ->description($user->created_at->diffForHumans())
+            ->color('success'),
 
-            Stat::make('Login Terakhir', now()->isoFormat('D MMMM Y'))->icon('heroicon-o-clock')
-                ->description('Aktif sekarang')
-                ->color('warning'),
+            Stat::make('Login Terakhir', now()->isoFormat('D MMMM Y'))
+            ->icon('heroicon-o-clock')
+            ->description('Aktif sekarang')
+            ->color('warning'),
         ];
     }
     
