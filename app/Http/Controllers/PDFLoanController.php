@@ -13,7 +13,6 @@ class PDFLoanController extends Controller
     public function userpdf($id) {
         $loanitem = LoanItem::with(['user', 'items'])
             ->where('id', $id)
-            ->where('user_id', Auth::user()->id)
             ->first();
             
         if(!$loanitem) {

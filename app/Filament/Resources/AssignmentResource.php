@@ -399,21 +399,45 @@ class AssignmentResource extends Resource
                             $record->submit_status === Assignment::SUBMIT_BELUM;
                     }),
 
-                // Action untuk Direktur Utama - Approve Assignment
+                // Action untuk Direktur Utama - Approve Assignment with Priority Setting
                 Tables\Actions\Action::make('approve')
                     ->label('Approve')
                     ->color('success')
                     ->icon('heroicon-o-check-circle')
-                    ->requiresConfirmation()
+                    ->form([
+                        Forms\Components\Select::make('priority')
+                            ->label('Tingkat Prioritas')
+                            ->options([
+                                Assignment::PRIORITY_NORMAL => 'Normal',
+                                Assignment::PRIORITY_IMPORTANT => 'Penting',
+                                Assignment::PRIORITY_VERY_IMPORTANT => 'Sangat Penting',
+                            ])
+                            ->required()
+                            ->default(fn(Assignment $record) => $record->priority ?? Assignment::PRIORITY_NORMAL)
+                            ->visible(fn(Assignment $record) => $record->type === Assignment::TYPE_PAID),
+                    ])
                     ->modalHeading('Approve Assignment')
-                    ->modalDescription('Apakah Anda yakin ingin menyetujui assignment ini?')
+                    ->modalDescription(function (Assignment $record) {
+                        $description = 'Apakah Anda yakin ingin menyetujui assignment ini?';
+                        if ($record->type === Assignment::TYPE_PAID) {
+                            $description .= ' Silakan tentukan tingkat prioritas untuk assignment ini.';
+                        }
+                        return $description;
+                    })
                     ->modalSubmitActionLabel('Ya, Approve')
-                    ->action(function (Assignment $record) {
-                        $record->update([
+                    ->action(function (Assignment $record, array $data) {
+                        $updateData = [
                             'approval_status' => Assignment::STATUS_APPROVED,
                             'approved_by' => Auth::id(),
                             'approved_at' => now(),
-                        ]);
+                        ];
+
+                        // Set priority only for paid assignments and if provided
+                        if ($record->type === Assignment::TYPE_PAID && isset($data['priority'])) {
+                            $updateData['priority'] = $data['priority'];
+                        }
+
+                        $record->update($updateData);
                     })
                     ->visible(function (Assignment $record): bool {
                         $user = Auth::user();
