@@ -274,19 +274,19 @@
                 <div class="form-cell right-column">
                     <div class="priority-item">
                         <div class="priority-text">RAHASIA</div>
-                        <div class="priority-box">(     )</div>
+                        <div class="priority-box">(___)</div>
                     </div>
                     <div class="priority-item">
                         <div class="priority-text">PENTING</div>
-                        <div class="priority-box">(     )</div>
+                        <div class="priority-box">(___)</div>
                     </div>
                     <div class="priority-item">
                         <div class="priority-text">SEGERA</div>
-                        <div class="priority-box">(     )</div>
+                        <div class="priority-box">(___)</div>
                     </div>
                     <div class="priority-item">
                         <div class="priority-text">BIASA</div>
-                        <div class="priority-box">(     )</div>
+                        <div class="priority-box">(___)</div>
                     </div>
                 </div>
             </div>
