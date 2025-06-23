@@ -9,6 +9,10 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use PDF;
+use Illuminate\Support\Facades\Response;
+use Filament\Forms\Components\Textarea;
+
 
 class IncomingLetterResource extends Resource
 {
@@ -90,7 +94,7 @@ class IncomingLetterResource extends Resource
                             ])
                             ->columns(2),
 
-                        Forms\Components\TextArea::make('subject')
+                        TextArea::make('subject')
                             ->required()
                             ->maxLength(255)
                             ->label('Hal')
@@ -284,12 +288,33 @@ class IncomingLetterResource extends Resource
                     ]),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+                Tables\Actions\Action::make('download_pdf')
+                    ->label('Download PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->action(function (IncomingLetter $record) {
+                        return static::downloadPdf($record);
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function downloadPdf(IncomingLetter $record)
+    {
+        $pdf = PDF::loadView('incoming-letter-disposition', compact('record'));
+        $pdf->setPaper('A4', 'portrait');
+        
+        $filename = 'Disposisi_' . $record->reference_number . '.pdf';
+        
+        return Response::streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, $filename, [
+            'Content-Type' => 'application/pdf',
+        ]);
     }
 
     public static function getRelations(): array

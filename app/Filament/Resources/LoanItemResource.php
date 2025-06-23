@@ -170,18 +170,35 @@ class LoanItemResource extends Resource
                         ->visible(fn () => auth()->user()->hasRole('admin_logistik'))
                         ->schema([
                             TextInput::make('approver_name')
-                                ->required(fn () => auth()->user()->hasRole('admin_logistik'))
-                                ->label('Nama')
-                                ->visible(fn () => auth()->user()->hasRole('admin_logistik')),
+                                ->default(fn () => auth()->user()->name)
+                                ->label('Nama Approver')
+                                ->visible(fn () => auth()->user()->hasRole('admin_logistik'))
+                                ->afterStateHydrated(function ($component, $state, $record) {
+                                    if (!$state && auth()->user()->hasRole('admin_logistik')) {
+                                        $component->state(auth()->user()->name);
+                                    }
+                                }),
                             TextInput::make('approver_telp')
-                                ->required(fn () => auth()->user()->hasRole('admin_logistik'))
-                                ->label('Telp.')
-                                ->visible(fn () => auth()->user()->hasRole('admin_logistik')),
+                                ->default(fn () => auth()->user()->phone ?? auth()->user()->telp ?? '')
+                                ->label('Telp. Approver')
+                                ->visible(fn () => auth()->user()->hasRole('admin_logistik'))
+                                ->afterStateHydrated(function ($component, $state, $record) {
+                                    if (!$state && auth()->user()->hasRole('admin_logistik')) {
+                                        $component->state(auth()->user()->phone ?? auth()->user()->telp ?? '');
+                                    }
+                                }),
                             Radio::make('approval_admin_logistics')
                                 ->label('Approval Admin Logistics')
                                 ->boolean()
                                 ->hidden(fn () => !auth()->user()->hasRole('admin_logistik'))
-                                ->required(),
+                                ->required()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    if ($state === true && auth()->user()->hasRole('admin_logistik')) {
+                                        $set('approver_name', auth()->user()->name);
+                                        $set('approver_telp', auth()->user()->phone ?? auth()->user()->telp ?? '');
+                                    }
+                                }),
                             Radio::make('return_status')
                                 ->label('Status Pengembalian')
                                 ->required()
@@ -245,7 +262,13 @@ class LoanItemResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->visible(function ($record) {
                         $user = Auth::user();
-                        // Allow edit if user is admin_logistics, super_admin, or the owner
+                        
+                        // If the loan item is already approved by admin_logistics, disable edit for everyone except super_admin
+                        if ($record->approval_admin_logistics == true) {
+                            return $user->hasRole('super_admin');
+                        }
+                        
+                        // Otherwise, allow edit if user is admin_logistics, super_admin, or the owner
                         return $user->hasRole(['admin_logistik', 'super_admin']) || 
                                $record->user_id === $user->id;
                     }),
@@ -320,6 +343,12 @@ class LoanItemResource extends Resource
                     ]),
                 ComponentsSection::make('Approval Status')
                     ->schema([
+                        TextEntry::make('approver_name')
+                            ->label('Approved By')
+                            ->visible(fn ($record) => $record->approval_admin_logistics == true),
+                        TextEntry::make('approver_telp')
+                            ->label('Approver Phone')
+                            ->visible(fn ($record) => $record->approval_admin_logistics == true),
                         TextEntry::make('approval_admin_logistics')
                             ->label('Logistics Approval')
                             ->formatStateUsing(fn ($state) => $state ? 'Approved' : 'Pending')
