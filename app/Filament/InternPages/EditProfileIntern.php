@@ -11,6 +11,7 @@ use Filament\Forms\Set;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use App\Models\Intern;
 use App\Models\InternSchool;
 use App\Models\InternDivision;
@@ -255,10 +256,66 @@ class EditProfileIntern extends Page
             });
     }
 
+    public function getChangePasswordAction(): Action
+    {
+        return Action::make('changePassword')
+            ->label('Change Password')
+            ->icon('heroicon-o-key')
+            ->color('warning')
+            ->modalHeading('Change Password')
+            ->modalWidth('md')
+            ->modalSubmitActionLabel('Update Password')
+            ->form([
+                TextInput::make('current_password')
+                    ->label('Current Password')
+                    ->password()
+                    ->required()
+                    ->rule(function () {
+                        return function (string $attribute, $value, \Closure $fail) {
+                            if (!Hash::check($value, Auth::user()->password)) {
+                                $fail('The current password is incorrect.');
+                            }
+                        };
+                    }),
+
+                TextInput::make('new_password')
+                    ->label('New Password')
+                    ->password()
+                    ->required()
+                    ->minLength(8)
+                    ->helperText('Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, and one number.')
+                    ->live()
+                    ->dehydrated(fn ($state) => filled($state)),
+
+                TextInput::make('new_password_confirmation')
+                    ->label('Confirm New Password')
+                    ->password()
+                    ->required()
+                    ->same('new_password')
+                    ->dehydrated(false),
+            ])
+            ->action(function (array $data): void {
+                $intern = Intern::find(Auth::id());
+                
+                $intern->update([
+                    'password' => Hash::make($data['new_password'])
+                ]);
+
+                Notification::make()
+                    ->title('Password updated successfully')
+                    ->body('Your password has been changed successfully.')
+                    ->success()
+                    ->duration(5000)
+                    ->send();
+            })
+            ->modalSubmitAction(fn ($action) => $action->color('warning'));
+    }
+
     protected function getHeaderActions(): array
     {
         return [
             $this->getEditAction(),
+            $this->getChangePasswordAction(),
         ];
     }
 }
