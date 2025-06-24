@@ -72,16 +72,10 @@ class OvertimeResource extends Resource
         }
 
         if (static::isManager($user) || static::isKepala($user)) {
-            // Manager & Kepala: jumlah lembur di divisinya (semua divisi yang dikelola)
-            $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-
-            // Jika tidak ada divisi dari many-to-many, fallback ke primary division
-            if (empty($userDivisionIds) && $user->division_id) {
-                $userDivisionIds = [$user->division_id];
-            }
-
-            $count = Overtime::whereHas('user', function ($query) use ($userDivisionIds) {
-                $query->whereIn('division_id', $userDivisionIds);
+            // Manager & Kepala: jumlah lembur dari staff yang mereka manage (berdasarkan atasan relationship)
+            $count = Overtime::whereHas('user', function ($query) use ($user) {
+                $query->where('manager_id', $user->id)
+                      ->orWhere('created_by', $user->id); // Include users created by this manager
             })->count();
             return $count > 0 ? (string) $count : null;
         }
@@ -111,16 +105,12 @@ class OvertimeResource extends Resource
         }
 
         if (static::isManager($user) || static::isKepala($user)) {
-            // Manager & Kepala bisa melihat data lembur dari semua divisi yang mereka kelola
-            $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-
-            // Jika tidak ada divisi dari many-to-many, fallback ke primary division
-            if (empty($userDivisionIds) && $user->division_id) {
-                $userDivisionIds = [$user->division_id];
-            }
-
-            return parent::getEloquentQuery()->whereHas('user', function ($query) use ($userDivisionIds) {
-                $query->whereIn('division_id', $userDivisionIds);
+            // Manager & Kepala bisa melihat data lembur dari staff yang mereka manage
+            // berdasarkan atasan relationship (manager_id) atau yang mereka buat (created_by)
+            return parent::getEloquentQuery()->whereHas('user', function ($query) use ($user) {
+                $query->where('manager_id', $user->id)
+                      ->orWhere('created_by', $user->id)
+                      ->orWhere('id', $user->id); // Include their own overtime data
             });
         }
 
@@ -299,7 +289,7 @@ class OvertimeResource extends Resource
                                             $options['all_data'] = 'Semua Data Lembur Staff';
                                         } elseif (static::isManager($user) || static::isKepala($user)) {
                                             $options['my_data'] = 'Data Lembur Saya';
-                                            $options['division_data'] = 'Semua Data Lembur Staff';
+                                            $options['staff_data'] = 'Data Lembur Staff Saya';
                                         } else {
                                             $options['my_data'] = 'Data Lembur Saya';
                                         }
@@ -327,17 +317,11 @@ class OvertimeResource extends Resource
                         } elseif ($scope === 'all_data' && $user->hasRole('hrd')) {
                             // Semua data untuk HRD
                             // Query sudah mencakup semua data
-                        } elseif ($scope === 'division_data' && (static::isManager($user) || static::isKepala($user))) {
-                            // Data divisi untuk Manager/Kepala - FIXED: Now includes all managed divisions
-                            $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-
-                            // Jika tidak ada divisi dari many-to-many, fallback ke primary division
-                            if (empty($userDivisionIds) && $user->division_id) {
-                                $userDivisionIds = [$user->division_id];
-                            }
-
-                            $query->whereHas('user', function ($q) use ($userDivisionIds) {
-                                $q->whereIn('division_id', $userDivisionIds);
+                        } elseif ($scope === 'staff_data' && (static::isManager($user) || static::isKepala($user))) {
+                            // Data staff yang dikelola berdasarkan atasan relationship
+                            $query->whereHas('user', function ($q) use ($user) {
+                                $q->where('manager_id', $user->id)
+                                  ->orWhere('created_by', $user->id);
                             });
                         } else {
                             // Fallback ke data sendiri jika scope tidak valid
@@ -377,13 +361,8 @@ class OvertimeResource extends Resource
                         $title = 'Surat Permohonan Ijin Lembur';
                         if ($scope === 'all_data') {
                             $title .= ' - Semua Staff';
-                        } elseif ($scope === 'division_data') {
-                            // Show all managed divisions in title
-                            $divisionNames = $user->divisions()->pluck('name')->toArray();
-                            if (empty($divisionNames) && $user->division) {
-                                $divisionNames = [$user->division->name];
-                            }
-                            $title .= ' - Divisi ' . implode(', ', $divisionNames);
+                        } elseif ($scope === 'staff_data') {
+                            $title .= ' - Staff ' . $user->name;
                         } else {
                             $title .= ' - ' . $user->name;
                         }
@@ -402,12 +381,8 @@ class OvertimeResource extends Resource
                         $filename = 'surat-lembur-';
                         if ($scope === 'all_data') {
                             $filename .= 'semua-staff-';
-                        } elseif ($scope === 'division_data') {
-                            $divisionNames = $user->divisions()->pluck('name')->toArray();
-                            if (empty($divisionNames) && $user->division) {
-                                $divisionNames = [$user->division->name];
-                            }
-                            $filename .= 'divisi-' . strtolower(str_replace([' ', '.'], '-', implode('-', $divisionNames))) . '-';
+                        } elseif ($scope === 'staff_data') {
+                            $filename .= 'staff-' . strtolower(str_replace([' ', '.'], '-', $user->name)) . '-';
                         } else {
                             $filename .= strtolower(str_replace([' ', '.'], '-', $user->name)) . '-';
                         }
@@ -446,6 +421,14 @@ class OvertimeResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user())),
+
+                // Add manager information column to show who is the staff's manager
+                TextColumn::make('user.manager.name')
+                    ->label('Atasan')
+                    ->formatStateUsing(fn($state) => $state ?: 'Tidak ada')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(fn() => Auth::user()->hasRole('hrd')),
 
                 TextColumn::make('tanggal_overtime')
                     ->label('Tanggal Lembur')
@@ -525,6 +508,21 @@ class OvertimeResource extends Resource
                         false: fn(Builder $query) => $query,
                         blank: fn(Builder $query) => $query,
                     ),
+
+                // Add filter for managers to see only their staff's overtime
+                Tables\Filters\TernaryFilter::make('my_staff_overtime')
+                    ->label('Lembur Staff Saya')
+                    ->visible(fn() => static::isManager(Auth::user()) || static::isKepala(Auth::user()))
+                    ->trueLabel('Hanya Staff Saya')
+                    ->falseLabel('Semua yang Bisa Diakses')
+                    ->queries(
+                        true: fn(Builder $query) => $query->whereHas('user', function ($q) {
+                            $q->where('manager_id', Auth::id())
+                              ->orWhere('created_by', Auth::id());
+                        }),
+                        false: fn(Builder $query) => $query,
+                        blank: fn(Builder $query) => $query,
+                    ),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -536,8 +534,7 @@ class OvertimeResource extends Resource
                     ->visible(
                         fn($record) => $record->user_id === Auth::id()
                     ),
-
-                Tables\Actions\Action::make('download_monthly_pdf')
+                    Tables\Actions\Action::make('download_monthly_pdf')
                     ->label('Download PDF')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('warning')
@@ -570,12 +567,67 @@ class OvertimeResource extends Resource
                             ->required(),
                     ])
                     ->action(function (array $data, $record) {
-                        $url = route('overtime.user.monthly.pdf', [
-                            'user_id' => $record->user_id,
-                            'month' => $data['month'],
-                            'year' => $data['year']
+                        $targetUserId = $record->user_id; // The user whose overtime we want to download
+                        $month = $data['month'];
+                        $year = $data['year'];
+
+                        // Build query for specific user's overtime data
+                        $query = Overtime::with(['user', 'user.division'])
+                            ->where('user_id', $targetUserId)
+                            ->whereMonth('tanggal_overtime', $month)
+                            ->whereYear('tanggal_overtime', $year);
+
+                        $overtime = $query->orderBy('tanggal_overtime', 'asc')->get();
+
+                        if ($overtime->isEmpty()) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Tidak ada data')
+                                ->body('Tidak ada data lembur untuk periode yang dipilih.')
+                                ->warning()
+                                ->send();
+                            return;
+                        }
+
+                        // Format nama bulan dalam bahasa Indonesia
+                        $monthNames = [
+                            1 => 'Januari',
+                            2 => 'Februari', 
+                            3 => 'Maret',
+                            4 => 'April',
+                            5 => 'Mei',
+                            6 => 'Juni',
+                            7 => 'Juli',
+                            8 => 'Agustus',
+                            9 => 'September',
+                            10 => 'Oktober',
+                            11 => 'November',
+                            12 => 'Desember'
+                        ];
+
+                        $monthName = $monthNames[$month] . ' ' . $year;
+                        $targetUser = $overtime->first()->user; // Get the target user info
+
+                        $title = 'Surat Permohonan Ijin Lembur - ' . $targetUser->name . ' - ' . $monthName;
+
+                        $pdfData = [
+                            'title' => $title,
+                            'overtime' => $overtime,
+                            'period' => $monthName,
+                            'scope' => 'user_specific'
+                        ];
+
+                        $pdf = FacadePdf::loadview('overtimePDF', $pdfData);
+
+                        // Generate filename
+                        $filename = 'surat-lembur-' . 
+                                strtolower(str_replace([' ', '.'], '-', $targetUser->name)) . '-' .
+                                strtolower(str_replace(' ', '-', $monthName)) . '.pdf';
+
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->output();
+                        }, $filename, [
+                            'Content-Type' => 'application/pdf',
                         ]);
-                        return redirect($url);
                     }),
 
                 Tables\Actions\Action::make('export_user_yearly')

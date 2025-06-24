@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Exports\OvertimeYearlyExport;
 use App\Exports\DailyReportExcel;
+use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
 {
@@ -68,7 +69,12 @@ class UserResource extends Resource
                             ->required()
                             ->multiple()
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                // Clear manager selection when roles change
+                                $set('manager_id', null);
+                            }),
                         TextInput::make('position')
                             ->label('Jabatan')
                             ->required(),
@@ -90,6 +96,22 @@ class UserResource extends Resource
                             ->searchable()
                             ->preload()
                             ->reactive(),
+                        Select::make('manager_id')
+                            ->label('Manager/Atasan')
+                            ->searchable()
+                            ->preload()
+                            ->options(function () {
+                                // Show all users with any manager role from any division
+                                return User::whereHas('roles', function ($query) {
+                                    $query->where('name', 'like', 'manager_%')
+                                          ->orWhere('name', 'like', 'kepala_%')
+                                          ->orWhere('name', 'like', 'head_%');
+                                })
+                                ->pluck('name', 'id')
+                                ->toArray();
+                            })
+                            ->placeholder('Pilih Manager/Atasan')
+                            ->helperText('Pilih manager dari semua divisi yang tersedia'),
                     ])->columns(2),
 
                 Section::make('Informasi Personal')
@@ -148,6 +170,10 @@ class UserResource extends Resource
                     TextColumn::make('position')
                         ->label('Jabatan')
                         ->searchable(),
+                    TextColumn::make('manager.name')
+                        ->label('Manager/Atasan')
+                        ->searchable()
+                        ->placeholder('Tidak ada'),
                     TextColumn::make('created_at')
                         ->dateTime()
                         ->sortable(),

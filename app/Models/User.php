@@ -11,6 +11,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class User extends Authenticatable //implements FilamentUser
 {
@@ -33,6 +34,7 @@ class User extends Authenticatable //implements FilamentUser
         'no_phone',
         'npp',
         'division_id',
+        'manager_id', // Add this to fillable
     ];
 
     protected $hidden = [
@@ -82,6 +84,18 @@ class User extends Authenticatable //implements FilamentUser
         return $this->belongsTo(Division::class);
     }
 
+    // Manager relationship
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    // Staff relationship (users who have this user as manager)
+    public function staff(): HasMany
+    {
+        return $this->hasMany(User::class, 'manager_id');
+    }
+
     public function dailyReports()
     {
         return $this->hasMany(DailyReport::class);
@@ -118,21 +132,22 @@ class User extends Authenticatable //implements FilamentUser
 
     public function getAtasanAttribute()
     {
-        $divisionId = $this->division_id;
+        // First check if there's a manually assigned manager
+        if ($this->manager_id) {
+            return $this->manager;
+        }
 
+        // Fallback to finding any manager with appropriate role (not division-based)
         $manager = User::whereHas('roles', function($query) {
             $query->where('name', 'like', 'manager_%');
-        })
-        ->where('division_id', $divisionId)
-        ->first();
+        })->first();
 
+        // If no manager found, look for head/kepala roles
         if (!$manager) {
-            $manager = User::whereHas('roles', function($query) use ($divisionId) {
+            $manager = User::whereHas('roles', function($query) {
                 $query->where('name', 'like', 'kepala_%')
                     ->orWhere('name', 'like', 'head_%');
-            })
-            ->where('division_id', $divisionId)
-            ->first();
+            })->first();
         }
 
         return $manager;
@@ -164,5 +179,27 @@ class User extends Authenticatable //implements FilamentUser
     public function getAllDivisionNames()
     {
         return $this->divisions->pluck('name')->toArray();
+    }
+
+    // Helper method to check if user is a manager
+    public function isManager()
+    {
+        return $this->roles()->where('name', 'like', 'manager_%')->exists();
+    }
+
+    // Helper method to check if user is a staff
+    public function isStaff()
+    {
+        return $this->roles()->where('name', 'like', 'staff_%')->exists();
+    }
+
+    // Helper method to get manager role name based on staff role
+    public function getExpectedManagerRole()
+    {
+        $staffRole = $this->roles()->where('name', 'like', 'staff_%')->first();
+        if ($staffRole) {
+            return str_replace('staff_', 'manager_', $staffRole->name);
+        }
+        return null;
     }
 }
