@@ -13,6 +13,7 @@
         "filament/actions": "^3.3",
         "filament/filament": "^3.2",
         "filament/notifications": "^3.3",
+        "filament/spatie-laravel-settings-plugin": "^3.3",
         "husam-tariq/filament-timepicker": "^3.0",
         "laravel/framework": "^11.31",
         "laravel/sanctum": "^4.0",
@@ -22,7 +23,9 @@
         "maatwebsite/excel": "^3.1",
         "saade/filament-fullcalendar": "^3.0",
         "simplesoftwareio/simple-qrcode": "^4.2",
-        "spatie/laravel-permission": "^6.16"
+        "spatie/laravel-backup": "^9.3",
+        "spatie/laravel-permission": "^6.16",
+        "spatie/laravel-settings": "^3.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

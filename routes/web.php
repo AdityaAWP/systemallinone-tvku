@@ -10,6 +10,7 @@ use App\Http\Controllers\LeaveDetailController;
 use App\Http\Controllers\PDFAssignmentController;
 use App\Http\Controllers\InternController;
 use App\Http\Controllers\PDFJournalController;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/info', function () {
     return gd_info();
@@ -69,3 +70,44 @@ Route::get('/overtime/user/{user_id}/monthly/pdf', [PDFController::class, 'downl
     ->name('overtime.user.monthly.pdf');
 
 Route::get('/assignments/{id}/xml', [PDFAssignmentController::class, 'generateXml'])->name('assignment.xml');
+
+// Add this to your routes/web.php file
+
+// Add this to your routes/web.php file
+
+Route::middleware(['auth'])->group(function () {
+    // ZIP backup download (Spatie package)
+    Route::get('/backup/download/{file}', function ($file) {
+        $backupDisk = config('backup.backup.destination.disks.0', 'local');
+        $disk = Storage::disk($backupDisk);
+        $filePath = 'Laravel/' . $file;
+        
+        if (!$disk->exists($filePath)) {
+            abort(404, 'Backup file not found');
+        }
+        
+        return response()->streamDownload(function () use ($disk, $filePath) {
+            $stream = $disk->readStream($filePath);
+            fpassthru($stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }, $file, [
+            'Content-Type' => 'application/zip',
+            'Content-Disposition' => 'attachment; filename="' . $file . '"'
+        ]);
+    })->name('backup.download');
+    
+    // SQL backup download
+    Route::get('/sql-backup/download/{file}', function ($file) {
+        $filePath = storage_path('app/backups/' . $file);
+        
+        if (!file_exists($filePath)) {
+            abort(404, 'SQL backup file not found');
+        }
+        
+        return response()->download($filePath, $file, [
+            'Content-Type' => 'application/sql',
+        ]);
+    })->name('sql-backup.download');
+});
