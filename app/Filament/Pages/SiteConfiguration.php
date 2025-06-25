@@ -11,6 +11,8 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Auth;
+
 
 class SiteConfiguration extends Page implements HasForms
 {
@@ -21,6 +23,7 @@ class SiteConfiguration extends Page implements HasForms
     protected static ?string $title = 'Settings Configuration';
     protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 5;
+    protected static bool $shouldRegisterNavigation = false;
     
     public ?array $data = [];
     
@@ -175,4 +178,10 @@ class SiteConfiguration extends Page implements HasForms
                 ->icon('heroicon-o-folder'),
         ];
     }
+    
+    public static function shouldRegisterNavigation(): bool
+    {
+        return Auth::check() && Auth::user() && Auth::user()->hasRole('super_admin');
+    }
+    
 }
