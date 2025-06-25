@@ -21,6 +21,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Concerns\InteractsWithInfolists;
+use Filament\Forms\Components\Grid;
 
 class EditProfileIntern extends Page
 {
@@ -136,108 +137,124 @@ class EditProfileIntern extends Page
             ->label('Edit Profile')
             ->icon('heroicon-o-pencil-square')
             ->modalHeading('Edit Profile Information')
-            ->modalWidth('xl')
+            ->modalWidth('7xl')
             ->modalSubmitActionLabel('Save Changes')
             ->form([
-                TextInput::make('name')
-                    ->required()
-                    ->label('Nama')
-                    ->maxLength(255)
-                    ->default($intern->name),
+                Grid::make(4)
+                    ->schema([
+                        TextInput::make('name')
+                            ->required()
+                            ->label('Username')
+                            ->maxLength(255)
+                            ->default($intern->name)
+                            ->columnSpan(2),
 
-                TextInput::make('email')
-                    ->email()   
-                    ->label('Email')
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->maxLength(255)
-                    ->default($intern->email),
+                        TextInput::make('email')
+                            ->email()   
+                            ->label('Email')
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->maxLength(255)
+                            ->default($intern->email)
+                            ->columnSpan(2),
 
-                DatePicker::make('birth_date')
-                    ->label('Tanggal Lahir')
-                    ->required()
-                    ->maxDate(now())
-                    ->default($intern->birth_date),
+                        DatePicker::make('birth_date')
+                            ->label('Tanggal Lahir')
+                            ->required()
+                            ->maxDate(now())
+                            ->default($intern->birth_date)
+                            ->columnSpan(1),
 
-                TextInput::make('nis_nim')
-                    ->label('NIS/NIM')
-                    ->maxLength(50)
-                    ->default($intern->nis_nim),
+                        TextInput::make('nis_nim')
+                            ->label('NIS/NIM')
+                            ->maxLength(50)
+                            ->default($intern->nis_nim)
+                            ->columnSpan(1),
 
-                Select::make('institution_type')
-                    ->label('Jenjang Pendidikan')
-                    ->options([
-                        'Perguruan Tinggi' => 'Perguruan Tinggi',
-                        'SMA/SMK' => 'SMA/SMK',
-                    ])
-                    ->required()
-                    ->live()
-                    ->afterStateUpdated(fn(Set $set) => $set('school_id', null))
-                    ->default($intern->institution_type),
+                        TextInput::make('no_phone')
+                            ->label('Telepon Magang')
+                            ->tel()
+                            ->maxLength(20)
+                            ->default($intern->no_phone)
+                            ->columnSpan(2),
 
-                Select::make('school_id')
-                    ->label(function (Get $get) {
-                        $type = $get('institution_type');
-                        return $type === 'Perguruan Tinggi' ? 'Perguruan Tinggi' : 'Asal Sekolah';
-                    })
-                    ->options(function (Get $get) {
-                        $type = $get('institution_type');
-                        if (!$type) return [];
+                        Select::make('institution_type')
+                            ->label('Jenjang Pendidikan')
+                            ->options([
+                                'Perguruan Tinggi' => 'Perguruan Tinggi',
+                                'SMA/SMK' => 'SMA/SMK',
+                            ])
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(fn(Set $set) => $set('school_id', null))
+                            ->default($intern->institution_type)
+                            ->columnSpan(2),
 
-                        return InternSchool::where('type', $type)
-                            ->pluck('name', 'id')
-                            ->toArray();
-                    })
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->default($intern->school_id),
+                        Select::make('school_id')
+                            ->label(function (Get $get) {
+                                $type = $get('institution_type');
+                                return $type === 'Perguruan Tinggi' ? 'Perguruan Tinggi' : 'Asal Sekolah';
+                            })
+                            ->options(function (Get $get) {
+                                $type = $get('institution_type');
+                                if (!$type) return [];
 
-                Select::make('intern_division_id')
-                    ->label('Divisi Magang')
-                    ->options(function () {
-                        return InternDivision::all()->pluck('name', 'id');
-                    })
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->default($intern->intern_division_id),
+                                return InternSchool::where('type', $type)
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->default($intern->school_id)
+                            ->columnSpan(2),
 
-                TextInput::make('no_phone')
-                    ->label('Telepon Magang')
-                    ->tel()
-                    ->maxLength(20)
-                    ->default($intern->no_phone),
+                        Select::make('intern_division_id')
+                            ->label('Divisi Magang')
+                            ->options(function () {
+                                return InternDivision::all()->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->default($intern->intern_division_id)
+                            ->columnSpan(2),
 
-                TextInput::make('college_supervisor')
-                    ->label(function (Get $get) {
-                        $type = $get('institution_type');
-                        return $type === 'Perguruan Tinggi' ? 'Dosen Pembimbing' : 'Guru Pembimbing';
-                    })
-                    ->maxLength(255)
-                    ->default($intern->college_supervisor),
+                        TextInput::make('college_supervisor')
+                            ->label(function (Get $get) {
+                                $type = $get('institution_type');
+                                return $type === 'Perguruan Tinggi' ? 'Dosen Pembimbing' : 'Guru Pembimbing';
+                            })
+                            ->maxLength(255)
+                            ->default($intern->college_supervisor)
+                            ->columnSpan(2),
 
-                TextInput::make('institution_supervisor')
-                    ->label('Pembimbing TVKU')
-                    ->maxLength(255)
-                    ->default($intern->institution_supervisor),
+                        TextInput::make('institution_supervisor')
+                            ->label('Pembimbing TVKU')
+                            ->maxLength(255)
+                            ->default($intern->institution_supervisor)
+                            ->columnSpan(2),
 
-                TextInput::make('college_supervisor_phone')
-                    ->label('Telepon Pembimbing')
-                    ->tel()
-                    ->maxLength(20)
-                    ->default($intern->college_supervisor_phone),
+                        TextInput::make('college_supervisor_phone')
+                            ->label('Telepon Pembimbing')
+                            ->tel()
+                            ->maxLength(20)
+                            ->default($intern->college_supervisor_phone)
+                            ->columnSpan(2),
 
-                DatePicker::make('start_date')
-                    ->label('Mulai Magang')
-                    ->required()
-                    ->default($intern->start_date),
+                        DatePicker::make('start_date')
+                            ->label('Mulai Magang')
+                            ->required()
+                            ->default($intern->start_date)
+                            ->columnSpan(2),
 
-                DatePicker::make('end_date')
-                    ->label('Selesai Magang')
-                    ->required()
-                    ->after('start_date')
-                    ->default($intern->end_date),
+                        DatePicker::make('end_date')
+                            ->label('Selesai Magang')
+                            ->required()
+                            ->after('start_date')
+                            ->default($intern->end_date)
+                            ->columnSpan(2),
+                    ]),
             ])
             ->action(function (array $data): void {
                 $intern = Intern::find(Auth::id());
@@ -259,36 +276,36 @@ class EditProfileIntern extends Page
     public function getChangePasswordAction(): Action
     {
         return Action::make('changePassword')
-            ->label('Change Password')
+            ->label('Ubah Kata Sandi')
             ->icon('heroicon-o-key')
             ->color('warning')
-            ->modalHeading('Change Password')
+            ->modalHeading('Ubah Kata Sandi')
             ->modalWidth('md')
-            ->modalSubmitActionLabel('Update Password')
+            ->modalSubmitActionLabel('Perbarui Kata Sandi')
             ->form([
                 TextInput::make('current_password')
-                    ->label('Current Password')
+                    ->label('Kata Sandi Saat Ini')
                     ->password()
                     ->required()
                     ->rule(function () {
                         return function (string $attribute, $value, \Closure $fail) {
-                            if (!Hash::check($value, Auth::user()->password)) {
-                                $fail('The current password is incorrect.');
+                            if (!Hash::check($value, (string) Auth::user()->password)) {
+                                $fail('Kata sandi saat ini salah.');
                             }
                         };
                     }),
 
                 TextInput::make('new_password')
-                    ->label('New Password')
+                    ->label('Kata Sandi Baru')
                     ->password()
                     ->required()
                     ->minLength(8)
-                    ->helperText('Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, and one number.')
+                    ->helperText('Kata sandi minimal 8 karakter dan mengandung setidaknya satu huruf besar, satu huruf kecil, dan satu angka.')
                     ->live()
                     ->dehydrated(fn ($state) => filled($state)),
 
                 TextInput::make('new_password_confirmation')
-                    ->label('Confirm New Password')
+                    ->label('Konfirmasi Kata Sandi Baru')
                     ->password()
                     ->required()
                     ->same('new_password')
@@ -302,8 +319,8 @@ class EditProfileIntern extends Page
                 ]);
 
                 Notification::make()
-                    ->title('Password updated successfully')
-                    ->body('Your password has been changed successfully.')
+                    ->title('Kata sandi berhasil diperbarui')
+                    ->body('Kata sandi Anda telah berhasil diubah.')
                     ->success()
                     ->duration(5000)
                     ->send();
