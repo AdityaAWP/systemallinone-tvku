@@ -18,7 +18,9 @@ class SiteConfiguration extends Page implements HasForms
     
     protected static string $view = 'filament.pages.site-configuration';
     protected static ?string $navigationIcon = 'heroicon-o-cog';
-    protected static ?string $title = 'Site Configuration';
+    protected static ?string $title = 'Settings Configuration';
+    protected static ?string $navigationGroup = 'Settings';
+    protected static ?int $navigationSort = 5;
     
     public ?array $data = [];
     
