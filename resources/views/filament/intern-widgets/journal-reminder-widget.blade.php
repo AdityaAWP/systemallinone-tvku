@@ -191,29 +191,6 @@
                         </div>
                     </x-filament::section>
                 </div>
-            @else
-                {{-- No Journal Entries Yet --}}
-                <div class="mb-4">
-                    <x-filament::section>
-                        <x-slot name="heading">
-                            <div class="flex items-center gap-x-2">
-                                <x-filament::icon icon="heroicon-o-document-plus" class="h-5 w-5 text-gray-500" />
-                                <span>Mulai Mengisi Journal</span>
-                            </div>
-                        </x-slot>
-
-                        <div class="text-center py-6">
-                            <x-filament::icon icon="heroicon-o-document-text" class="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                                Belum ada journal yang dibuat. Mulai dengan mengisi journal harian Anda.
-                            </p>
-                            <x-filament::button tag="a" :href="route('filament.intern.resources.journals.create')"
-                                color="primary" icon="heroicon-o-plus">
-                                Buat Journal Pertama
-                            </x-filament::button>
-                        </div>
-                    </x-filament::section>
-                </div>
             @endif
 
             {{-- Tips Section --}}
