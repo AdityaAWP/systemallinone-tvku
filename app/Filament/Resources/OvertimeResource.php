@@ -228,6 +228,7 @@ class OvertimeResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordUrl(fn($record) => static::getUrl('view', ['record' => $record]))
             ->headerActions([
                 // HRD filtering actions - similar to Leave resource
                 Tables\Actions\Action::make('Semua Lembur Staff')
@@ -683,6 +684,7 @@ class OvertimeResource extends Resource
             'index' => Pages\ListOvertimes::route('/'),
             'create' => Pages\CreateOvertime::route('/create'),
             'edit' => Pages\EditOvertime::route('/{record}/edit'),
+            'view' => Pages\ViewOvertime::route('/{record}'),
         ];
     }
 }
