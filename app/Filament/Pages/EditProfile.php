@@ -20,6 +20,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Concerns\InteractsWithInfolists;
+use Illuminate\Support\Facades\Hash;
 
 class EditProfile extends Page
 {
@@ -146,6 +147,52 @@ class EditProfile extends Page
             });
     }
 
+    public function getChangePasswordAction(): Action
+    {
+        return Action::make('changePassword')
+            ->label('Ganti Password')
+            ->icon('heroicon-o-key')
+            ->color('warning')
+            ->modalHeading('Ganti Password')
+            ->modalWidth('md')
+            ->modalSubmitActionLabel('Update Password')
+            ->form([
+                TextInput::make('current_password')
+                    ->label('Password Lama')
+                    ->password()
+                    ->required()
+                    ->rule(function () {
+                        return function (string $attribute, $value, \Closure $fail) {
+                            if (!Hash::check($value, (string) Auth::user()->password)) {
+                                $fail('Password lama salah.');
+                            }
+                        };
+                    }),
+                TextInput::make('new_password')
+                    ->label('Password Baru')
+                    ->password()
+                    ->required()
+                    ->minLength(8)
+                    ->helperText('Password minimal 8 karakter dan mengandung huruf besar, kecil, dan angka.'),
+                TextInput::make('new_password_confirmation')
+                    ->label('Konfirmasi Password Baru')
+                    ->password()
+                    ->required()
+                    ->same('new_password'),
+            ])
+            ->action(function (array $data): void {
+                $user = User::find(Auth::id());
+                $user->update([
+                    'password' => Hash::make($data['new_password'])
+                ]);
+                Notification::make()
+                    ->title('Password berhasil diubah')
+                    ->success()
+                    ->send();
+            })
+            ->modalSubmitAction(fn ($action) => $action->color('warning'));
+    }
+
     public function profileInfolist($infolist = null)
     {
         $user = Auth::user();
@@ -207,6 +254,7 @@ class EditProfile extends Page
     {
         return [
             $this->getEditAction(),
+            $this->getChangePasswordAction(),
         ];
     }
 }
