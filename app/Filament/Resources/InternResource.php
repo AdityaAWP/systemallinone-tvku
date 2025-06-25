@@ -115,7 +115,7 @@ class InternResource extends Resource
                     ->label('No')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Nama')
+                    ->label('Username')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('email')
