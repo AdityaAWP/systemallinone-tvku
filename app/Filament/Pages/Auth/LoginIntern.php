@@ -41,7 +41,7 @@ class LoginIntern extends BaseLogin
     protected function getNameFormComponent(): Component
     {
         return TextInput::make('name')
-            ->label('Name')
+            ->label('Username')
             ->required()
             ->autocomplete('name')
             ->autofocus()
