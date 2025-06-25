@@ -30,6 +30,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 
+
 class DailyReportResource extends Resource
 {
     protected static ?string $model = DailyReport::class;
@@ -74,12 +75,12 @@ class DailyReportResource extends Resource
         // If user is manager or kepala, they can see reports from all divisions they manage
         if (static::isManager($user) || static::isKepala($user)) {
             $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-            
+
             // If no many-to-many divisions, fallback to primary division
             if (empty($userDivisionIds) && $user->division_id) {
                 $userDivisionIds = [$user->division_id];
             }
-            
+
             // If user has divisions, show reports from those divisions
             if (!empty($userDivisionIds)) {
                 return parent::getEloquentQuery()->whereHas('user', function ($query) use ($userDivisionIds) {
@@ -111,12 +112,12 @@ class DailyReportResource extends Resource
         if (static::isManager($user) || static::isKepala($user)) {
             // Manager & Kepala: jumlah lembur di divisinya (semua divisi yang dikelola)
             $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-            
+
             // Jika tidak ada divisi dari many-to-many, fallback ke primary division
             if (empty($userDivisionIds) && $user->division_id) {
                 $userDivisionIds = [$user->division_id];
             }
-            
+
             $count = DailyReport::whereHas('user', function ($query) use ($userDivisionIds) {
                 $query->whereIn('division_id', $userDivisionIds);
             })->count();
@@ -204,6 +205,7 @@ class DailyReportResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordUrl(fn($record) => static::getUrl('view', ['record' => $record]))
             ->headerActions([
                 Tables\Actions\Action::make('reset_to_all')
                     ->label('Semua Laporan Staff')
@@ -244,8 +246,8 @@ class DailyReportResource extends Resource
                                 'all' => 'Semua Data Staff'
                             ])
                             ->default('personal')
-                            ->visible(fn() => Auth::user()->hasRole('hrd') || 
-                                DailyReportResource::isManager(Auth::user()) || 
+                            ->visible(fn() => Auth::user()->hasRole('hrd') ||
+                                DailyReportResource::isManager(Auth::user()) ||
                                 DailyReportResource::isKepala(Auth::user()))
                             ->required(),
                     ])
@@ -272,9 +274,9 @@ class DailyReportResource extends Resource
                             return (new DailyReportExcel($year, $userId))->download($filename);
                         }
                     })
-                    ->visible(fn() => Auth::user()->hasRole('hrd') 
-                        || DailyReportResource::isStaff(Auth::user()) 
-                        || DailyReportResource::isManager(Auth::user()) 
+                    ->visible(fn() => Auth::user()->hasRole('hrd')
+                        || DailyReportResource::isStaff(Auth::user())
+                        || DailyReportResource::isManager(Auth::user())
                         || DailyReportResource::isKepala(Auth::user())),
             ])
             ->columns([
@@ -299,7 +301,7 @@ class DailyReportResource extends Resource
                     ->date('d F Y')
                     ->sortable(),
                 TextColumn::make('check_in')
-                ->label('Waktu Mulai Bekerja')
+                    ->label('Waktu Mulai Bekerja')
                     ->searchable()
                     ->dateTime('H:i'),
                 TextColumn::make('check_out')
@@ -312,7 +314,7 @@ class DailyReportResource extends Resource
                     ->state(fn(DailyReport $record): string => "{$record->work_hours_component} jam {$record->work_minutes_component} menit"),
                 TextColumn::make('description')
                     ->searchable()
-                    ->formatStateUsing(fn (string $state): HtmlString => new HtmlString($state))
+                    ->formatStateUsing(fn(string $state): HtmlString => new HtmlString($state))
                     ->label('Deskripsi'),
             ])
             ->filters([
@@ -364,17 +366,17 @@ class DailyReportResource extends Resource
                     ->options(function () {
                         $months = [];
                         $query = DailyReport::query();
-                        
+
                         // Apply same query logic as getEloquentQuery
                         $user = Auth::user();
                         if (!$user->hasRole('hrd')) {
                             if (static::isManager($user) || static::isKepala($user)) {
                                 $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-                                
+
                                 if (empty($userDivisionIds) && $user->division_id) {
                                     $userDivisionIds = [$user->division_id];
                                 }
-                                
+
                                 if (!empty($userDivisionIds)) {
                                     $query->whereHas('user', function ($q) use ($userDivisionIds) {
                                         $q->whereIn('division_id', $userDivisionIds);
@@ -386,7 +388,7 @@ class DailyReportResource extends Resource
                                 $query->where('user_id', $user->id);
                             }
                         }
-                        
+
                         $reports = $query->selectRaw('DISTINCT DATE_FORMAT(entry_date, "%Y-%m") as month')
                             ->orderBy('month', 'desc')
                             ->get();
@@ -437,13 +439,13 @@ class DailyReportResource extends Resource
                             ->options(function () {
                                 $years = [];
                                 $currentYear = now()->year;
-                                
+
                                 // Generate 5 tahun mundur dari tahun sekarang
                                 for ($i = 0; $i < 5; $i++) {
                                     $year = $currentYear - $i;
                                     $years[$year] = $year;
                                 }
-                                
+
                                 return $years;
                             })
                             ->required()
@@ -453,11 +455,11 @@ class DailyReportResource extends Resource
                         $user = $record->user;
                         $year = $data['year'];
                         $userName = str_replace(' ', '_', $user->name);
-                        
+
                         $filename = "laporan_harian_{$userName}_{$year}.xlsx";
                         return (new DailyReportExcel($year, $user->id))->download($filename);
                     }),
-                
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -465,7 +467,7 @@ class DailyReportResource extends Resource
                     ExportBulkAction::make()
                         ->exporter(DailyReportExporter::class)
                         ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
-                        
+
                 ]),
             ]);
     }
@@ -483,6 +485,7 @@ class DailyReportResource extends Resource
             'index' => Pages\ListDailyReports::route('/'),
             'create' => Pages\CreateDailyReport::route('/create'),
             'edit' => Pages\EditDailyReport::route('/{record}/edit'),
+            'view' => Pages\ViewDailyReport::route('/{record}'),
         ];
     }
 }
