@@ -79,4 +79,14 @@ class Leave extends Model
     {
         return $this->status === 'pending';
     }
+
+    public static function countCasualLeavesInMonth($userId, $month, $year): int
+    {
+        return self::where('user_id', $userId)
+            ->where('leave_type', 'casual')
+            ->whereMonth('from_date', $month)
+            ->whereYear('from_date', $year)
+            ->whereIn('status', ['pending', 'approved'])
+            ->count();
+    }
 }

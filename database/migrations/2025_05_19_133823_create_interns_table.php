@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('interns', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // used for matching during registration
+            $table->string('name'); 
             $table->date('birth_date')->nullable();
             $table->string('email')->unique()->nullable(); // not always known at pre-registration
             $table->foreignId('school_id')->nullable()->constrained('intern_schools')->onDelete('cascade');

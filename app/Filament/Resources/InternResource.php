@@ -13,6 +13,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Hash;
 
 class InternResource extends Resource
 {
@@ -33,15 +35,14 @@ class InternResource extends Resource
                         Forms\Components\TextInput::make('name')
                             ->label('Nama')
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->unique(Intern::class, 'name', ignoreRecord: true), // Add unique validation
                         Forms\Components\TextInput::make('email')
                             ->label('Email')
                             ->email()
-                            ->required()
                             ->maxLength(255),
                         Forms\Components\DatePicker::make('birth_date')
-                            ->label('Tanggal Lahir')
-                            ->required(),
+                            ->label('Tanggal Lahir'),
                         Forms\Components\TextInput::make('nis_nim')
                             ->label('NIS/NIM')
                             ->maxLength(50),
@@ -102,6 +103,15 @@ class InternResource extends Resource
                         Forms\Components\DatePicker::make('end_date')
                             ->label('Selesai Magang')
                             ->required(),
+                        Forms\Components\TextInput::make('password')
+                            ->label('Password')
+                            ->password()
+                            ->revealable()
+                            ->dehydrated(fn ($state) => filled($state))
+                            ->required(fn (string $context): bool => $context === 'create')
+                            ->helperText('Kosongkan jika tidak ingin mengubah password')
+                            ->maxLength(255)
+                            ->dehydrateStateUsing(fn ($state) => filled($state) ? Hash::make($state) : null),
                     ])->columns(2),
             ]);
     }
@@ -251,7 +261,11 @@ class InternResource extends Resource
                     ->form([
                         Forms\Components\TextInput::make('username')
                             ->label('Username')
-                            ->required(),
+                            ->required()
+                            ->unique(Intern::class, 'name') // Add unique validation for pre-register
+                            ->validationMessages([
+                                'unique' => 'Username sudah digunakan. Silakan pilih username lain.',
+                            ]),
 
                         Forms\Components\Select::make('intern_division_id')
                             ->label('Divisi Magang')

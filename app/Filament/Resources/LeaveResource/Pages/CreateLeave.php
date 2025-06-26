@@ -63,8 +63,31 @@ class CreateLeave extends CreateRecord
             return;
         }
 
-        $totalLeavesThisMonth = $this->countLeavesInMonth($user, $month, $year);
+        // Special validation for casual leave (cuti tahunan)
+        if ($leaveType === 'casual') {
+            if (!$this->canCreateCasualLeaveForMonth($user, $month, $year)) {
+                FilamentNotification::make()
+                    ->title("Batas Cuti Tahunan Bulanan Tercapai")
+                    ->body("Sudah 2 kali cuti tahunan untuk bulan ini")
+                    ->danger()
+                    ->persistent()
+                    ->send();
+                $this->halt();
+            }
 
+            $casualLeavesThisMonth = Leave::countCasualLeavesInMonth($user->id, $month, $year);
+            if ($casualLeavesThisMonth == 1) {
+                FilamentNotification::make()
+                    ->title("Peringatan Penggunaan Cuti Tahunan")
+                    ->body("Anda sudah mengambil 1 cuti tahunan di bulan ini. Ini adalah cuti tahunan terakhir yang dapat Anda ambil bulan ini.")
+                    ->warning()
+                    ->send();
+            }
+            return;
+        }
+
+        // Original logic for other leave types
+        $totalLeavesThisMonth = $this->countLeavesInMonth($user, $month, $year);
         $specificTypeLeavesThisMonth = $this->countLeavesByTypeInMonth($user, $leaveType, $month, $year);
 
         if ($specificTypeLeavesThisMonth == 1) {
@@ -84,7 +107,6 @@ class CreateLeave extends CreateRecord
                 ->danger()
                 ->persistent()
                 ->send();
-
             $this->halt();
         }
 
@@ -95,7 +117,6 @@ class CreateLeave extends CreateRecord
                 ->danger()
                 ->persistent()
                 ->send();
-
             $this->halt();
         }
     }
@@ -206,6 +227,15 @@ class CreateLeave extends CreateRecord
                 Notification::send($managers, new LeaveRequested($leave));
             }
         }
+    }
+
+    /**
+     * Check if user can create casual leave for the given month
+     */
+    private function canCreateCasualLeaveForMonth(User $user, $month, $year): bool
+    {
+        $casualLeavesThisMonth = Leave::countCasualLeavesInMonth($user->id, $month, $year);
+        return $casualLeavesThisMonth < 2;
     }
 
     protected function getRedirectUrl(): string
