@@ -236,52 +236,17 @@ class LeaveResource extends Resource
                             ])
                             ->required()
                             ->reactive()
-                            ->disabled(fn (string $context): bool => $context === 'edit')
-                            ->helperText(function (?string $state, $record, callable $get) use ($user, $isStaff, $isCreating) {
+                            ->disabled(!$isCreating && !$isStaff)
+                            ->helperText(function (?string $state, $record) use ($user, $isStaff, $isCreating) {
                                 if ($state === 'casual' && $isStaff) {
                                     // Untuk edit, gunakan user dari record, untuk create gunakan current user
                                     $targetUser = $isCreating ? $user : ($record?->user ?? $user);
                                     $quota = LeaveQuota::getUserQuota($targetUser->id);
                                     $sisaKuotaCuti = $quota ? $quota->remaining_casual_quota : 0;
-                                    
-                                    $helperText = "Anda memiliki {$sisaKuotaCuti} hari cuti tahunan tersisa tahun ini.";
-                                    
-                                    // Check monthly limit for casual leave if creating new record
-                                    if ($isCreating) {
-                                        $fromDate = $get('from_date');
-                                        if ($fromDate) {
-                                            $month = \Carbon\Carbon::parse($fromDate)->month;
-                                            $year = \Carbon\Carbon::parse($fromDate)->year;
-                                            $casualLeavesThisMonth = \App\Models\Leave::countCasualLeavesInMonth($targetUser->id, $month, $year);
-                                            
-                                            if ($casualLeavesThisMonth >= 2) {
-                                                $helperText .= " ⚠️ Anda sudah mengambil 2 cuti tahunan bulan ini.";
-                                            } elseif ($casualLeavesThisMonth === 1) {
-                                                $helperText .= " ⚠️ Anda sudah mengambil 1 cuti tahunan bulan ini.";
-                                            }
-                                        }
-                                    }
-                                    
-                                    return $helperText;
+                                    return "Anda memiliki {$sisaKuotaCuti} hari cuti tahunan tersisa tahun ini.";
                                 }
                                 return null;
-                            })
-                            ->rules(['required', function () use ($user, $isCreating) {
-                                return function (string $attribute, $value, \Closure $fail) use ($user, $isCreating) {
-                                    if ($value === 'casual' && $isCreating) {
-                                        $fromDate = request()->input('data.from_date');
-                                        if ($fromDate) {
-                                            $month = \Carbon\Carbon::parse($fromDate)->month;
-                                            $year = \Carbon\Carbon::parse($fromDate)->year;
-                                            $casualLeavesThisMonth = \App\Models\Leave::countCasualLeavesInMonth($user->id, $month, $year);
-                                            
-                                            if ($casualLeavesThisMonth >= 2) {
-                                                $fail('Sudah 2 kali cuti tahunan untuk bulan ini');
-                                            }
-                                        }
-                                    }
-                                };
-                            }]),
+                            }),
 
                         Forms\Components\TextInput::make('remaining_casual_leave')
                             ->label('Sisa Cuti Tahunan')
@@ -299,14 +264,7 @@ class LeaveResource extends Resource
                             ->required()
                             ->disabled(!$isCreating && !$isStaff)
                             ->minDate(fn() => $isCreating ? Carbon::now() : null)
-                            ->reactive()
-                            ->afterStateUpdated(function (callable $set, callable $get) use ($user, $isCreating) {
-                                // Trigger reactive update untuk leave_type helper text
-                                $leaveType = $get('leave_type');
-                                if ($leaveType) {
-                                    $set('leave_type', $leaveType);
-                                }
-                            }),
+                            ->reactive(),
 
                         Forms\Components\DatePicker::make('to_date')
                             ->label('Tanggal Berakhir Cuti')

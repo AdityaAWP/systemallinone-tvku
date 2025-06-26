@@ -77,9 +77,6 @@ class SiteConfiguration extends Page implements HasForms
     {
         return $form
             ->schema([
-                TextInput::make('site_name')
-                    ->label('Site Name')
-                    ->required(),
                 FileUpload::make('site_logo')
                     ->label('Site Logo')
                     ->image()
