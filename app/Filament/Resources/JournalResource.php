@@ -67,13 +67,13 @@ class JournalResource extends Resource
         if (Auth::guard('intern')->check()) {
             return true;
         }
-        
+
         // Only allow admin_magang from web guard to access journal management
         if (Auth::guard('web')->check()) {
             $user = Auth::guard('web')->user();
             return $user && $user->hasRole(['admin_magang', 'super_admin']);
         }
-        
+
         return false;
     }
 
@@ -223,6 +223,7 @@ class JournalResource extends Resource
                     ->color('success')
                     ->url(fn() => route('journal.report'))
                     ->openUrlInNewTab(),
+
                 
                 Tables\Actions\Action::make('downloadMonthly')
                     ->label('Download Bulanan')
@@ -235,7 +236,7 @@ class JournalResource extends Resource
                                     ->label('Bulan')
                                     ->options([
                                         1 => 'Januari',
-                                        2 => 'Februari', 
+                                        2 => 'Februari',
                                         3 => 'Maret',
                                         4 => 'April',
                                         5 => 'Mei',
@@ -249,7 +250,7 @@ class JournalResource extends Resource
                                     ])
                                     ->default(Carbon::now()->month)
                                     ->required(),
-                                
+
                                 Forms\Components\TextInput::make('year')
                                     ->label('Tahun')
                                     ->numeric()
@@ -264,17 +265,23 @@ class JournalResource extends Resource
                             'month' => $data['month'],
                             'year' => $data['year']
                         ]);
-                        
+
                         return redirect()->away($url);
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                // Only show edit action to interns and admin_magang
+                Tables\Actions\EditAction::make()
+                    ->visible(fn(): bool => Auth::guard('intern')->check() || (Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole('admin_magang'))),
+                // Only show delete action to interns and admin_magang
                 Tables\Actions\DeleteAction::make()
+                    ->visible(fn(): bool => Auth::guard('intern')->check() || (Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole('admin_magang'))),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    // Only allow bulk delete for admin_magang
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn(): bool => Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole('admin_magang')),
                 ]),
             ])
             ->modifyQueryUsing(function (Builder $query) {
