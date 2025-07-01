@@ -1,9 +1,13 @@
 @php
-    // Cek apakah sedang di halaman login dengan melihat URL atau class body
-    $isLogin = request()->routeIs('filament.admin.auth.login') || str_contains(request()->url(), 'login');
+    $logoPath = \App\Models\SettingSite::get('site_logo');
+
+    $defaultLogoUrl = asset('images/tvku-logo.png');
+
+    $finalLogoUrl = $logoPath ? \Illuminate\Support\Facades\Storage::disk('public')->url($logoPath) : $defaultLogoUrl;
+
+    $isLogin = request()->routeIs('filament.admin.auth.login');
+
+    $logoHeight = $isLogin ? '100px' : '50px';
 @endphp
-@if($isLogin)
-    <img src="{{ asset('images/tvku-logo.png') }}" alt="Logo" style="height: 100px; width: auto;">
-@else
-    <img src="{{ asset('images/tvku-logo.png') }}" alt="Logo" style="height: 50px; width: auto;">
-@endif
+
+<img src="{{ $finalLogoUrl }}" alt="Logo" style="height: {{ $logoHeight }}; width: auto;">

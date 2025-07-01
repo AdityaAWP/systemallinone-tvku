@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\Setting;
+use App\Models\SettingSite;
 use Filament\Pages\Page;
 use Filament\Forms\Components\TextInput; // NEW: Import TextInput
 use Filament\Forms\Components\FileUpload;
@@ -33,7 +35,7 @@ class SiteConfiguration extends Page implements HasForms
         // UPDATED: Now fills the form with the current site name from the config
         $this->form->fill([
             'site_name' => config('app.name'),
-            'site_logo' => null,
+            'site_logo' => SettingSite::get('site_logo'),
         ]);
 
         $this->loadBackups();
@@ -85,13 +87,13 @@ class SiteConfiguration extends Page implements HasForms
                     ->label('Site Name')
                     ->required()
                     ->maxLength(50),
-                
-                FileUpload::make('site_logo')
-                    ->label('Site Logo')
-                    ->image()
-                    ->directory('logos')
-                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif'])
-                    ->maxSize(2048),
+               FileUpload::make('site_logo')
+                ->label('Site Logo')
+                ->image()
+                ->directory('logos') 
+                ->disk('public')     
+                ->imageEditor()
+                ->maxSize(2048),
             ])
             ->statePath('data');
     }
@@ -106,8 +108,7 @@ class SiteConfiguration extends Page implements HasForms
         
         // --- Save Site Logo (example logic) ---
         if (!empty($data['site_logo'])) {
-            // Save the path $data['site_logo'] to your settings database or file
-            // For example: Setting::set('site_logo', $data['site_logo']);
+            SettingSite::set('site_logo', $data['site_logo']);
         }
 
         // Clear the config cache to apply changes

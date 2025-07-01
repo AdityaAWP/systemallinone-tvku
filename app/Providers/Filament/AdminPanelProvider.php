@@ -3,7 +3,6 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
-use App\Filament\Pages\Auth\Register;
 use App\Filament\Pages\Auth\RequestPasswordReset;
 use App\Filament\Widgets\UserStatsWidget;
 use Filament\Http\Middleware\Authenticate;
@@ -23,14 +22,18 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Filament\Widgets\ManagerLeaveReminderWidget;
 use App\Filament\Widgets\MonthlyOvertimeReminderWidget;
 
+// ADD THESE TWO
+use App\Models\Setting;
+use App\Models\SettingSite;
+use Illuminate\Support\Facades\Storage;
 
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+    
         return $panel
             ->default()
-            ->brandLogo(asset('images/tvku-logo.png'))
             ->id('admin')
             ->path('/')
             ->login(Login::class)
