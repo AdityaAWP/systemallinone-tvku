@@ -221,10 +221,11 @@ class JournalResource extends Resource
                     ->label('Download Semua')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
+                    ->visible(fn() => Auth::guard('intern')->check())
                     ->url(fn() => route('journal.report'))
                     ->openUrlInNewTab(),
 
-                
+
                 Tables\Actions\Action::make('downloadMonthly')
                     ->label('Download Bulanan')
                     ->icon('heroicon-o-calendar')
@@ -270,6 +271,47 @@ class JournalResource extends Resource
                     }),
             ])
             ->actions([
+                // START: New action to download report by user
+                Tables\Actions\Action::make('downloadReport')
+                    ->label('Download Laporan')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->tooltip('Download laporan bulanan untuk magang ini')
+                    ->visible(fn(): bool => Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole(['admin_magang', 'super_admin']))
+                    ->modalHeading(fn(Journal $record) => 'Download Laporan - ' . $record->intern->name)
+                    ->form([
+                        Forms\Components\Select::make('month')
+                            ->label('Bulan')
+                            ->options([
+                                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+                            ])
+                            ->default(Carbon::now()->month)
+                            ->required(),
+
+                        Forms\Components\TextInput::make('year')
+                            ->label('Tahun')
+                            ->numeric()
+                            ->default(Carbon::now()->year)
+                            ->minValue(2020)
+                            ->maxValue(2030)
+                            ->required(),
+                    ])
+                    ->action(function (Journal $record, array $data) {
+                        // This assumes a route named 'journal.report.user' exists
+                        // The route should accept intern_id, month, and year
+                        $url = route('journal.report.user') . '?' . http_build_query([
+                            'intern_id' => $record->intern_id,
+                            'month' => $data['month'],
+                            'year' => $data['year']
+                        ]);
+
+                        // Redirect to the URL, opening in a new tab
+                        return redirect()->to($url, true);
+                    }),
+                // END: New action
+
                 // Only show edit action to interns and admin_magang
                 Tables\Actions\EditAction::make()
                     ->visible(fn(): bool => Auth::guard('intern')->check() || (Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole('admin_magang'))),

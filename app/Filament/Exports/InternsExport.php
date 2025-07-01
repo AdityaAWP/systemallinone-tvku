@@ -2,103 +2,77 @@
 
 namespace App\Filament\Exports;
 
+use App\Exports\InternsByStatusSheetExport;
 use App\Models\Intern;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use Carbon\Carbon;
 
-class InternsExport implements FromCollection, WithHeadings, WithMapping, WithTitle
+class InternsExport implements WithMultipleSheets
 {
     protected $institutionType;
-    
-    /**
-     * Constructor dengan parameter filter tipe institusi
-     * 
-     * @param string $institutionType
-     */
+
     public function __construct($institutionType = 'all')
     {
         $this->institutionType = $institutionType;
     }
-    
-    /**
-     * @return string
-     */
-    public function title(): string
+
+    public function sheets(): array
     {
-        return match($this->institutionType) {
-            'Perguruan Tinggi' => 'Data Magang Perguruan Tinggi',
-            'SMA/SMK' => 'Data Magang SMA/SMK',
-            default => 'Data Magang'
-        };
-    }
-    
-    public function collection()
-    {
-        $query = Intern::with(['school', 'internDivision']);
-        
-        // Filter berdasarkan tipe institusi
+        // 1. Fetch all interns based on the initial filter. This is our master list.
+        $query = Intern::with(['school', 'internDivision'])->orderBy('name');
+
         if ($this->institutionType !== 'all') {
-            $query->whereHas('school', function ($q) {
-                $q->where('type', $this->institutionType);
-            });
+            $query->where('institution_type', $this->institutionType);
+        }
+
+        $allInterns = $query->get();
+        
+        $sheets = [];
+
+        // 2. Add the FIRST sheet: "Data Magang" which includes ALL interns and the status column.
+        $sheets[] = new InternsByStatusSheetExport(
+            'Data Magang', // Sheet Title
+            $allInterns,   // The full collection of interns
+            true           // The crucial third parameter: YES, include the status column
+        );
+
+        // 3. Group the master list by calculated status to create the other sheets.
+        $groupedInterns = $allInterns->groupBy(function ($intern) {
+            $now = Carbon::now();
+            $start = Carbon::parse($intern->start_date);
+            $end = Carbon::parse($intern->end_date);
+
+            if (!$end) {
+                return 'Status Tidak Diketahui';
+            }
+            
+            $hampirStart = $end->copy()->subMonth();
+
+            if ($now->isBefore($start)) {
+                return 'Akan Datang';
+            } elseif ($now->isAfter($end)) {
+                return 'Selesai';
+            } elseif ($now->isBetween($hampirStart, $end)) {
+                return 'Hampir Selesai';
+            } else {
+                return 'Aktif';
+            }
+        });
+        
+        // 4. Create a sheet for each status group, in a specific order.
+        $statusOrder = ['Aktif', 'Hampir Selesai', 'Akan Datang', 'Selesai', 'Status Tidak Diketahui'];
+
+        foreach ($statusOrder as $status) {
+            if ($groupedInterns->has($status)) {
+                // Add the subsequent sheets, WITHOUT the status column
+                $sheets[] = new InternsByStatusSheetExport(
+                    $status, // The sheet title (e.g., "Aktif")
+                    $groupedInterns->get($status),
+                    false // NO, do not include the status column on these sheets
+                );
+            }
         }
         
-        return $query->get();
-    }
-
-    public function headings(): array
-    {
-        return [
-            'ID',
-            'Nama',
-            'Email',
-            'Tipe Institusi',
-            'Sekolah/Instansi',
-            'Divisi',
-            'No. Telepon',
-            'Pembimbing TVKU',
-            'Pembimbing Asal',
-            'Telepon Pembimbing',
-            'Tanggal Mulai',
-            'Tanggal Selesai',
-            'Status',
-        ];
-    }
-
-    public function map($intern): array
-    {
-        // Menghitung status magang
-        $now = now();
-        $start = $intern->start_date;
-        $end = $intern->end_date;
-        $hampirStart = $end->copy()->subMonth();
-
-        if ($now->lessThan($start)) {
-            $status = 'Datang';
-        } elseif ($now->greaterThanOrEqualTo($hampirStart) && $now->lessThanOrEqualTo($end)) {
-            $status = 'Hampir';
-        } elseif ($now->between($start, $hampirStart->subSecond())) {
-            $status = 'Active';
-        } else {
-            $status = 'Selesai';
-        }
-        
-        return [
-            $intern->id,
-            $intern->name,
-            $intern->email,
-            $intern->school ? $intern->school->type : '',
-            $intern->school ? $intern->school->name : '',
-            $intern->internDivision ? $intern->internDivision->name : '',
-            $intern->no_phone,
-            $intern->institution_supervisor,
-            $intern->college_supervisor,
-            $intern->college_supervisor_phone,
-            $intern->start_date ? $intern->start_date->format('d/m/Y') : '',
-            $intern->end_date ? $intern->end_date->format('d/m/Y') : '',
-            $status,
-        ];
+        return $sheets;
     }
 }

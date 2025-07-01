@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\InternsExport as ExportsInternsExport;
 use App\Models\Intern;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;

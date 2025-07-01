@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Journal;
@@ -11,10 +10,19 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class PDFJournalController extends Controller
 {
     public function downloadpdf() {
-        // Use Auth::guard('intern')->user()->id instead of Auth::user()->id
-        $journal = Journal::with(['intern', 'intern.internDivision'])
-            ->where('intern_id', Auth::guard('intern')->user()->id)
-            ->get();
+        // Check which guard is authenticated
+        if (Auth::guard('intern')->check()) {
+            // For intern users - show only their journals
+            $journal = Journal::with(['intern', 'intern.internDivision'])
+                ->where('intern_id', Auth::guard('intern')->user()->id)
+                ->get();
+        } elseif (Auth::guard('web')->check()) {
+            // For admin_magang and super_admin - show all journals
+            $journal = Journal::with(['intern', 'intern.internDivision'])
+                ->get();
+        } else {
+            return abort(403, 'Unauthorized');
+        }
         
         $data = [
             'title' => 'Laporan Jurnal',
@@ -29,12 +37,25 @@ class PDFJournalController extends Controller
         $month = $request->input('month', Carbon::now()->month);
         $year = $request->input('year', Carbon::now()->year);
         
-        $journal = Journal::with(['intern', 'intern.internDivision'])
-        ->where('intern_id', Auth::guard('intern')->user()->id)
-        ->whereMonth('entry_date', $month)
-            ->whereYear('entry_date', $year)
-            ->orderBy('entry_date', 'asc')
-            ->get();
+        // Check which guard is authenticated
+        if (Auth::guard('intern')->check()) {
+            // For intern users - show only their journals
+            $journal = Journal::with(['intern', 'intern.internDivision'])
+                ->where('intern_id', Auth::guard('intern')->user()->id)
+                ->whereMonth('entry_date', $month)
+                ->whereYear('entry_date', $year)
+                ->orderBy('entry_date', 'asc')
+                ->get();
+        } elseif (Auth::guard('web')->check()) {
+            // For admin_magang and super_admin - show all journals for the selected month/year
+            $journal = Journal::with(['intern', 'intern.internDivision'])
+                ->whereMonth('entry_date', $month)
+                ->whereYear('entry_date', $year)
+                ->orderBy('entry_date', 'asc')
+                ->get();
+        } else {
+            return abort(403, 'Unauthorized');
+        }
         
         $monthNames = [
             1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',

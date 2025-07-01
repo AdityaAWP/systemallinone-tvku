@@ -36,7 +36,7 @@ class InternResource extends Resource
                             ->label('Nama')
                             ->required()
                             ->maxLength(255)
-                            ->unique(Intern::class, 'name', ignoreRecord: true), // Add unique validation
+                            ->unique(Intern::class, 'name', ignoreRecord: true), 
                         Forms\Components\TextInput::make('email')
                             ->label('Email')
                             ->email()

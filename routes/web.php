@@ -9,6 +9,7 @@ use App\Http\Controllers\LeaveTokenActionController;
 use App\Http\Controllers\LeaveDetailController;
 use App\Http\Controllers\PDFAssignmentController;
 use App\Http\Controllers\InternController;
+use App\Http\Controllers\JournalReportController;
 use App\Http\Controllers\PDFJournalController;
 use Illuminate\Support\Facades\Storage;
 
@@ -70,6 +71,9 @@ Route::get('/overtime/user/{user_id}/monthly/pdf', [PDFController::class, 'downl
     ->name('overtime.user.monthly.pdf');
 
 Route::get('/assignments/{id}/xml', [PDFAssignmentController::class, 'generateXml'])->name('assignment.xml');
+
+    Route::get('/reports/journal/user', [JournalReportController::class, 'downloadUserReport'])->name('journal.report.user');
+
 
 // Add this to your routes/web.php file
 
