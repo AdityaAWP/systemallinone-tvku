@@ -1,18 +1,17 @@
 <?php
+
 namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
-use Filament\Actions\Action; // Correct import for header actions
+use Filament\Actions\Action;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Auth;
-
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SiteConfiguration extends Page implements HasForms
 {
@@ -23,54 +22,63 @@ class SiteConfiguration extends Page implements HasForms
     protected static ?string $title = 'Settings Configuration';
     protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 5;
-    protected static bool $shouldRegisterNavigation = false;
     
     public ?array $data = [];
-    
+    public array $backups = []; // Property to hold backup data for the table
+
     public function mount(): void
     {
+        // Fill the form with existing data
         $this->form->fill([
-            'site_name' => config('app.name'),
-            'site_logo' => null, // Load from your settings storage
+            'site_logo' => null, // You would load your saved logo path here
         ]);
+
+        // Load the backup files into the $backups property
+        $this->loadBackups();
     }
     
-    public function listBackups(): void
+    /**
+     * Loads backup file information from storage into the public $backups property.
+     */
+    public function loadBackups(): void
     {
-        $backupDisk = config('backup.backup.destination.disks.0', 'local');
-        $disk = Storage::disk($backupDisk);
-        
-        $backups = collect($disk->files('Laravel'))
+        $disk = Storage::disk('local');
+        $backupPath = 'backups'; // The directory where your backups are stored
+
+        $files = $disk->files($backupPath);
+
+        $this->backups = collect($files)
             ->map(function ($file) use ($disk) {
                 return [
                     'name' => basename($file),
-                    'size' => number_format($disk->size($file) / 1024 / 1024, 2) . ' MB',
+                    'size' => number_format($disk->size($file) / 1024, 2) . ' KB',
                     'date' => date('Y-m-d H:i:s', $disk->lastModified($file)),
+                    'path' => $file,
                 ];
             })
             ->sortByDesc('date')
-            ->take(10); // Show last 10 backups
-            
-        $backupCount = $backups->count();
-        
-        if ($backupCount > 0) {
-            $backupList = $backups->map(function ($backup) {
-                return "{$backup['name']} ({$backup['size']}) - {$backup['date']}";
-            })->join("\n");
-            
+            ->values() // Reset array keys
+            ->all();
+    }
+
+    /**
+     * Handles the download request for a specific backup file.
+     */
+    public function downloadBackup(string $filename): ?StreamedResponse
+    {
+        $path = 'backups/' . $filename;
+
+        // Security check: ensure the file exists in the correct directory
+        if (!Storage::disk('local')->exists($path)) {
             Notification::make()
-                ->title("Found {$backupCount} backup files")
-                ->body($backupList)
-                ->info()
-                ->persistent() // Makes notification stay longer
+                ->title('File Not Found')
+                ->body('The requested backup file could not be found.')
+                ->danger()
                 ->send();
-        } else {
-            Notification::make()
-                ->title('No backup files found')
-                ->body('No backups have been created yet.')
-                ->warning()
-                ->send();
+            return null;
         }
+
+        return Storage::disk('local')->download($path);
     }
     
     public function form(Form $form): Form
@@ -91,8 +99,7 @@ class SiteConfiguration extends Page implements HasForms
     {
         $data = $this->form->getState();
         
-        // Save your configuration here
-        // For example, update config cache or database
+        // Save your configuration here...
         
         Notification::make()
             ->title('Configuration saved successfully!')
@@ -108,15 +115,14 @@ class SiteConfiguration extends Page implements HasForms
             $password = config('database.connections.mysql.password');
             $host = config('database.connections.mysql.host');
             
-            $backupPath = storage_path('app/backups');
-            if (!file_exists($backupPath)) {
-                mkdir($backupPath, 0755, true);
-            }
+            // Use Laravel's Storage facade for consistency
+            $backupDisk = 'local';
+            $backupDir = 'backups';
+            Storage::disk($backupDisk)->makeDirectory($backupDir);
             
             $filename = 'backup_' . date('Y-m-d_H-i-s') . '.sql';
-            $filepath = $backupPath . '/' . $filename;
+            $filepath = Storage::disk($backupDisk)->path($backupDir . '/' . $filename);
             
-            // Create mysqldump command
             $command = sprintf(
                 'mysqldump --user=%s --password=%s --host=%s %s > %s',
                 escapeshellarg($username),
@@ -126,7 +132,6 @@ class SiteConfiguration extends Page implements HasForms
                 escapeshellarg($filepath)
             );
             
-            // Execute the command
             $output = [];
             $return_var = 0;
             exec($command, $output, $return_var);
@@ -137,8 +142,11 @@ class SiteConfiguration extends Page implements HasForms
                     ->body("Backup saved as: {$filename}")
                     ->success()
                     ->send();
+                
+                // Refresh the backup list in the table
+                $this->loadBackups();
             } else {
-                throw new \Exception('Backup command failed');
+                throw new \Exception('The `mysqldump` command failed. Ensure it is installed and in your system\'s PATH.');
             }
             
         } catch (\Exception $e) {
@@ -150,12 +158,14 @@ class SiteConfiguration extends Page implements HasForms
         }
     }
     
-    protected function getSaveFormAction(): Action
+    protected function getFormActions(): array // Renamed from getSaveFormAction for clarity
     {
-        return Action::make('save')
-            ->label('Save Configuration')
-            ->submit('save')
-            ->color('primary');
+        return [
+            Action::make('save')
+                ->label('Save Configuration')
+                ->submit('save')
+                ->keyBindings(['mod+s']),
+        ];
     }
     
     protected function getHeaderActions(): array
@@ -167,18 +177,13 @@ class SiteConfiguration extends Page implements HasForms
                 ->color('warning')
                 ->requiresConfirmation()
                 ->modalHeading('Backup Database')
-                ->modalDescription('Are you sure you want to create a database backup?'),
-            Action::make('listBackups')
-                ->label('View Backups')
-                ->action('listBackups')
-                ->color('gray')
-                ->icon('heroicon-o-folder'),
+                ->modalDescription('Are you sure you want to create a new database backup? This may take a few moments.'),
         ];
     }
     
     public static function shouldRegisterNavigation(): bool
     {
+        // Keep your original logic for showing the page
         return Auth::check() && Auth::user() && Auth::user()->hasRole('super_admin');
     }
-    
 }
