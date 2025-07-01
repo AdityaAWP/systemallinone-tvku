@@ -31,12 +31,15 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+        $faviconPath = SettingSite::get('site_favicon');
+        $faviconUrl = $faviconPath ? Storage::disk('public')->url($faviconPath) : null;
     
         return $panel
             ->default()
             ->id('admin')
             ->path('/')
             ->login(Login::class)
+            ->favicon($faviconUrl)  
             ->passwordReset()
             ->colors([
                 'primary' => Color::Blue,

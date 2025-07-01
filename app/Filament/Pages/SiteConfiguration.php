@@ -36,6 +36,7 @@ class SiteConfiguration extends Page implements HasForms
         $this->form->fill([
             'site_name' => config('app.name'),
             'site_logo' => SettingSite::get('site_logo'),
+            'site_favicon' => SettingSite::get('site_favicon'), 
         ]);
 
         $this->loadBackups();
@@ -94,6 +95,15 @@ class SiteConfiguration extends Page implements HasForms
                 ->disk('public')     
                 ->imageEditor()
                 ->maxSize(2048),
+
+            FileUpload::make('site_favicon')
+                ->label('Site Favicon')
+                ->image()
+                ->directory('favicons') 
+                ->disk('public')
+                ->maxSize(1024)
+                ->acceptedFileTypes(['image/x-icon', 'image/png', 'image/svg+xml'])
+
             ])
             ->statePath('data');
     }
@@ -109,6 +119,10 @@ class SiteConfiguration extends Page implements HasForms
         // --- Save Site Logo (example logic) ---
         if (!empty($data['site_logo'])) {
             SettingSite::set('site_logo', $data['site_logo']);
+        }
+
+        if (!empty($data['site_favicon'])) {
+            SettingSite::set('site_favicon', $data['site_favicon']);
         }
 
         // Clear the config cache to apply changes
