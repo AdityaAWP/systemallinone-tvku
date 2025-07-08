@@ -22,17 +22,22 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Filament\Widgets\ManagerLeaveReminderWidget;
 use App\Filament\Widgets\MonthlyOvertimeReminderWidget;
 
-// ADD THESE TWO
 use App\Models\Setting;
 use App\Models\SettingSite;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-        $faviconPath = SettingSite::get('site_favicon');
-        $faviconUrl = $faviconPath ? Storage::disk('public')->url($faviconPath) : null;
+        $faviconPath = null;
+        $faviconUrl = null;
+        
+        if (Schema::hasTable('settings_site')) {
+            $faviconPath = SettingSite::get('site_favicon');
+            $faviconUrl = $faviconPath ? Storage::disk('public')->url($faviconPath) : null;
+        }
     
         return $panel
             ->default()

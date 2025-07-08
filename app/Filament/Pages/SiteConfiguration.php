@@ -5,14 +5,14 @@ namespace App\Filament\Pages;
 use App\Models\Setting;
 use App\Models\SettingSite;
 use Filament\Pages\Page;
-use Filament\Forms\Components\TextInput; // NEW: Import TextInput
+use Filament\Forms\Components\TextInput; 
 use Filament\Forms\Components\FileUpload;
 use Filament\Actions\Action;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Artisan; // NEW: Import Artisan facade
+use Illuminate\Support\Facades\Artisan; 
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -32,11 +32,13 @@ class SiteConfiguration extends Page implements HasForms
 
     public function mount(): void
     {
-        // UPDATED: Now fills the form with the current site name from the config
+        $logoPath = SettingSite::get('site_logo');
+        $faviconPath = SettingSite::get('site_favicon');
+
         $this->form->fill([
             'site_name' => config('app.name'),
-            'site_logo' => SettingSite::get('site_logo'),
-            'site_favicon' => SettingSite::get('site_favicon'), 
+            'site_logo' => $logoPath ? [$logoPath] : [],
+            'site_favicon' => $faviconPath ? [$faviconPath] : [],
         ]);
 
         $this->loadBackups();
@@ -79,53 +81,54 @@ class SiteConfiguration extends Page implements HasForms
         return Storage::disk('local')->download($path);
     }
     
+
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                // NEW: Added a text input for the site name
                 TextInput::make('site_name')
                     ->label('Site Name')
                     ->required()
                     ->maxLength(50),
-               FileUpload::make('site_logo')
-                ->label('Site Logo')
-                ->image()
-                ->directory('logos') 
-                ->disk('public')     
-                ->imageEditor()
-                ->maxSize(2048),
 
-            FileUpload::make('site_favicon')
-                ->label('Site Favicon')
-                ->image()
-                ->directory('favicons') 
-                ->disk('public')
-                ->maxSize(1024)
-                ->acceptedFileTypes(['image/x-icon', 'image/png', 'image/svg+xml'])
+                FileUpload::make('site_logo')
+                    ->label('Site Logo')
+                    ->image()
+                    ->directory('logos')
+                    ->disk('public')
+                    ->imageEditor()
+                    ->maxSize(2048)
+                    ->multiple() 
+                    ->maxFiles(1), 
 
+                FileUpload::make('site_favicon')
+                    ->label('Site Favicon')
+                    ->image()
+                    ->directory('favicons')
+                    ->disk('public')
+                    ->maxSize(1024)
+                    ->acceptedFileTypes(['image/x-icon', 'image/png', 'image/svg+xml'])
+                    ->multiple()
+                    ->maxFiles(1),
             ])
             ->statePath('data');
     }
-    
-    // UPDATED: The save method now handles updating the .env file
+
     public function save(): void
     {
         $data = $this->form->getState();
 
-        // --- Save Site Name ---
         $this->updateEnvFile('APP_NAME', $data['site_name']);
-        
-        // --- Save Site Logo (example logic) ---
-        if (!empty($data['site_logo'])) {
-            SettingSite::set('site_logo', $data['site_logo']);
+
+        if (isset($data['site_logo'])) {
+            SettingSite::set('site_logo', $data['site_logo'][0] ?? null);
         }
 
-        if (!empty($data['site_favicon'])) {
-            SettingSite::set('site_favicon', $data['site_favicon']);
+        if (isset($data['site_favicon'])) {
+            SettingSite::set('site_favicon', $data['site_favicon'][0] ?? null);
         }
 
-        // Clear the config cache to apply changes
+
         Artisan::call('config:clear');
 
         Notification::make()
@@ -133,28 +136,21 @@ class SiteConfiguration extends Page implements HasForms
             ->success()
             ->send();
             
-        // Reload the page to see the new site name in the panel
         $this->js('window.location.reload()');
     }
 
-    /**
-     * NEW: Helper function to update a key-value pair in the .env file.
-     */
     private function updateEnvFile(string $key, string $value): void
     {
         $envFilePath = base_path('.env');
         $envFileContent = file_get_contents($envFilePath);
 
-        // To prevent issues with values containing spaces or special characters
         $escapedValue = '"' . addcslashes($value, '"\\') . '"';
 
         $keyToFind = "{$key}=";
         
         if (str_contains($envFileContent, $keyToFind)) {
-            // Key exists, replace it
             $envFileContent = preg_replace("/^{$key}=.*/m", "{$key}={$escapedValue}", $envFileContent);
         } else {
-            // Key does not exist, append it
             $envFileContent .= "\n{$key}={$escapedValue}\n";
         }
         
@@ -163,7 +159,6 @@ class SiteConfiguration extends Page implements HasForms
     
     public function backupDatabase(): void
     {
-        // ... (your backupDatabase method remains unchanged)
         try {
             $database = config('database.connections.mysql.database');
             $username = config('database.connections.mysql.username');
