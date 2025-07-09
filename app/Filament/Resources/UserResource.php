@@ -101,11 +101,12 @@ class UserResource extends Resource
                             ->searchable()
                             ->preload()
                             ->options(function () {
-                                // Show all users with any manager role from any division
+                                // Show all users with any manager, kepala, head, or direktur role
                                 return User::whereHas('roles', function ($query) {
                                     $query->where('name', 'like', 'manager_%')
                                           ->orWhere('name', 'like', 'kepala_%')
-                                          ->orWhere('name', 'like', 'head_%');
+                                          ->orWhere('name', 'like', 'head_%')
+                                          ->orWhere('name', 'like', 'direktur%'); // <-- ADDED THIS LINE
                                 })
                                 ->pluck('name', 'id')
                                 ->toArray();

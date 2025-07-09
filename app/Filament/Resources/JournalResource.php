@@ -68,11 +68,6 @@ class JournalResource extends Resource
             return true;
         }
 
-        // Only allow admin_magang from web guard to access journal management
-        if (Auth::guard('web')->check()) {
-            $user = Auth::guard('web')->user();
-            return $user && $user->hasRole(['admin_magang', 'super_admin']);
-        }
 
         return false;
     }
