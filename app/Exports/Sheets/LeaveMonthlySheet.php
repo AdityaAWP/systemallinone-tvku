@@ -38,7 +38,7 @@ class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMappi
         // This query finds leave requests that are active within the specified month.
         // It correctly handles leaves that might start in a previous month or end in a future one.
         $query = Leave::query()
-            ->with('user');
+            ->with(['user', 'user.division', 'user.divisions']); // Tambahkan eager loading untuk relasi
             
         // Jika userId disediakan, filter berdasarkan user_id
         if ($this->userId !== null) {
@@ -108,10 +108,18 @@ class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMappi
             'other' => 'Cuti Lainnya',
         ];
 
+        // Perbaikan untuk menghindari error "name" on null
+        $divisionName = '-';
+        if ($leave->user && $leave->user->divisions && $leave->user->divisions->count() > 0) {
+            $divisionName = $leave->user->divisions->pluck('name')->implode(', ');
+        } elseif ($leave->user && $leave->user->division) {
+            $divisionName = $leave->user->division->name;
+        }
+
         return [
-            $leave->user->name,
-            $leave->user->npp,
-            $leave->user->divisions->pluck('name')->implode(', ') ?: ($leave->user->division->name ?? '-'),
+            $leave->user->name ?? '-',
+            $leave->user->npp ?? '-',
+            $divisionName,
             $leave->user->position ?? '-',
             // Gunakan map untuk mendapatkan nama jenis cuti yang sesuai
             $leaveTypeMap[$leave->leave_type] ?? 'Tidak Diketahui',
@@ -120,7 +128,7 @@ class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMappi
             $workingDays . ' hari',
             ucfirst($leave->status),
             Carbon::parse($leave->created_at)->format('d M Y, H:i'),
-            $leave->reason,
+            $leave->reason ?? '-',
         ];
     }
 
@@ -136,17 +144,23 @@ class LeaveMonthlySheet implements FromQuery, WithTitle, WithHeadings, WithMappi
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 if ($this->userId) {
-                    $user = User::find($this->userId);
+                    $user = User::with(['division', 'divisions'])->find($this->userId); // Tambahkan eager loading
                     if ($user) {
                         $event->sheet->setCellValue('A1', 'Nama');
-                        $event->sheet->setCellValue('B1', $user->name);
+                        $event->sheet->setCellValue('B1', $user->name ?? '-');
                         $event->sheet->setCellValue('A2', 'NPP');
-                        $event->sheet->setCellValue('B2', $user->npp);
+                        $event->sheet->setCellValue('B2', $user->npp ?? '-');
                         $event->sheet->setCellValue('A3', 'Divisi');
-                        $divisions = ($user->divisions && $user->divisions->count() > 0)
-                            ? $user->divisions->pluck('name')->implode(', ')
-                            : ($user->division->name ?? '-');
-                        $event->sheet->setCellValue('B3', $divisions ?: '-');
+                        
+                        // Perbaikan untuk menghindari error
+                        $divisions = '-';
+                        if ($user->divisions && $user->divisions->count() > 0) {
+                            $divisions = $user->divisions->pluck('name')->implode(', ');
+                        } elseif ($user->division) {
+                            $divisions = $user->division->name;
+                        }
+                        
+                        $event->sheet->setCellValue('B3', $divisions);
                         $event->sheet->setCellValue('A4', 'Jabatan');
                         $event->sheet->setCellValue('B4', $user->position ?? '-');
                         // Baris 5 dibiarkan kosong sebagai spasi
