@@ -67,15 +67,17 @@ class CreateLeave extends CreateRecord
 
         $specificTypeLeavesThisMonth = $this->countLeavesByTypeInMonth($user, $leaveType, $month, $year);
 
+        // Berikan peringatan untuk semua jenis cuti kecuali medical
         if ($specificTypeLeavesThisMonth == 1 && $leaveType !== 'medical') {
             $leaveTypeName = $this->getLeaveTypeName($leaveType);
             FilamentNotification::make()
                 ->title("Peringatan Penggunaan Cuti {$leaveTypeName}")
-                ->body("Anda sudah mengambil 1 cuti {$leaveTypeName} di bulan ini. Ini adalah cuti {$leaveTypeName} terakhir yang dapat Anda ambil bulan ini.")
+                ->body("Anda sudah mengambil 1 cuti {$leaveTypeName} di bulan ini. Anda masih bisa mengajukan 1 cuti {$leaveTypeName} lagi bulan ini.")
                 ->warning()
                 ->send();
         }
 
+        // Batasan 2 kali per bulan untuk semua jenis cuti kecuali medical
         if ($specificTypeLeavesThisMonth >= 2 && $leaveType !== 'medical') {
             $leaveTypeName = $this->getLeaveTypeName($leaveType);
             FilamentNotification::make()
@@ -88,16 +90,9 @@ class CreateLeave extends CreateRecord
             $this->halt();
         }
 
-        if ($totalLeavesThisMonth >= 2  && $leaveType !== 'medical') {
-            FilamentNotification::make()
-                ->title("Batas Total Cuti Bulanan Tercapai")
-                ->body("Anda sudah mengajukan 2 cuti di bulan ini. Anda hanya dapat mengajukan cuti melahirkan sekarang.")
-                ->danger()
-                ->persistent()
-                ->send();
-
-            $this->halt();
-        }
+        // Tidak ada batasan total cuti per bulan - hanya dibatasi per jenis cuti
+        // Setiap jenis cuti (kecuali medical) maksimal 2 kali per bulan
+        // Jadi user bisa: 2x casual + 2x other + unlimited medical per bulan
     }
 
     protected function handleRecordCreation(array $data): Model

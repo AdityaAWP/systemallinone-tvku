@@ -91,9 +91,9 @@ class EditLeave extends EditRecord
         $month = $fromDate->month;
         $year = $fromDate->year;
 
-        // 'casual' (Tahunan) is the only type with a monthly limit of 2 in this example.
-        // Add 'other' if it also has a limit.
-        $limitedTypes = ['casual'];
+        // Cuti 'casual' (tahunan) memiliki batasan maksimal 2 kali per bulan
+        // Hanya cuti 'medical' yang tidak dibatasi
+        $limitedTypes = ['casual', 'other']; // Kembalikan 'casual' ke limitedTypes
         
         if (!in_array($newLeaveType, $limitedTypes)) {
             // If changing to a type without a limit (e.g., medical), no validation needed.
