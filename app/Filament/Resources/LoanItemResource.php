@@ -57,9 +57,16 @@ class LoanItemResource extends Resource
         $items = Item::all();
         $itemsByCategory = $items->groupBy('category');
         $categorySections = [];
+
+        $isReadOnlyForAdmin = function (?LoanItem $record): bool {
+            return $record &&
+                $record->approval_admin_logistics === true &&
+                auth()->user()->hasRole('admin_logistik') &&
+                !auth()->user()->hasRole('super_admin');
+        };
         
         $categories = $itemsByCategory->keys()->toArray();
-        $chunkSize = max(1, ceil(count($categories) / 2)); // Pastikan chunk size minimal 1
+        $chunkSize = max(1, ceil(count($categories) / 2));
         $categoryGroups = array_chunk($categories, $chunkSize);
         
         foreach ($categoryGroups as $groupIndex => $categoryGroup) {
@@ -68,7 +75,7 @@ class LoanItemResource extends Resource
             foreach ($categoryGroup as $category) {
                 $categoryItems = $itemsByCategory[$category];
                 
-                $itemInputs = $categoryItems->map(function ($item) {
+                $itemInputs = $categoryItems->map(function ($item) use ($isReadOnlyForAdmin) { // Pass the closure
                     return Grid::make("item_{$item->id}")
                         ->columns(2)
                         ->schema([
@@ -87,6 +94,7 @@ class LoanItemResource extends Resource
                                 })
                                 ->reactive()
                                 ->columnSpan(1)
+                                ->disabled($isReadOnlyForAdmin), 
                         ]);
                 })->toArray();
                 
@@ -107,23 +115,29 @@ class LoanItemResource extends Resource
                         TextInput::make('user.name')
                             ->default($user->name)
                             ->required()
-                            ->label('Peminjam'),
+                            ->label('Peminjam')
+                            ->disabled(), 
                         TextInput::make('program')
                             ->required()
-                            ->label('Program'),
+                            ->label('Program')
+                            ->disabled($isReadOnlyForAdmin), 
                         TextInput::make('location')
                             ->required()
-                            ->label('Lokasi'),
+                            ->label('Lokasi')
+                            ->disabled($isReadOnlyForAdmin), 
                         DatePicker::make('booking_date')
                             ->required()
-                            ->label('Tanggal Booking'),
+                            ->label('Tanggal Booking')
+                            ->disabled($isReadOnlyForAdmin), 
                         TimePicker::make('start_booking')
                             ->required()
                             ->seconds(false)
-                            ->label('Jam Booking'),
+                            ->label('Jam Booking')
+                            ->disabled($isReadOnlyForAdmin),
                         DatePicker::make('return_date')
                             ->required()
-                            ->label('Tanggal Pengembalian'),
+                            ->label('Tanggal Pengembalian')
+                            ->disabled($isReadOnlyForAdmin), 
                         Select::make('division')
                             ->options([
                                 'produksi' => 'Produksi',
@@ -133,25 +147,31 @@ class LoanItemResource extends Resource
                                 'lain-lain' => 'Lain-lain',
                             ])
                             ->required()
-                            ->label('Divisi'),
+                            ->label('Divisi')
+                            ->disabled($isReadOnlyForAdmin), 
                     ]),
                     Section::make('Review')
                     ->schema([
                         TextInput::make('producer_name')
                             ->required()
-                            ->label('Nama Produser'),
+                            ->label('Nama Produser')
+                            ->disabled($isReadOnlyForAdmin),
                         TextInput::make('producer_telp')
                             ->required()
-                            ->label('Telp. Produser'),
+                            ->label('Telp. Produser')
+                            ->disabled($isReadOnlyForAdmin),
                         TextInput::make('crew_name')
                             ->required()
-                            ->label('Nama Crew'),
+                            ->label('Nama Crew')
+                            ->disabled($isReadOnlyForAdmin),
                         TextInput::make('crew_telp')
                             ->required()
-                            ->label('Telp. Crew'),
+                            ->label('Telp. Crew')
+                            ->disabled($isReadOnlyForAdmin),
                         TextInput::make('crew_division')
                             ->required()
-                            ->label('Divisi Crew'),
+                            ->label('Divisi Crew')
+                            ->disabled($isReadOnlyForAdmin),
                     ])
                 ])->columnSpan('full'),
                 
@@ -164,7 +184,8 @@ class LoanItemResource extends Resource
                             Textarea::make('notes')
                             ->label('')
                             ->rows(10)
-                            ->cols(20),
+                            ->cols(20)
+                            ->disabled($isReadOnlyForAdmin), // START: CHANGE
                         ]),
                         Section::make('Approval')
                         ->visible(fn () => auth()->user()->hasRole('admin_logistik'))
@@ -173,6 +194,7 @@ class LoanItemResource extends Resource
                                 ->default(fn () => auth()->user()->name)
                                 ->label('Nama Approver')
                                 ->visible(fn () => auth()->user()->hasRole('admin_logistik'))
+                                ->disabled() 
                                 ->afterStateHydrated(function ($component, $state, $record) {
                                     if (!$state && auth()->user()->hasRole('admin_logistik')) {
                                         $component->state(auth()->user()->name);
@@ -182,6 +204,7 @@ class LoanItemResource extends Resource
                                 ->default(fn () => auth()->user()->phone ?? auth()->user()->telp ?? '')
                                 ->label('Telp. Approver')
                                 ->visible(fn () => auth()->user()->hasRole('admin_logistik'))
+                                ->disabled()
                                 ->afterStateHydrated(function ($component, $state, $record) {
                                     if (!$state && auth()->user()->hasRole('admin_logistik')) {
                                         $component->state(auth()->user()->phone ?? auth()->user()->telp ?? '');
@@ -193,6 +216,7 @@ class LoanItemResource extends Resource
                                 ->hidden(fn () => !auth()->user()->hasRole('admin_logistik'))
                                 ->required()
                                 ->reactive()
+                                ->disabled($isReadOnlyForAdmin) 
                                 ->afterStateUpdated(function ($state, callable $set) {
                                     if ($state === true && auth()->user()->hasRole('admin_logistik')) {
                                         $set('approver_name', auth()->user()->name);
@@ -217,43 +241,22 @@ class LoanItemResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('user.name')
-                    ->label('Peminjam')
-                    ->searchable(),
-                TextColumn::make('program')
-                    ->label('Program')
-                    ->searchable(),
-                TextColumn::make('location')
-                    ->label('Lokasi')
-                    ->searchable(),
-                TextColumn::make('booking_date')
-                    ->label('Tanggal Booking')
-                    ->date()
-                    ->sortable(),
-                TextColumn::make('start_booking')
-                    ->label('Jam Peminjaman')
-                    ->formatStateUsing(fn ($state) => \Carbon\Carbon::parse($state)->format('H:i')),
-                TextColumn::make('items_list')
-                    ->label('Item')
-                    ->getStateUsing(function ($record) {
-                        return $record->items->map(function ($item) {
-                            return "{$item->name} (Qty: {$item->pivot->quantity})";
-                        })->implode(', ');
-                    }),
-                TextColumn::make('division')
-                    ->label('Divisi')
-                    ->searchable(),
-                TextColumn::make('approval_admin_logistics')
-                    ->label('Logistics Approval')
-                    ->formatStateUsing(fn ($state) => $state ? 'Approved' : 'Pending')
-                    ->color(fn ($state) => $state ? 'success' : 'warning'),
-                TextColumn::make('return_status')
-                    ->label('Status Pengembalian')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'Sudah Dikembalikan' => 'success',
-                        'Belum Dikembalikan' => 'warning',
-                    }),
+                TextColumn::make('user.name')->label('Peminjam')->searchable(),
+                TextColumn::make('program')->label('Program')->searchable(),
+                TextColumn::make('location')->label('Lokasi')->searchable(),
+                TextColumn::make('booking_date')->label('Tanggal Booking')->date()->sortable(),
+                TextColumn::make('start_booking')->label('Jam Peminjaman')->formatStateUsing(fn ($state) => \Carbon\Carbon::parse($state)->format('H:i')),
+                TextColumn::make('items_list')->label('Item')->getStateUsing(function ($record) {
+                    return $record->items->map(function ($item) {
+                        return "{$item->name} (Qty: {$item->pivot->quantity})";
+                    })->implode(', ');
+                }),
+                TextColumn::make('division')->label('Divisi')->searchable(),
+                TextColumn::make('approval_admin_logistics')->label('Logistics Approval')->formatStateUsing(fn ($state) => $state ? 'Approved' : 'Pending')->color(fn ($state) => $state ? 'success' : 'warning'),
+                TextColumn::make('return_status')->label('Status Pengembalian')->badge()->color(fn (string $state): string => match ($state) {
+                    'Sudah Dikembalikan' => 'success',
+                    'Belum Dikembalikan' => 'warning',
+                }),
             ])
             ->filters([
                 //
@@ -263,31 +266,31 @@ class LoanItemResource extends Resource
                     ->visible(function ($record) {
                         $user = Auth::user();
                         
-                        // If the loan item is already approved by admin_logistics, disable edit for everyone except super_admin
-                        if ($record->approval_admin_logistics == true) {
-                            return $user->hasRole('super_admin');
+                        if ($user->hasRole(['super_admin', 'admin_logistik'])) {
+                            return true;
+                        }
+
+                        if ($record->user_id === $user->id && !$record->approval_admin_logistics) {
+                            return true;
                         }
                         
-                        // Otherwise, allow edit if user is admin_logistics, super_admin, or the owner
-                        return $user->hasRole(['admin_logistik', 'super_admin']) || 
-                               $record->user_id === $user->id;
+                        return false;
                     }),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn ($record) => Auth::user()->hasRole(['admin_logistik', 'super_admin'])),
+                    ->visible(function ($record) {
+                        $user = Auth::user();
+                        if ($record->user_id === $user->id && $record->approval_admin_logistics == false) {
+                            return true;
+                        }
+                        
+                        return false;
+                    }),
                 Tables\Actions\Action::make('download') 
                     ->url(fn(LoanItem $loanitem) => route('loanitem.single', $loanitem))
                     ->openUrlInNewTab(),
                 
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => Auth::user()->hasRole(['admin_logistik', 'super_admin'])),
-                    ExportBulkAction::make()
-                        ->exporter(LoanItemExporter::class)
-                ]),
-            ]);
+                ]);
     }
     
     public static function infolist(Infolist $infolist): Infolist
@@ -371,12 +374,10 @@ class LoanItemResource extends Resource
             ]);
     }
 
-    // Filter records to only show user's own loans unless they have special permissions
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
         
-        // If user is not admin_logistics or super_admin, only show their own loans
         if (!Auth::user()->hasRole(['admin_logistik', 'super_admin'])) {
             $query->where('user_id', Auth::id());
         }

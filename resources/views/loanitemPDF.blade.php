@@ -279,24 +279,24 @@
     <!--<div class="section-title">Requested</div>-->
 
     <div class="signatures">
-        <div class="signature-box">
-            <div class="signature-title">Requested</div>
-            <div class="check checked"></div>
-            <div>Produser/Ass.</div>
-        </div>
-
-        <div class="signature-box">
-            <div class="signature-title">Crew</div>
-            <div class="check checked"></div>
-            <div>Campers</div>
-        </div>
-
-        <div class="signature-box">
-            <div class="signature-title">Approval</div>
-            <div class="check {{ $loanitem->approval_admin_logistics ? 'checked' : '' }}"></div>
-            <div>Logistik</div>
-        </div>
+    <div class="signature-box">
+        <div class="signature-title">Requested</div>
+        <div class="check checked"></div>
+        <div>{{ $loanitem->user->name }}</div>
     </div>
+
+    <div class="signature-box">
+        <div class="signature-title">Crew</div>
+        <div class="check checked"></div>
+        <div>{{ $loanitem->crew_name }}</div>
+    </div>
+
+    <div class="signature-box">
+        <div class="signature-title">Approval</div>
+        <div class="check {{ $loanitem->approval_admin_logistics ? 'checked' : '' }}"></div>
+        <div>Logistik</div>
+    </div>
+</div>
 
     <table class="contact-table">
         <tr>

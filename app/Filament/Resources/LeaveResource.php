@@ -399,6 +399,7 @@ class LeaveResource extends Resource
         $isStaff = static::isStaff($user);
 
         return $table
+        ->recordUrl(null)
             ->headerActions([
                 Tables\Actions\Action::make('reset_to_all')
                     ->label('Semua Cuti Staff')

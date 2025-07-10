@@ -168,13 +168,13 @@
         <div>Status Prioritas :</div>
         <div class="checkboxes">
             <div class="checkbox-item">
-                <span class="checkbox"></span>Sangat Penting
+                <span class="checkbox @if($assignment->priority == \App\Models\Assignment::PRIORITY_VERY_IMPORTANT) checked @endif"></span>Sangat Penting
             </div>
             <div class="checkbox-item">
-                <span class="checkbox"></span>Penting
+                <span class="checkbox @if($assignment->priority == \App\Models\Assignment::PRIORITY_IMPORTANT) checked @endif"></span>Penting
             </div>
             <div class="checkbox-item">
-                <span class="checkbox checked"></span>Biasa
+                <span class="checkbox @if($assignment->priority == \App\Models\Assignment::PRIORITY_NORMAL) checked @endif"></span>Biasa
             </div>
         </div>
 

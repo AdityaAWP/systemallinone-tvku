@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources\LoanItemResource\Pages;
 
 use App\Filament\Resources\LoanItemResource;
@@ -19,33 +20,31 @@ class EditLoanItem extends EditRecord
         ];
     }
     
-    // Check access before editing
     protected function canEdit(): bool
     {
         $user = Auth::user();
         $record = $this->getRecord();
         
-        // Allow edit if user is admin_logistics, super_admin, or the owner
-        return $user->hasRole(['admin_logistics', 'super_admin']) || 
-               $record->user_id === $user->id;
+        if ($user->hasRole(['admin_logistik', 'super_admin'])) {
+            return true;
+        }
+
+        if ($record->user_id === $user->id && !$record->approval_admin_logistics) {
+            return true;
+        }
+
+        return false;
     }
     
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $loanItem = $this->getRecord()->load('user', 'items');
         
-        // Set user fields
         $data['user']['name'] = $loanItem->user->name;
         
-        // Set division value directly from the loan item
-        // We don't need to retrieve it from user->division anymore
-        
-        // Set item quantities based on actual field names in your form
         $allItems = Item::all();
         foreach ($allItems as $item) {
-            // Find if this item exists in the loan and get its quantity
             $quantity = $loanItem->items->firstWhere('id', $item->id)?->pivot->quantity ?? 0;
-            // Set the quantity using the format that matches your form fields
             $data["item_{$item->id}_quantity"] = $quantity;
         }
         
@@ -58,7 +57,6 @@ class EditLoanItem extends EditRecord
         $oldApprovalStatus = $oldLoanItem->approval_admin_logistics;
         $oldReturnStatus = $oldLoanItem->return_status;
         
-        // Process approval status changes
         if ($oldApprovalStatus !== $this->data['approval_admin_logistics']) {
             if ($this->data['approval_admin_logistics']) {
                 foreach ($this->record->items as $item) {
@@ -71,7 +69,6 @@ class EditLoanItem extends EditRecord
             }
         }
         
-        // Process return status changes
         if ($oldReturnStatus !== $this->data['return_status']) {
             $this->getRecord()->processReturnStatusChanges($oldReturnStatus, $this->data['return_status']);
         }
@@ -89,6 +86,7 @@ class EditLoanItem extends EditRecord
         
         $this->getRecord()->items()->sync($items);
     }
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

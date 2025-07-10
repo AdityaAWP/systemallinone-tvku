@@ -185,9 +185,10 @@ class EditLeave extends EditRecord
         $updatedRecord = parent::handleRecordUpdate($record, $data);
 
         // Update quota if leave type was successfully changed
-        if ($originalLeaveType !== $data['leave_type']) {
+       if (isset($data['leave_type']) && $originalLeaveType !== $data['leave_type']) {
             $this->updateLeaveQuotaAfterChange($originalLeaveType, $data['leave_type'], $record->user_id);
         }
+
 
         // Send notification if status changed
         if ($statusChanged && $updatedRecord->status !== $originalStatus) {
