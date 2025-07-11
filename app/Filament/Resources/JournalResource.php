@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\JournalResource\Pages;
-use App\Filament\Resources\JournalResource\RelationManagers;
 use App\Models\Journal;
 use Carbon\Carbon;
 use Filament\Forms;
@@ -20,8 +19,8 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\Unique; 
 
 class JournalResource extends Resource
 {
@@ -63,11 +62,9 @@ class JournalResource extends Resource
 
     public static function canViewAny(): bool
     {
-        // Allow interns to see their own journals
         if (Auth::guard('intern')->check()) {
             return true;
         }
-
 
         return false;
     }
@@ -82,6 +79,7 @@ class JournalResource extends Resource
                     ->searchable()
                     ->preload()
                     ->required()
+                    ->live() 
                     ->visible(fn() => Auth::guard('web')->check())
                     ->default(null),
                 Hidden::make('intern_id')
@@ -90,7 +88,23 @@ class JournalResource extends Resource
                 DatePicker::make('entry_date')
                     ->label('Tanggal')
                     ->required()
-                    ->default(now()),
+                    ->default(now())
+                    ->unique(
+                        table: Journal::class,
+                        column: 'entry_date',
+                        modifyRuleUsing: function (Unique $rule, Forms\Get $get) {
+                            $internId = Auth::guard('intern')->check()
+                                ? Auth::guard('intern')->id()
+                                : $get('intern_id');
+                            if (!$internId) {
+                                return $rule;
+                            }
+                            return $rule->where('intern_id', $internId);
+                        }
+                    )
+                    ->validationMessages([
+                        'unique' => 'Anda sudah membuat laporan untuk tanggal ini.',
+                    ]),
                 Select::make('status')
                     ->options([
                         'Hadir' => 'Hadir',
@@ -103,22 +117,26 @@ class JournalResource extends Resource
                 TimePicker::make('start_time')
                     ->label('Waktu Mulai')
                     ->seconds(false)
-                    ->required(fn(Forms\Get $get): bool => in_array($get('status'), ['Hadir'])),
+                    ->visible(fn(Forms\Get $get): bool => $get('status') === 'Hadir')
+                    ->required(fn(Forms\Get $get): bool => $get('status') === 'Hadir'),
                 TimePicker::make('end_time')
                     ->label('Waktu Selesai')
-                    ->required(fn(Forms\Get $get): bool => in_array($get('status'), ['Hadir']))
-                    ->seconds(false),
+                    ->seconds(false)
+                    ->visible(fn(Forms\Get $get): bool => $get('status') === 'Hadir')
+                    ->required(fn(Forms\Get $get): bool => $get('status') === 'Hadir'),
                 Textarea::make('activity')
                     ->label('Aktivitas')
-                    ->required(fn(Forms\Get $get): bool => in_array($get('status'), ['Hadir'])),
+                    ->visible(fn(Forms\Get $get): bool => $get('status') === 'Hadir')
+                    ->required(fn(Forms\Get $get): bool => $get('status') === 'Hadir'),
                 FileUpload::make('image')
                     ->image()
                     ->directory('journal-images')
                     ->preserveFilenames()
                     ->nullable()
-                    ->label('Bukti Gambar'),
+                    ->label('Bukti Gambar')
+                    ->visible(fn(Forms\Get $get): bool => $get('status') === 'Hadir'),
                 Textarea::make('reason_of_absence')
-                    ->label('Alasan Ketidak hadiran')
+                    ->label('Alasan Ketidakhadiran')
                     ->visible(fn(Forms\Get $get): bool => in_array($get('status'), ['Izin', 'Sakit']))
                     ->required(fn(Forms\Get $get): bool => in_array($get('status'), ['Izin', 'Sakit']))
                     ->placeholder('Silakan isi alasan ketidakhadiran'),
@@ -157,7 +175,7 @@ class JournalResource extends Resource
                         return $state;
                     }),
                 TextColumn::make('reason_of_absence')
-                    ->label('Alasan Ketidak hadiran')
+                    ->label('Alasan Ketidakhadiran')
                     ->limit(50)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
                         $state = $column->getState();
@@ -211,7 +229,6 @@ class JournalResource extends Resource
                     }),
             ])
             ->headerActions([
-                // Action untuk download semua data
                 Tables\Actions\Action::make('downloadAll')
                     ->label('Download Semua')
                     ->icon('heroicon-o-document-arrow-down')
@@ -219,8 +236,6 @@ class JournalResource extends Resource
                     ->visible(fn() => Auth::guard('intern')->check())
                     ->url(fn() => route('journal.report'))
                     ->openUrlInNewTab(),
-
-
                 Tables\Actions\Action::make('downloadMonthly')
                     ->label('Download Bulanan')
                     ->icon('heroicon-o-calendar')
@@ -246,7 +261,6 @@ class JournalResource extends Resource
                                     ])
                                     ->default(Carbon::now()->month)
                                     ->required(),
-
                                 Forms\Components\TextInput::make('year')
                                     ->label('Tahun')
                                     ->numeric()
@@ -261,12 +275,10 @@ class JournalResource extends Resource
                             'month' => $data['month'],
                             'year' => $data['year']
                         ]);
-
                         return redirect()->away($url);
                     }),
             ])
             ->actions([
-                // START: New action to download report by user
                 Tables\Actions\Action::make('downloadReport')
                     ->label('Download Laporan')
                     ->icon('heroicon-o-document-arrow-down')
@@ -284,7 +296,6 @@ class JournalResource extends Resource
                             ])
                             ->default(Carbon::now()->month)
                             ->required(),
-
                         Forms\Components\TextInput::make('year')
                             ->label('Tahun')
                             ->numeric()
@@ -294,29 +305,20 @@ class JournalResource extends Resource
                             ->required(),
                     ])
                     ->action(function (Journal $record, array $data) {
-                        // This assumes a route named 'journal.report.user' exists
-                        // The route should accept intern_id, month, and year
                         $url = route('journal.report.user') . '?' . http_build_query([
                             'intern_id' => $record->intern_id,
                             'month' => $data['month'],
                             'year' => $data['year']
                         ]);
-
-                        // Redirect to the URL, opening in a new tab
                         return redirect()->to($url, true);
                     }),
-                // END: New action
-
-                // Only show edit action to interns and admin_magang
                 Tables\Actions\EditAction::make()
                     ->visible(fn(): bool => Auth::guard('intern')->check() || (Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole('admin_magang'))),
-                // Only show delete action to interns and admin_magang
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn(): bool => Auth::guard('intern')->check() || (Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole('admin_magang'))),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    // Only allow bulk delete for admin_magang
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn(): bool => Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole('admin_magang')),
                 ]),
@@ -331,9 +333,7 @@ class JournalResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

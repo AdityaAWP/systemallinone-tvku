@@ -21,6 +21,7 @@ class Intern extends Authenticatable implements FilamentUser
      */
     protected $fillable = [
         'name',
+        'fullname',
         'email',
         'password',
         'birth_date',

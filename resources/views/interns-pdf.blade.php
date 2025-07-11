@@ -62,7 +62,7 @@
             <tr>
                 <th>No</th>
                 <th>Nama</th>
-                <th>Sekolah/Instansi</th>
+                <th>Sekolah/Universitas</th>
                 <th>Divisi</th>
                 <th>Pembimbing TVKU</th>
                 <th>Pembimbing Asal</th>

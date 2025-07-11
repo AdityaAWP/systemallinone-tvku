@@ -65,7 +65,6 @@ class IncomingLetterResource extends Resource
                                 Forms\Components\TextInput::make('reference_number')
                                     ->label('No.Agenda')
                                     ->required()
-                                    ->disabled()
                                     ->dehydrated()
                                     ->helperText('Nomor agenda akan dibuat otomatis berdasarkan jenis surat'),
 

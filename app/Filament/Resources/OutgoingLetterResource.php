@@ -65,7 +65,6 @@ class OutgoingLetterResource extends Resource
                                 Forms\Components\TextInput::make('reference_number')
                                     ->label('Nomor Surat')
                                     ->required()
-                                    ->disabled()
                                     ->dehydrated()
                                     ->helperText('Nomor Surat akan dibuat otomatis berdasarkan jenis surat'),
                                 Forms\Components\DatePicker::make('letter_date')

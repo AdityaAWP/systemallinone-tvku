@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Pages\Auth;
 
 use Filament\Forms\Components\Component;
@@ -13,11 +14,13 @@ use Filament\Http\Responses\Auth\Contracts\LoginResponse;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use App\Models\Intern;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Filament\Notifications\Notification;
 
 class LoginIntern extends BaseLogin
 {
+    // <--- CHANGE #1: Add the public property for the "Remember me" state.
+    public bool $remember = false;
+
     public function getTitle(): string|Htmlable
     {
         return 'Login Magang Panel';
@@ -32,10 +35,14 @@ class LoginIntern extends BaseLogin
     {
         return $form
             ->schema([
+                View::make('filament.notes.first-login-info'),
                 $this->getNameFormComponent(),
                 $this->getPasswordFormComponent(),
+                // <--- CHANGE #2: Add the "Remember me" checkbox to the form.
+                $this->getRememberFormComponent(),
             ])
-            ->extraAttributes(['class' => 'my-16']); // Menambahkan padding y yang tinggi
+            ->statePath('data')
+            ->extraAttributes(['class' => 'my-16']);
     }
 
     protected function getNameFormComponent(): Component
@@ -47,6 +54,23 @@ class LoginIntern extends BaseLogin
             ->autofocus()
             ->extraAttributes(['tabindex' => 1]);
     }
+
+    protected function getPasswordFormComponent(): Component
+    {
+        return TextInput::make('password')
+            ->label(__('filament-panels::pages/auth/login.form.password.label'))
+            ->password()
+            ->required()
+            ->extraAttributes(['tabindex' => 2]);
+    }
+
+    // You don't need to override this since the base class already provides it.
+    // Calling it in the form() schema is enough.
+    // protected function getRememberFormComponent(): Component
+    // {
+    //     return Checkbox::make('remember')
+    //         ->label(__('filament-panels::pages/auth/login.form.remember.label'));
+    // }
 
     protected function getGuardName(): string
     {
@@ -67,49 +91,41 @@ class LoginIntern extends BaseLogin
         }
 
         $data = $this->form->getState();
-
-        // Find user by name
         $user = Intern::where('name', $data['name'])->first();
 
         if (!$user) {
             throw ValidationException::withMessages([
-                'data.name' => 'User not found with this name.',
+                'data.name' => __('filament-panels::pages/auth/login.messages.failed'),
             ]);
         }
 
-        // Check if user has no password (first time login)
         if (empty($user->password)) {
-            // For first time login, use the provided password to set as their password
             $user->update([
                 'password' => Hash::make($data['password'])
             ]);
-
-            // Refresh the user model to get the updated password
             $user->refresh();
 
-            // Login the user immediately after setting the password
-            Auth::guard('intern')->login($user);
+            // The code is now valid because $this->remember exists.
+            Auth::guard('intern')->login($user, $this->remember);
             session()->regenerate();
 
-            // Show notification that password was set
             Notification::make()
-                ->title('Password Set Successfully')
-                ->body('Your password has been set. Please remember it for future logins.')
+                ->title('Password Berhasil Dibuat')
+                ->body('Password Anda telah disimpan. Harap ingat untuk login selanjutnya.')
                 ->success()
                 ->send();
 
             return app(LoginResponse::class);
         }
 
-        // For users with existing passwords, verify the password manually
         if (!Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'data.password' => 'The provided password is incorrect.',
+                'data.name' => __('filament-panels::pages/auth/login.messages.failed'),
             ]);
         }
-
-        // Login the user
-        Auth::guard('intern')->login($user);
+        
+        // The code is now valid because $this->remember exists.
+        Auth::guard('intern')->login($user, $this->remember);
         session()->regenerate();
 
         return app(LoginResponse::class);

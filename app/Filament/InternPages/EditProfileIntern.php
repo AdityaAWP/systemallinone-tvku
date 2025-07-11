@@ -43,9 +43,11 @@ class EditProfileIntern extends Page
                 Section::make('Personal Information')
                     ->schema([
                         TextEntry::make('name')
+                            ->label('Username')
+                            ->icon('heroicon-o-user'),
+                        TextEntry::make('fullname')
                             ->label('Nama Lengkap')
                             ->icon('heroicon-o-user'),
-                        
                         TextEntry::make('email')
                             ->label('Email')
                             ->icon('heroicon-o-envelope'),
@@ -148,7 +150,11 @@ class EditProfileIntern extends Page
                             ->maxLength(255)
                             ->default($intern->name)
                             ->columnSpan(2),
-
+                        TextInput::make('fullname')
+                            ->required()
+                            ->label('Nama Lengkap')
+                            ->maxLength(255)
+                            ->columnSpan(2),
                         TextInput::make('email')
                             ->email()   
                             ->label('Email')
