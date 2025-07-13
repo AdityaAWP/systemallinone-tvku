@@ -181,7 +181,7 @@ class AssignmentResource extends Resource
                                 Forms\Components\Select::make('priority')
                                     ->label('Tingkat Prioritas')
                                     ->options([
-                                        Assignment::PRIORITY_NORMAL => 'Normal',
+                                        Assignment::PRIORITY_NORMAL => 'Biasa',
                                         Assignment::PRIORITY_IMPORTANT => 'Penting',
                                         Assignment::PRIORITY_VERY_IMPORTANT => 'Sangat Penting',
                                     ])
@@ -190,8 +190,8 @@ class AssignmentResource extends Resource
                                     // MODIFIED: This field is now enabled for direktur_utama and manager_keuangan
                                     ->disabled(function () {
                                         $user = Auth::user();
-                                        return !($user && method_exists($user, 'hasRole') && 
-                                               ($user->hasRole('direktur_utama') || $user->hasRole('manager_keuangan')));
+                                        return !($user && method_exists($user, 'hasRole') &&
+                                            ($user->hasRole('direktur_utama') || $user->hasRole('manager_keuangan')));
                                     }),
 
                                 Forms\Components\Select::make('approval_status')
@@ -294,7 +294,7 @@ class AssignmentResource extends Resource
                             return '-';
                         }
                         return match ($state) {
-                            Assignment::PRIORITY_NORMAL => 'Normal',
+                            Assignment::PRIORITY_NORMAL => 'Biasa',
                             Assignment::PRIORITY_IMPORTANT => 'Penting',
                             Assignment::PRIORITY_VERY_IMPORTANT => 'Sangat Penting',
                             default => $state,
@@ -353,6 +353,102 @@ class AssignmentResource extends Resource
                         };
                     }),
             ])
+            ->filters([
+                // Tabs Filter untuk navigasi cepat berdasarkan status
+                Tables\Filters\TernaryFilter::make('status_tab')
+                    ->label('Status Assignment')
+                    ->placeholder('Semua Status')
+                    ->trueLabel('Perlu Tindakan')
+                    ->falseLabel('Sudah Selesai')
+                    ->queries(
+                        true: function (Builder $query) {
+                            $user = Auth::user();
+                            if ($user?->hasRole('staff_keuangan')) {
+                                // Staff: assignment yang pending approval
+                                return $query->where('approval_status', Assignment::STATUS_PENDING);
+                            } elseif ($user?->hasRole('manager_keuangan')) {
+                                // Manager: assignment yang belum disubmit dari staff
+                                return $query->where('submit_status', Assignment::SUBMIT_BELUM);
+                            }
+                            return $query->where('approval_status', Assignment::STATUS_PENDING);
+                        },
+                        false: fn(Builder $query) => $query->whereIn('approval_status', [Assignment::STATUS_APPROVED, Assignment::STATUS_DECLINED]),
+                        blank: fn(Builder $query) => $query,
+                    )
+                    ->visible(fn() => Auth::user()?->hasAnyRole(['staff_keuangan', 'manager_keuangan']) ?? false),
+
+                // Filter berdasarkan jenis assignment
+                Tables\Filters\TernaryFilter::make('type_tab')
+                    ->label('Jenis Assignment')
+                    ->placeholder('Semua Jenis')
+                    ->trueLabel('Berbayar & Barter')
+                    ->falseLabel('Free')
+                    ->queries(
+                        true: fn(Builder $query) => $query->whereIn('type', [Assignment::TYPE_PAID, Assignment::TYPE_BARTER]),
+                        false: fn(Builder $query) => $query->where('type', Assignment::TYPE_FREE),
+                        blank: fn(Builder $query) => $query,
+                    )
+                    ->visible(fn() => Auth::user()?->hasAnyRole(['staff_keuangan', 'manager_keuangan']) ?? false),
+
+                // Filter untuk staff dan manager keuangan
+                Tables\Filters\SelectFilter::make('type')
+                    ->label('Jenis Penugasan')
+                    ->options([
+                        Assignment::TYPE_FREE => 'Free',
+                        Assignment::TYPE_PAID => 'Berbayar',
+                        Assignment::TYPE_BARTER => 'Barter',
+                    ])
+                    ->visible(fn() => Auth::user()?->hasAnyRole(['staff_keuangan', 'manager_keuangan']) ?? false),
+
+
+                Tables\Filters\SelectFilter::make('submit_status')
+                    ->label('Status Pengajuan')
+                    ->options([
+                        Assignment::SUBMIT_BELUM => 'Belum Diajukan',
+                        Assignment::SUBMIT_SUDAH => 'Sudah Diajukan',
+                    ])
+                    ->visible(fn() => Auth::user()?->hasAnyRole(['staff_keuangan', 'manager_keuangan']) ?? false),
+
+                Tables\Filters\SelectFilter::make('approval_status')
+                    ->label('Status Persetujuan')
+                    ->options([
+                        Assignment::STATUS_PENDING => 'Menunggu',
+                        Assignment::STATUS_APPROVED => 'Disetujui',
+                        Assignment::STATUS_DECLINED => 'Ditolak',
+                    ])
+                    ->visible(fn() => Auth::user()?->hasAnyRole(['staff_keuangan', 'manager_keuangan']) ?? false),
+
+                Tables\Filters\Filter::make('created_date')
+                    ->form([
+                        Forms\Components\DatePicker::make('created_from')
+                            ->label('Tanggal Dibuat Dari'),
+                        Forms\Components\DatePicker::make('created_until')
+                            ->label('Tanggal Dibuat Sampai'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['created_from'],
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_date', '>=', $date),
+                            )
+                            ->when(
+                                $data['created_until'],
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_date', '<=', $date),
+                            );
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['created_from'] ?? null) {
+                            $indicators['created_from'] = 'Tanggal dari: ' . Carbon::parse($data['created_from'])->format('d M Y');
+                        }
+                        if ($data['created_until'] ?? null) {
+                            $indicators['created_until'] = 'Tanggal sampai: ' . Carbon::parse($data['created_until'])->format('d M Y');
+                        }
+                        return $indicators;
+                    })
+                    ->visible(fn() => Auth::user()?->hasAnyRole(['staff_keuangan', 'manager_keuangan']) ?? false),
+
+            ])
             ->actions([
 
                 // Action untuk Manager Keuangan - Submit ke Direktur
@@ -408,7 +504,7 @@ class AssignmentResource extends Resource
                         Forms\Components\Select::make('priority')
                             ->label('Tingkat Prioritas')
                             ->options([
-                                Assignment::PRIORITY_NORMAL => 'Normal',
+                                Assignment::PRIORITY_NORMAL => 'Biasa',
                                 Assignment::PRIORITY_IMPORTANT => 'Penting',
                                 Assignment::PRIORITY_VERY_IMPORTANT => 'Sangat Penting',
                             ])
@@ -552,10 +648,46 @@ class AssignmentResource extends Resource
             // Staff keuangan: only see assignments they created
             elseif ($user->hasRole('staff_keuangan')) {
                 $query->where('created_by', Auth::id());
+                
+                // Handle staff-specific filters
+                if ($statusFilter === 'my_pending') {
+                    $query->where('approval_status', Assignment::STATUS_PENDING);
+                } elseif ($statusFilter === 'my_approved') {
+                    $query->where('approval_status', Assignment::STATUS_APPROVED);
+                } elseif ($statusFilter === 'my_rejected') {
+                    $query->where('approval_status', Assignment::STATUS_DECLINED);
+                }
             }
 
-            // Manager keuangan: see all assignments (for submission management)
-            // No additional filtering needed for manager_keuangan
+            // Manager keuangan: see all assignments from staff
+            elseif ($user->hasRole('manager_keuangan')) {
+                // Manager dapat melihat semua assignment dari staff_keuangan
+                $query->whereHas('creator', function ($q) {
+                    $q->whereHas('roles', function ($roleQuery) {
+                        $roleQuery->where('name', 'staff_keuangan');
+                    });
+                });
+                
+                // Handle manager-specific filters
+                if ($statusFilter === 'need_submission') {
+                    $query->where('submit_status', Assignment::SUBMIT_BELUM);
+                } elseif ($statusFilter === 'submitted') {
+                    $query->where('submit_status', Assignment::SUBMIT_SUDAH);
+                }
+            }
+
+            // Admin keuangan: see all assignments
+            elseif ($user->hasRole('admin_keuangan')) {
+                // Admin keuangan dapat melihat semua assignment
+                // Handle admin-specific filters
+                if ($statusFilter === 'all_pending') {
+                    $query->where('approval_status', Assignment::STATUS_PENDING);
+                } elseif ($statusFilter === 'all_approved') {
+                    $query->where('approval_status', Assignment::STATUS_APPROVED);
+                } elseif ($statusFilter === 'all_rejected') {
+                    $query->where('approval_status', Assignment::STATUS_DECLINED);
+                }
+            }
         }
 
         return $query;
