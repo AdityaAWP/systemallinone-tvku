@@ -294,6 +294,26 @@ class IncomingLetterResource extends Resource
                     ->action(function (IncomingLetter $record) {
                         return static::downloadPdf($record);
                     }),
+                Tables\Actions\Action::make('download_attachments')
+                    ->label('Download Lampiran')
+                    ->icon('heroicon-o-paper-clip')
+                    ->color('warning')
+                    ->visible(function (IncomingLetter $record) {
+                        $attachments = $record->attachments;
+                        if (is_array($attachments)) {
+                            foreach ($attachments as $file) {
+                                if (is_string($file) && trim($file) !== '') {
+                                    return true;
+                                }
+                            }
+                        } elseif (is_string($attachments) && trim($attachments) !== '') {
+                            return true;
+                        }
+                        return false;
+                    })
+                    ->action(function (IncomingLetter $record) {
+                        return static::downloadAttachments($record);
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -314,6 +334,50 @@ class IncomingLetterResource extends Resource
         }, $filename, [
             'Content-Type' => 'application/pdf',
         ]);
+    }
+
+    public static function downloadAttachments(IncomingLetter $record)
+    {
+        $attachments = $record->attachments;
+        
+        // Jika hanya ada satu lampiran, download langsung
+        if (is_string($attachments) && trim($attachments) !== '') {
+            $filePath = storage_path('app/public/' . $attachments);
+            if (file_exists($filePath)) {
+                return Response::download($filePath);
+            }
+        }
+        
+        // Jika ada multiple lampiran, buat ZIP
+        if (is_array($attachments) && count($attachments) > 0) {
+            $zip = new \ZipArchive();
+            $zipFileName = 'Lampiran_' . $record->reference_number . '_' . time() . '.zip';
+            $zipPath = storage_path('app/public/temp/' . $zipFileName);
+            
+            // Buat direktori temp jika tidak ada
+            if (!file_exists(storage_path('app/public/temp'))) {
+                mkdir(storage_path('app/public/temp'), 0755, true);
+            }
+            
+            if ($zip->open($zipPath, \ZipArchive::CREATE) === TRUE) {
+                foreach ($attachments as $attachment) {
+                    if (is_string($attachment) && trim($attachment) !== '') {
+                        $filePath = storage_path('app/public/' . $attachment);
+                        if (file_exists($filePath)) {
+                            $zip->addFile($filePath, basename($attachment));
+                        }
+                    }
+                }
+                $zip->close();
+                
+                // Download ZIP dan hapus file temp setelah download
+                return Response::download($zipPath)->deleteFileAfterSend(true);
+            }
+        }
+        
+        // Jika tidak ada lampiran yang valid
+        session()->flash('error', 'Tidak ada lampiran yang dapat didownload.');
+        return redirect()->back();
     }
 
     public static function getRelations(): array
