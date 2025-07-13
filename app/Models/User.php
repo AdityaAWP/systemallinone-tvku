@@ -101,6 +101,11 @@ class User extends Authenticatable //implements FilamentUser
         return $this->hasMany(DailyReport::class);
     }
 
+    public function overtimes(): HasMany
+    {
+        return $this->hasMany(Overtime::class);
+    }
+
     public function leaves(): HasMany
     {
         return $this->hasMany(Leave::class);
