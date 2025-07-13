@@ -243,6 +243,134 @@ class OvertimeResource extends Resource
                     ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                     ->url(fn() => url()->current() . '?tableFilters[my_overtime][value]=true')
                     ->color(fn() => request()->input('tableFilters.my_overtime.value') === 'true' ? 'primary' : 'gray'),
+                Tables\Actions\Action::make('download_employee_overtime')
+                    ->label('Download Lembur Karyawan')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('warning')
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
+                    ->form([
+                        Forms\Components\Select::make('employee_id')
+                            ->label('Pilih Karyawan')
+                            ->placeholder('Pilih karyawan yang akan didownload')
+                            ->options(function () {
+                                $user = Auth::user();
+                                
+                                // Ambil user yang memiliki data lembur
+                                $query = \App\Models\User::query()
+                                    ->whereHas('overtimes'); // hanya user yang punya data lembur
+                                
+                                // Jika manager, hanya bisa lihat anak buahnya yang punya data lembur
+                                if (static::isManager($user) && !$user->hasRole('hrd')) {
+                                    $query->where('manager_id', $user->id);
+                                }
+                                
+                                return $query->orderBy('name')
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            })
+                            ->searchable()
+                            ->required(),
+                        Forms\Components\Select::make('month')
+                            ->label('Bulan')
+                            ->options([
+                                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+                            ])
+                            ->default(Carbon::now()->month)
+                            ->required(),
+                        Forms\Components\TextInput::make('year')
+                            ->label('Tahun')
+                            ->numeric()
+                            ->default(Carbon::now()->year)
+                            ->minValue(2020)
+                            ->maxValue(2030)
+                            ->required(),
+                        Forms\Components\Select::make('format')
+                            ->label('Format Download')
+                            ->options([
+                                'pdf' => 'PDF',
+                                'excel' => 'Excel',
+                            ])
+                            ->default('pdf')
+                            ->visible(fn() => Auth::user()->hasRole('hrd'))
+                            ->required(fn() => Auth::user()->hasRole('hrd')),
+                    ])
+                    ->action(function (array $data) {
+                        $employeeId = $data['employee_id'];
+                        $month = $data['month'];
+                        $year = $data['year'];
+                        $format = $data['format'] ?? 'pdf';
+
+                        // Get employee info
+                        $employee = \App\Models\User::find($employeeId);
+                        
+                        if (!$employee) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error')
+                                ->body('Karyawan tidak ditemukan.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        // Build query for specific user's overtime data
+                        $query = Overtime::with(['user', 'user.division'])
+                            ->where('user_id', $employeeId)
+                            ->whereMonth('tanggal_overtime', $month)
+                            ->whereYear('tanggal_overtime', $year);
+
+                        $overtime = $query->orderBy('tanggal_overtime', 'asc')->get();
+
+                        if ($overtime->isEmpty()) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Tidak ada data')
+                                ->body('Tidak ada data lembur untuk karyawan dan periode yang dipilih.')
+                                ->warning()
+                                ->send();
+                            return;
+                        }
+
+                        // Format nama bulan dalam bahasa Indonesia
+                        $monthNames = [
+                            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                        ];
+
+                        $monthName = $monthNames[$month] . ' ' . $year;
+
+                        if ($format === 'excel' && Auth::user()->hasRole('hrd')) {
+                            // Export Excel
+                            $filename = 'lembur-' . 
+                                strtolower(str_replace([' ', '.'], '-', $employee->name)) . '-' .
+                                strtolower(str_replace(' ', '-', $monthName)) . '.xlsx';
+                            
+                            return (new OvertimeYearlyExport($year, $employeeId))->download($filename);
+                        } else {
+                            // Export PDF
+                            $title = 'Surat Permohonan Ijin Lembur - ' . $employee->name . ' - ' . $monthName;
+
+                            $pdfData = [
+                                'title' => $title,
+                                'overtime' => $overtime,
+                                'period' => $monthName,
+                                'scope' => 'user_specific'
+                            ];
+
+                            $pdf = FacadePdf::loadview('overtimePDF', $pdfData);
+
+                            $filename = 'surat-lembur-' . 
+                                strtolower(str_replace([' ', '.'], '-', $employee->name)) . '-' .
+                                strtolower(str_replace(' ', '-', $monthName)) . '.pdf';
+
+                            return response()->streamDownload(function () use ($pdf) {
+                                echo $pdf->output();
+                            }, $filename, [
+                                'Content-Type' => 'application/pdf',
+                            ]);
+                        }
+                    }),
                 Tables\Actions\Action::make('downloadMonthly')
                     ->label('Download Bulanan')
                     ->icon('heroicon-o-calendar')
