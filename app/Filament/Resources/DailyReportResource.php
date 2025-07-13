@@ -221,6 +221,86 @@ class DailyReportResource extends Resource
                     ->url(fn() => request()->url() . '?tableFilters[my_reports][value]=true')
                     ->color(fn() => request()->input('tableFilters.my_reports.value') === 'true' ? 'primary' : 'gray'),
 
+                Action::make('download_employee_dailyreport')
+                    ->label('Download Laporan Karyawan')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('warning')
+                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
+                    ->form([
+                        Select::make('employee_id')
+                            ->label('Pilih Karyawan')
+                            ->placeholder('Pilih karyawan yang akan didownload')
+                            ->options(function () {
+                                $user = Auth::user();
+                                
+                                // Ambil user yang memiliki data daily report
+                                $query = \App\Models\User::query()
+                                    ->whereHas('dailyReports'); // hanya user yang punya data daily report
+                                
+                                // Jika manager, hanya bisa lihat anak buahnya yang punya data daily report
+                                if (static::isManager($user) && !$user->hasRole('hrd')) {
+                                    $query->where('manager_id', $user->id);
+                                }
+                                
+                                return $query->orderBy('name')
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            })
+                            ->searchable()
+                            ->required(),
+                        Select::make('year')
+                            ->label('Tahun')
+                            ->options(function () {
+                                $years = [];
+                                $currentYear = now()->year;
+                                
+                                // Generate 5 tahun mundur dari tahun sekarang
+                                for ($i = 0; $i < 5; $i++) {
+                                    $year = $currentYear - $i;
+                                    $years[$year] = $year;
+                                }
+                                
+                                return $years;
+                            })
+                            ->required()
+                            ->default(now()->year),
+                    ])
+                    ->action(function (array $data) {
+                        $employeeId = $data['employee_id'];
+                        $year = $data['year'];
+
+                        // Get employee info
+                        $employee = \App\Models\User::find($employeeId);
+                        
+                        if (!$employee) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error')
+                                ->body('Karyawan tidak ditemukan.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        // Check if employee has daily reports
+                        $reportCount = DailyReport::where('user_id', $employeeId)
+                            ->whereYear('entry_date', $year)
+                            ->count();
+
+                        if ($reportCount === 0) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Tidak ada data')
+                                ->body('Tidak ada data laporan harian untuk karyawan dan tahun yang dipilih.')
+                                ->warning()
+                                ->send();
+                            return;
+                        }
+
+                        // Export Excel (Daily Report tidak ada PDF)
+                        $userName = str_replace(' ', '_', $employee->name);
+                        $filename = "laporan_harian_{$userName}_{$year}.xlsx";
+                        return (new DailyReportExcel($year, $employeeId))->download($filename);
+                    }),
+
                 Action::make('export_monthly_excel')
                     ->label('Ekspor Excel')
                     ->color('success')
@@ -265,7 +345,7 @@ class DailyReportResource extends Resource
                             $userId = null;
                             $filename = "laporan_harian_semua_staff_{$year}.xlsx";
                             // Untuk Manager/Kepala, filter di dalam DailyReportExcel jika perlu
-                            return (new DailyReportExcel($year, $userId, $user))->download($filename);
+                            return (new DailyReportExcel($year, $userId))->download($filename);
                         } else {
                             // Untuk staff, manager, kepala, atau HRD yang pilih "personal"
                             $userId = $user->id;
