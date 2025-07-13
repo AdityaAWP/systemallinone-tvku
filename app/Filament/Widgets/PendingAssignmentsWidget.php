@@ -186,7 +186,7 @@ class PendingAssignmentsWidget extends BaseWidget
                     ->badge()
                     ->formatStateUsing(function ($state) {
                         return match ($state) {
-                            Assignment::PRIORITY_NORMAL => 'Normal',
+                            Assignment::PRIORITY_NORMAL => 'Biasa',
                             Assignment::PRIORITY_IMPORTANT => 'Penting',
                             Assignment::PRIORITY_VERY_IMPORTANT => 'Sangat Penting',
                             default => $state,
