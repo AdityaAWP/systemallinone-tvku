@@ -13,7 +13,7 @@ use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class User extends Authenticatable //implements FilamentUser
+class User extends Authenticatable implements FilamentUser
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
 
@@ -25,6 +25,7 @@ class User extends Authenticatable //implements FilamentUser
         'google_id',
         'avatar',
         'is_admin',
+        'is_active',
         'created_by',
         'gender',
         'ktp',
@@ -46,6 +47,7 @@ class User extends Authenticatable //implements FilamentUser
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'is_admin' => 'boolean',
+        'is_active' => 'boolean',
         'birth' => 'date',
     ];
 
@@ -206,5 +208,11 @@ class User extends Authenticatable //implements FilamentUser
             return str_replace('staff_', 'manager_', $staffRole->name);
         }
         return null;
+    }
+
+    // Override method untuk mencegah login jika user tidak aktif
+    public function canAccessPanel(\Filament\Panel $panel): bool
+    {
+        return $this->is_active ?? true;
     }
 }
