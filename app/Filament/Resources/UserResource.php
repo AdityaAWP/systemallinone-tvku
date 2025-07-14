@@ -113,6 +113,11 @@ class UserResource extends Resource
                             })
                             ->placeholder('Pilih Manager/Atasan')
                             ->helperText('Pilih manager dari semua divisi yang tersedia'),
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Status Aktif')
+                            ->helperText('Nonaktifkan untuk mencegah user login')
+                            ->default(true)
+                            ->visible(fn() => Auth::user() && Auth::user()->hasRole('super_admin')),
                     ])->columns(2),
 
                 Section::make('Informasi Personal')
@@ -158,6 +163,17 @@ class UserResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
+                // Kolom status aktif untuk super_admin
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label('Status')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->sortable()
+                    ->visible(fn() => Auth::user() && Auth::user()->hasRole('super_admin')),
+                    
                 // Hanya tampilkan kolom berikut jika bukan HRD
                 ...(!$isHrd ? [
                     TextColumn::make('email')
@@ -185,6 +201,14 @@ class UserResource extends Resource
                     ->relationship('roles', 'name')
                     ->preload()
                     ->searchable(),
+                    
+                Tables\Filters\SelectFilter::make('is_active')
+                    ->label('Status Aktif')
+                    ->options([
+                        1 => 'Aktif',
+                        0 => 'Nonaktif',
+                    ])
+                    ->visible(fn() => Auth::user() && Auth::user()->hasRole('super_admin')),
             ])
             ->actions([
             
@@ -284,11 +308,80 @@ class UserResource extends Resource
                     
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                
+                // Action untuk toggle status aktif/nonaktif - khusus super_admin
+                Tables\Actions\Action::make('toggle_status')
+                    ->label(fn($record) => $record->is_active ? 'Nonaktifkan' : 'Aktifkan')
+                    ->icon(fn($record) => $record->is_active ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
+                    ->color(fn($record) => $record->is_active ? 'danger' : 'success')
+                    ->visible(fn() => Auth::user() && Auth::user()->hasRole('super_admin'))
+                    ->requiresConfirmation()
+                    ->modalHeading(fn($record) => $record->is_active ? 'Nonaktifkan Akun' : 'Aktifkan Akun')
+                    ->modalDescription(fn($record) => $record->is_active 
+                        ? 'Apakah Anda yakin ingin menonaktifkan akun ' . $record->name . '? User tidak akan bisa login setelah dinonaktifkan.'
+                        : 'Apakah Anda yakin ingin mengaktifkan akun ' . $record->name . '? User akan bisa login kembali setelah diaktifkan.'
+                    )
+                    ->modalSubmitActionLabel(fn($record) => $record->is_active ? 'Nonaktifkan' : 'Aktifkan')
+                    ->action(function ($record) {
+                        $record->update([
+                            'is_active' => !$record->is_active
+                        ]);
+                        
+                        $status = $record->is_active ? 'diaktifkan' : 'dinonaktifkan';
+                        
+                        \Filament\Notifications\Notification::make()
+                            ->title('Status akun berhasil diubah')
+                            ->body("Akun {$record->name} berhasil {$status}.")
+                            ->success()
+                            ->send();
+                    }),
+                    
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    
+                    // Bulk actions untuk super_admin
+                    Tables\Actions\BulkAction::make('activate_users')
+                        ->label('Aktifkan Akun')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn() => Auth::user() && Auth::user()->hasRole('super_admin'))
+                        ->requiresConfirmation()
+                        ->modalHeading('Aktifkan Akun Terpilih')
+                        ->modalDescription('Apakah Anda yakin ingin mengaktifkan semua akun yang dipilih?')
+                        ->modalSubmitActionLabel('Aktifkan')
+                        ->action(function ($records) {
+                            $count = $records->count();
+                            $records->each->update(['is_active' => true]);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Akun berhasil diaktifkan')
+                                ->body("{$count} akun berhasil diaktifkan.")
+                                ->success()
+                                ->send();
+                        }),
+                        
+                    Tables\Actions\BulkAction::make('deactivate_users')
+                        ->label('Nonaktifkan Akun')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->visible(fn() => Auth::user() && Auth::user()->hasRole('super_admin'))
+                        ->requiresConfirmation()
+                        ->modalHeading('Nonaktifkan Akun Terpilih')
+                        ->modalDescription('Apakah Anda yakin ingin menonaktifkan semua akun yang dipilih? User tidak akan bisa login setelah dinonaktifkan.')
+                        ->modalSubmitActionLabel('Nonaktifkan')
+                        ->action(function ($records) {
+                            $count = $records->count();
+                            $records->each->update(['is_active' => false]);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Akun berhasil dinonaktifkan')
+                                ->body("{$count} akun berhasil dinonaktifkan.")
+                                ->success()
+                                ->send();
+                        }),
                 ]),
             ]);
     }
