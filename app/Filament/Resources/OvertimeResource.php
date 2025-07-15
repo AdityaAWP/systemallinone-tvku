@@ -93,29 +93,42 @@ class OvertimeResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
+        $query = parent::getEloquentQuery();
 
-        if (static::isStaff($user)) {
-            // Staff hanya bisa melihat lembur miliknya sendiri
-            return parent::getEloquentQuery()->where('user_id', $user->id);
+        // Cek jika pengguna adalah staff biasa (bukan manager/hrd/kepala)
+        // Mereka akan melihat semua data lembur mereka sendiri.
+        if (static::isStaff($user) && !$user->hasRole('hrd') && !static::isManager($user) && !static::isKepala($user)) {
+            return $query->where('user_id', $user->id);
         }
 
-        if ($user->hasRole('hrd')) {
-            // HRD bisa melihat semua data lembur
-            return parent::getEloquentQuery();
-        }
+        // Untuk HRD, Manager, dan Kepala: tampilkan hanya data lembur TERAKHIR per karyawan.
+        if ($user->hasRole('hrd') || static::isManager($user) || static::isKepala($user)) {
 
-        if (static::isManager($user) || static::isKepala($user)) {
-            // Manager & Kepala bisa melihat data lembur dari staff yang mereka manage
-            // berdasarkan atasan relationship (manager_id) atau yang mereka buat (created_by)
-            return parent::getEloquentQuery()->whereHas('user', function ($query) use ($user) {
-                $query->where('manager_id', $user->id)
+            // Langkah 1: Tentukan query untuk mendapatkan ID karyawan yang dapat diakses.
+            $accessibleUsersQuery = \App\Models\User::query();
+
+            // Jika bukan HRD (yaitu manager/kepala), batasi hanya untuk staff mereka + diri sendiri.
+            if (!$user->hasRole('hrd')) {
+                $accessibleUsersQuery->where(function ($q) use ($user) {
+                    $q->where('manager_id', $user->id)
                       ->orWhere('created_by', $user->id)
-                      ->orWhere('id', $user->id); // Include their own overtime data
-            });
+                      ->orWhere('id', $user->id); // Sertakan data mereka sendiri
+                });
+            }
+            
+            // Langkah 2: Buat subquery untuk mendapatkan ID dari entri lembur terakhir
+            // untuk setiap karyawan yang dapat diakses.
+            $latestOvertimeIdsSubquery = Overtime::selectRaw('MAX(id)')
+                ->whereIn('user_id', $accessibleUsersQuery->select('id'))
+                ->groupBy('user_id');
+
+            // Langkah 3: Filter query utama untuk hanya menyertakan ID yang ditemukan.
+            // Ini akan secara efektif menampilkan hanya satu baris (yang terbaru) per karyawan.
+            return $query->whereIn('id', $latestOvertimeIdsSubquery);
         }
 
-        // Default: hanya bisa melihat lembur sendiri
-        return parent::getEloquentQuery()->where('user_id', $user->id);
+        // Fallback default: hanya bisa melihat lembur sendiri jika tidak ada peran yang cocok.
+        return $query->where('user_id', $user->id);
     }
 
     public static function form(Form $form): Form
@@ -663,133 +676,6 @@ class OvertimeResource extends Resource
                     ->visible(
                         fn($record) => $record->user_id === Auth::id()
                     ),
-                    Tables\Actions\Action::make('download_monthly_pdf')
-                    ->label('Download PDF')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('warning')
-                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
-                    ->form([
-                        Forms\Components\Select::make('month')
-                            ->label('Bulan')
-                            ->options([
-                                1 => 'Januari',
-                                2 => 'Februari',
-                                3 => 'Maret',
-                                4 => 'April',
-                                5 => 'Mei',
-                                6 => 'Juni',
-                                7 => 'Juli',
-                                8 => 'Agustus',
-                                9 => 'September',
-                                10 => 'Oktober',
-                                11 => 'November',
-                                12 => 'Desember',
-                            ])
-                            ->default(Carbon::now()->month)
-                            ->required(),
-                        Forms\Components\TextInput::make('year')
-                            ->label('Tahun')
-                            ->numeric()
-                            ->default(Carbon::now()->year)
-                            ->minValue(2020)
-                            ->maxValue(2030)
-                            ->required(),
-                    ])
-                    ->action(function (array $data, $record) {
-                        $targetUserId = $record->user_id; // The user whose overtime we want to download
-                        $month = $data['month'];
-                        $year = $data['year'];
-
-                        // Build query for specific user's overtime data
-                        $query = Overtime::with(['user', 'user.division'])
-                            ->where('user_id', $targetUserId)
-                            ->whereMonth('tanggal_overtime', $month)
-                            ->whereYear('tanggal_overtime', $year);
-
-                        $overtime = $query->orderBy('tanggal_overtime', 'asc')->get();
-
-                        if ($overtime->isEmpty()) {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Tidak ada data')
-                                ->body('Tidak ada data lembur untuk periode yang dipilih.')
-                                ->warning()
-                                ->send();
-                            return;
-                        }
-
-                        // Format nama bulan dalam bahasa Indonesia
-                        $monthNames = [
-                            1 => 'Januari',
-                            2 => 'Februari', 
-                            3 => 'Maret',
-                            4 => 'April',
-                            5 => 'Mei',
-                            6 => 'Juni',
-                            7 => 'Juli',
-                            8 => 'Agustus',
-                            9 => 'September',
-                            10 => 'Oktober',
-                            11 => 'November',
-                            12 => 'Desember'
-                        ];
-
-                        $monthName = $monthNames[$month] . ' ' . $year;
-                        $targetUser = $overtime->first()->user; // Get the target user info
-
-                        $title = 'Surat Permohonan Ijin Lembur - ' . $targetUser->name . ' - ' . $monthName;
-
-                        $pdfData = [
-                            'title' => $title,
-                            'overtime' => $overtime,
-                            'period' => $monthName,
-                            'scope' => 'user_specific'
-                        ];
-
-                        $pdf = FacadePdf::loadview('overtimePDF', $pdfData);
-
-                        // Generate filename
-                        $filename = 'surat-lembur-' . 
-                                strtolower(str_replace([' ', '.'], '-', $targetUser->name)) . '-' .
-                                strtolower(str_replace(' ', '-', $monthName)) . '.pdf';
-
-                        return response()->streamDownload(function () use ($pdf) {
-                            echo $pdf->output();
-                        }, $filename, [
-                            'Content-Type' => 'application/pdf',
-                        ]);
-                    }),
-
-                Tables\Actions\Action::make('export_user_yearly')
-                    ->label('Export Excel')
-                    ->icon('heroicon-o-document-text')
-                    ->color('success')
-                    ->visible(fn() => Auth::user()->hasRole('hrd'))
-                    ->form([
-                        Forms\Components\Select::make('year')
-                            ->label('Tahun')
-                            ->options(function ($record) {
-                                $years = Overtime::query()
-                                    ->where('user_id', $record->user_id)
-                                    ->selectRaw('DISTINCT YEAR(tanggal_overtime) as year')
-                                    ->orderBy('year', 'desc')
-                                    ->get()
-                                    ->pluck('year', 'year')
-                                    ->toArray();
-                                if (empty($years)) {
-                                    return [now()->year => now()->year];
-                                }
-                                return $years;
-                            })
-                            ->required()
-                            ->default(now()->year),
-                    ])
-                    ->action(function (array $data, $record) {
-                        $year = $data['year'];
-                        $user = $record->user;
-                        $filename = "Laporan Lembur {$user->name} - {$year}.xlsx";
-                        return (new OvertimeYearlyExport($year, $user->id))->download($filename);
-                    }),
-
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

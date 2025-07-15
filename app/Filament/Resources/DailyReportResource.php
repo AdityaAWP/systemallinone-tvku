@@ -66,31 +66,52 @@ class DailyReportResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
+        $query = parent::getEloquentQuery();
 
-        // If user is HRD, they can see all daily reports
-        if ($user->hasRole('hrd')) {
-            return parent::getEloquentQuery();
+        // Jika pengguna adalah staff biasa (bukan manager/hrd/kepala),
+        // mereka akan melihat semua laporan harian mereka sendiri.
+        if (static::isStaff($user) && !$user->hasRole('hrd') && !static::isManager($user) && !static::isKepala($user)) {
+            return $query->where('user_id', $user->id);
         }
 
-        // If user is manager or kepala, they can see reports from all divisions they manage
-        if (static::isManager($user) || static::isKepala($user)) {
-            $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
+        // Untuk HRD, Manager, dan Kepala: tampilkan hanya data laporan TERAKHIR per karyawan.
+        if ($user->hasRole('hrd') || static::isManager($user) || static::isKepala($user)) {
 
-            // If no many-to-many divisions, fallback to primary division
-            if (empty($userDivisionIds) && $user->division_id) {
-                $userDivisionIds = [$user->division_id];
-            }
+            // Langkah 1: Tentukan query untuk mendapatkan ID karyawan yang dapat diakses.
+            $accessibleUsersQuery = \App\Models\User::query();
 
-            // If user has divisions, show reports from those divisions
-            if (!empty($userDivisionIds)) {
-                return parent::getEloquentQuery()->whereHas('user', function ($query) use ($userDivisionIds) {
-                    $query->whereIn('division_id', $userDivisionIds);
-                });
+            // Jika bukan HRD (yaitu manager/kepala), batasi hanya untuk staff di divisi mereka + diri sendiri.
+            if (!$user->hasRole('hrd')) {
+                $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
+                if (empty($userDivisionIds) && $user->division_id) {
+                    $userDivisionIds = [$user->division_id];
+                }
+
+                if (!empty($userDivisionIds)) {
+                    // Filter untuk user yang ada di divisi yang dikelola ATAU user itu sendiri
+                    $accessibleUsersQuery->where(function ($q) use ($userDivisionIds, $user) {
+                        $q->whereIn('division_id', $userDivisionIds)
+                          ->orWhere('id', $user->id); // Sertakan laporan manager itu sendiri
+                    });
+                } else {
+                    // Jika manager tidak mengelola divisi apapun, hanya tampilkan laporannya sendiri
+                    $accessibleUsersQuery->where('id', $user->id);
+                }
             }
+            
+            // Langkah 2: Buat subquery untuk mendapatkan ID dari entri laporan terakhir
+            // untuk setiap karyawan yang dapat diakses.
+            $latestReportIdsSubquery = DailyReport::selectRaw('MAX(id)')
+                ->whereIn('user_id', $accessibleUsersQuery->select('id'))
+                ->groupBy('user_id');
+
+            // Langkah 3: Filter query utama untuk hanya menyertakan ID yang ditemukan.
+            // Ini akan secara efektif menampilkan hanya satu baris (yang terbaru) per karyawan.
+            return $query->whereIn('id', $latestReportIdsSubquery);
         }
 
-        // For staff or users without specific divisions, only show their own reports
-        return parent::getEloquentQuery()->where('user_id', $user->id);
+        // Fallback default: hanya bisa melihat laporan sendiri jika tidak ada peran yang cocok.
+        return $query->where('user_id', $user->id);
     }
 
     public static function getNavigationBadge(): ?string

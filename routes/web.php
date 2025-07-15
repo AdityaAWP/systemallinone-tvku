@@ -12,6 +12,7 @@ use App\Http\Controllers\InternController;
 use App\Http\Controllers\JournalReportController;
 use App\Http\Controllers\PDFJournalController;
 use Illuminate\Support\Facades\Storage;
+use App\Helpers\NetworkInterface;
 
 Route::get('/info', function () {
     return gd_info();
@@ -114,4 +115,21 @@ Route::middleware(['auth'])->group(function () {
             'Content-Type' => 'application/sql',
         ]);
     })->name('sql-backup.download');
+});
+
+Route::get('/server-ip', function () {
+    // To get the IP for the main ethernet interface (often 'eth0' or 'eno1' on Linux)
+    $eth0_ip = NetworkInterface::getIpAddressForInterface('wlp4s0');
+
+    // To get the IP for the loopback interface
+    $loopback_ip = NetworkInterface::getIpAddressForInterface('lo');
+    
+    // To see what a non-existent interface returns
+    $fake_ip = NetworkInterface::getIpAddressForInterface('fake_interface');
+
+    return response()->json([
+        'eth0_ip' => $eth0_ip ?? 'Interface not found or has no IPv4 address',
+        'loopback_ip' => $loopback_ip ?? 'Interface not found or has no IPv4 address',
+        'fake_interface_ip' => $fake_ip ?? 'Interface not found or has no IPv4 address',
+    ]);
 });

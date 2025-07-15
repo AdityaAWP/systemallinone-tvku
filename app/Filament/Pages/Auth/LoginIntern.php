@@ -18,7 +18,6 @@ use Filament\Notifications\Notification;
 
 class LoginIntern extends BaseLogin
 {
-    // <--- CHANGE #1: Add the public property for the "Remember me" state.
     public bool $remember = false;
 
     public function getTitle(): string|Htmlable
@@ -28,7 +27,7 @@ class LoginIntern extends BaseLogin
 
     public function getHeading(): string
     {
-        return ''; // Menghapus teks "Masuk ke akun Anda"
+        return '';
     }
 
     public function form(Form $form): Form
@@ -38,7 +37,6 @@ class LoginIntern extends BaseLogin
                 View::make('filament.notes.first-login-info'),
                 $this->getNameFormComponent(),
                 $this->getPasswordFormComponent(),
-                // <--- CHANGE #2: Add the "Remember me" checkbox to the form.
                 $this->getRememberFormComponent(),
             ])
             ->statePath('data')
@@ -64,14 +62,6 @@ class LoginIntern extends BaseLogin
             ->extraAttributes(['tabindex' => 2]);
     }
 
-    // You don't need to override this since the base class already provides it.
-    // Calling it in the form() schema is enough.
-    // protected function getRememberFormComponent(): Component
-    // {
-    //     return Checkbox::make('remember')
-    //         ->label(__('filament-panels::pages/auth/login.form.remember.label'));
-    // }
-
     protected function getGuardName(): string
     {
         return 'intern';
@@ -79,6 +69,27 @@ class LoginIntern extends BaseLogin
 
     public function authenticate(): ?LoginResponse
     {
+        // <--- START: IP Address Check --->
+        $allowedIpsString = env('OFFICE_IP_ADDRESSES');
+
+        // Only perform the check if the environment variable is set.
+        if (!empty($allowedIpsString)) {
+            // Get the user's IP address
+            $userIp = request()->ip();
+
+            // Convert the comma-separated string from .env into an array
+            $allowedIps = array_map('trim', explode(',', $allowedIpsString));
+
+            // Check if the user's IP is in the allowed list
+            if (!in_array($userIp, $allowedIps)) {
+                // If not, throw a validation exception to block login and show a message.
+                throw ValidationException::withMessages([
+                    'data.name' => 'Akses ditolak. Anda harus terhubung ke jaringan kantor untuk login.',
+                ]);
+            }
+        }
+        // <--- END: IP Address Check --->
+
         try {
             $this->rateLimit(5);
         } catch (ThrottleRequestsException $exception) {
@@ -105,7 +116,6 @@ class LoginIntern extends BaseLogin
             ]);
             $user->refresh();
 
-            // The code is now valid because $this->remember exists.
             Auth::guard('intern')->login($user, $this->remember);
             session()->regenerate();
 
@@ -124,7 +134,6 @@ class LoginIntern extends BaseLogin
             ]);
         }
         
-        // The code is now valid because $this->remember exists.
         Auth::guard('intern')->login($user, $this->remember);
         session()->regenerate();
 
