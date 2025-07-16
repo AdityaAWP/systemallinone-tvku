@@ -98,6 +98,47 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(User::class, 'manager_id');
     }
 
+    // Relasi untuk pembimbingan magang (Legacy - kept for backward compatibility)
+    public function supervisedInterns()
+    {
+        return $this->belongsToMany(Intern::class, 'intern_supervisor', 'supervisor_id', 'intern_id')
+                    ->withPivot(['is_primary', 'notes', 'assigned_date', 'ended_date'])
+                    ->withTimestamps();
+    }
+
+    // Method untuk mendapatkan anak magang yang dibimbing saat ini (Legacy)
+    public function activeSupervisedInterns()
+    {
+        return $this->supervisedInterns()
+                    ->whereNull('intern_supervisor.ended_date')
+                    ->orWhere('intern_supervisor.ended_date', '>=', now());
+    }
+
+    // Method untuk mendapatkan anak magang dengan pembimbingan utama (Legacy)
+    public function primarySupervisedInterns()
+    {
+        return $this->supervisedInterns()
+                    ->wherePivot('is_primary', true);
+    }
+
+    // Method untuk cek apakah user bisa menjadi pembimbing
+    public function canSuperviseInterns()
+    {
+        if (!$this->is_active) {
+            return false;
+        }
+        
+        // Cek apakah user memiliki role yang bisa menjadi pembimbing
+        return $this->roles()->where(function ($query) {
+            $query->where('name', 'like', 'staff_%')
+                  ->orWhere('name', 'like', 'manager_%')
+                  ->orWhere('name', 'like', 'kepala_%')
+                  ->orWhere('name', 'like', 'direktur_%')
+                  ->orWhere('name', 'hrd')
+                  ->orWhere('name', 'admin_magang');
+        })->exists();
+    }
+
     public function dailyReports()
     {
         return $this->hasMany(DailyReport::class);
@@ -214,5 +255,11 @@ class User extends Authenticatable implements FilamentUser
     public function canAccessPanel(\Filament\Panel $panel): bool
     {
         return $this->is_active ?? true;
+    }
+
+    // Relasi pembimbingan langsung (field supervisor_id di tabel interns)
+    public function directSupervisedInterns()
+    {
+        return $this->hasMany(Intern::class, 'supervisor_id');
     }
 }
