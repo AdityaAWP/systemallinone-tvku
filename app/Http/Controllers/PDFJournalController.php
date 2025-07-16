@@ -13,12 +13,12 @@ class PDFJournalController extends Controller
         // Check which guard is authenticated
         if (Auth::guard('intern')->check()) {
             // For intern users - show only their journals
-            $journal = Journal::with(['intern', 'intern.internDivision'])
+            $journal = Journal::with(['intern', 'intern.internDivision', 'intern.supervisor', 'intern.school'])
                 ->where('intern_id', Auth::guard('intern')->user()->id)
                 ->get();
         } elseif (Auth::guard('web')->check()) {
             // For admin_magang and super_admin - show all journals
-            $journal = Journal::with(['intern', 'intern.internDivision'])
+            $journal = Journal::with(['intern', 'intern.internDivision', 'intern.supervisor', 'intern.school'])
                 ->get();
         } else {
             return abort(403, 'Unauthorized');
@@ -40,7 +40,7 @@ class PDFJournalController extends Controller
         // Check which guard is authenticated
         if (Auth::guard('intern')->check()) {
             // For intern users - show only their journals
-            $journal = Journal::with(['intern', 'intern.internDivision'])
+            $journal = Journal::with(['intern', 'intern.internDivision', 'intern.supervisor', 'intern.school'])
                 ->where('intern_id', Auth::guard('intern')->user()->id)
                 ->whereMonth('entry_date', $month)
                 ->whereYear('entry_date', $year)
@@ -48,7 +48,7 @@ class PDFJournalController extends Controller
                 ->get();
         } elseif (Auth::guard('web')->check()) {
             // For admin_magang and super_admin - show all journals for the selected month/year
-            $journal = Journal::with(['intern', 'intern.internDivision'])
+            $journal = Journal::with(['intern', 'intern.internDivision', 'intern.supervisor', 'intern.school'])
                 ->whereMonth('entry_date', $month)
                 ->whereYear('entry_date', $year)
                 ->orderBy('entry_date', 'asc')

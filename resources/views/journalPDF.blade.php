@@ -93,7 +93,7 @@
         <tr>
             <td>Nama Pembimbing</td>
             <td class="colon">:</td>
-            <td>{{ $journal[0]->intern->institution_supervisor ?? 'N/A' }}</td>
+            <td>{{ $journal[0]->intern->supervisor->name ?? 'Belum ada pembimbing' }}</td>
         </tr>
     </table>
     @else
@@ -126,7 +126,7 @@
         <tr>
             <td>Nama Pembimbing</td>
             <td class="colon">:</td>
-            <td>N/A</td>
+            <td>Belum ada pembimbing</td>
         </tr>
     </table>
     @endif
