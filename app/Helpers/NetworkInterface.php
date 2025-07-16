@@ -31,7 +31,6 @@ class NetworkInterface
                 return $addressInfo['address'];
             }
         }
-
         // 5. Jika loop selesai dan tidak ada IP yang cocok ditemukan
         return null;
     }

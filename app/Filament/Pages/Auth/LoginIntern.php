@@ -69,6 +69,7 @@ class LoginIntern extends BaseLogin
 
     public function authenticate(): ?LoginResponse
     {
+        
         // <--- START: IP Address Check --->
         $allowedIpsString = env('OFFICE_IP_ADDRESSES');
 
