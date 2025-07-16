@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\JournalResource\Pages;
 use App\Models\Journal;
+use App\Models\User;
 use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
@@ -66,7 +67,44 @@ class JournalResource extends Resource
             return true;
         }
 
+        // Allow admin_magang dan supervisor yang membimbing anak magang
+        if (Auth::guard('web')->check()) {
+            /** @var User $user */
+            $user = Auth::guard('web')->user();
+            return $user->hasRole('admin_magang') || 
+                   ($user->canSuperviseInterns() && \App\Models\Intern::where('supervisor_id', $user->id)->exists());
+        }
+
         return false;
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (Auth::guard('intern')->check()) {
+            // Intern hanya bisa melihat journal mereka sendiri
+            return $query->where('intern_id', Auth::guard('intern')->id());
+        }
+
+        if (Auth::guard('web')->check()) {
+            /** @var User $user */
+            $user = Auth::guard('web')->user();
+            
+            // Admin magang bisa melihat semua journal
+            if ($user->hasRole('admin_magang')) {
+                return $query;
+            }
+            
+            // Supervisor hanya bisa melihat journal anak magang yang dibimbing langsung
+            if ($user->canSuperviseInterns()) {
+                return $query->whereHas('intern', function (Builder $subQuery) use ($user) {
+                    $subQuery->where('supervisor_id', $user->id);
+                });
+            }
+        }
+
+        return $query->whereRaw('1 = 0'); // Return empty result for unauthorized users
     }
 
     public static function form(Form $form): Form
@@ -240,6 +278,7 @@ class JournalResource extends Resource
                     ->label('Download Bulanan')
                     ->icon('heroicon-o-calendar')
                     ->color('primary')
+                    ->visible(fn() => Auth::guard('intern')->check())
                     ->form([
                         Forms\Components\Grid::make(2)
                             ->schema([
@@ -284,7 +323,11 @@ class JournalResource extends Resource
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
                     ->tooltip('Download laporan bulanan untuk magang ini')
-                    ->visible(fn(): bool => Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole(['admin_magang', 'super_admin']))
+                    ->visible(function(): bool {
+                        if (!Auth::guard('web')->check()) return false;
+                        $user = Auth::guard('web')->user();
+                        return $user instanceof \App\Models\User && $user->hasRole(['admin_magang', 'super_admin']);
+                    })
                     ->modalHeading(fn(Journal $record) => 'Download Laporan - ' . $record->intern->name)
                     ->form([
                         Forms\Components\Select::make('month')
@@ -313,14 +356,28 @@ class JournalResource extends Resource
                         return redirect()->to($url, true);
                     }),
                 Tables\Actions\EditAction::make()
-                    ->visible(fn(): bool => Auth::guard('intern')->check() || (Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole('admin_magang'))),
+                    ->visible(function(): bool {
+                        if (Auth::guard('intern')->check()) return true;
+                        if (!Auth::guard('web')->check()) return false;
+                        $user = Auth::guard('web')->user();
+                        return $user instanceof \App\Models\User && $user->hasRole('admin_magang');
+                    }),
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn(): bool => Auth::guard('intern')->check() || (Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole('admin_magang'))),
+                    ->visible(function(): bool {
+                        if (Auth::guard('intern')->check()) return true;
+                        if (!Auth::guard('web')->check()) return false;
+                        $user = Auth::guard('web')->user();
+                        return $user instanceof \App\Models\User && $user->hasRole('admin_magang');
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn(): bool => Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole('admin_magang')),
+                        ->visible(function(): bool {
+                            if (!Auth::guard('web')->check()) return false;
+                            $user = Auth::guard('web')->user();
+                            return $user instanceof \App\Models\User && $user->hasRole('admin_magang');
+                        }),
                 ]),
             ])
             ->modifyQueryUsing(function (Builder $query) {
