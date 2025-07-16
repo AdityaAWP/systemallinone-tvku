@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\Intern;
 use App\Models\InternSchool;
 use App\Models\InternDivision;
+use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Infolists\Components\TextEntry;
@@ -91,10 +92,10 @@ class EditProfileIntern extends Page
                             ->icon('heroicon-o-building-office')
                             ->placeholder('Not provided'),
                         
-                        TextEntry::make('institution_supervisor')
+                        TextEntry::make('supervisor.name')
                             ->label('Pembimbing TVKU')
                             ->icon('heroicon-o-user-circle')
-                            ->placeholder('Not provided'),
+                            ->placeholder('Belum dipilih'),
                         
                         TextEntry::make('college_supervisor')
                             ->label(function ($record) {
@@ -235,10 +236,25 @@ class EditProfileIntern extends Page
                             ->default($intern->college_supervisor)
                             ->columnSpan(2),
 
-                        TextInput::make('institution_supervisor')
+                        Select::make('supervisor_id')
                             ->label('Pembimbing TVKU')
-                            ->maxLength(255)
-                            ->default($intern->institution_supervisor)
+                            ->options(function () {
+                                return User::where('is_active', true)
+                                    ->whereHas('roles', function ($query) {
+                                        $query->where(function ($q) {
+                                            $q->where('name', 'like', 'staff_%')
+                                              ->orWhere('name', 'like', 'manager_%')
+                                              ->orWhere('name', 'like', 'kepala_%')
+                                              ->orWhere('name', 'like', 'direktur_%')
+                                              ->orWhere('name', 'hrd')
+                                              ->orWhere('name', 'admin_magang');
+                                        });
+                                    })
+                                    ->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->placeholder('Pilih pembimbing TVKU')
+                            ->default($intern->supervisor_id)
                             ->columnSpan(2),
 
                         TextInput::make('college_supervisor_phone')
