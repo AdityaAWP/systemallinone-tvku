@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\InternResource\Pages;
+use App\Filament\Resources\InternResource\RelationManagers;
 use App\Models\Intern;
 use App\Models\InternSchool;
 use App\Models\InternDivision;
@@ -173,27 +174,15 @@ class InternResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->getStateUsing(function (Intern $record): string {
-                        $now = Carbon::now();
-                        $start = Carbon::parse($record->start_date);
-                        $end = Carbon::parse($record->end_date);
-                        $hampirStart = $end->copy()->subMonth();
-
-                        if ($now->lessThan($start)) {
-                            return 'Datang';
-                        } elseif ($now->greaterThanOrEqualTo($hampirStart) && $now->lessThanOrEqualTo($end)) {
-                            return 'Hampir';
-                        } elseif ($now->between($start, $hampirStart->subSecond())) {
-                            return 'Active';
-                        } else {
-                            return 'Selesai';
-                        }
+                        return $record->getInternshipStatus();
                     })
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
-                        'Active' => 'success',
-                        'Datang' => 'warning',
-                        'Hampir' => 'danger',
+                        'Aktif' => 'success',
+                        'Akan Datang' => 'warning',
+                        'Hampir Selesai' => 'danger',
                         'Selesai' => 'gray',
+                        default => 'secondary',
                     }),
             ])
             ->actions([
@@ -320,6 +309,13 @@ class InternResource extends Resource
                         ]);
                     }),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            // Relations removed as supervision is now handled directly
+        ];
     }
 
     public static function getPages(): array
