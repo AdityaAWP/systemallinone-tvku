@@ -5,7 +5,7 @@
 
     $finalLogoUrl = $logoPath ? \Illuminate\Support\Facades\Storage::disk('public')->url($logoPath) : $defaultLogoUrl;
 
-    $isLogin = request()->routeIs('filament.admin.auth.login');
+    $isLogin = request()->routeIs('filament.admin.auth.login') || request()->routeIs('filament.intern.auth.login');
 
     $logoHeight = $isLogin ? '100px' : '50px';
 @endphp
