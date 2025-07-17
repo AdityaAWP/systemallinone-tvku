@@ -155,6 +155,7 @@ class EditProfileIntern extends Page
                             ->required()
                             ->label('Nama Lengkap')
                             ->maxLength(255)
+                            ->default($intern->fullname)
                             ->columnSpan(2),
                         TextInput::make('email')
                             ->email()   
