@@ -186,12 +186,13 @@ class AssignmentResource extends Resource
                                         Assignment::PRIORITY_VERY_IMPORTANT => 'Sangat Penting',
                                     ])
                                     ->placeholder('Pilih prioritas')
-                                    ->hidden(fn(Forms\Get $get) => $get('type') !== Assignment::TYPE_PAID)
-                                    // MODIFIED: This field is now enabled for direktur_utama and manager_keuangan
+                                    // MODIFIED: Show priority field for all assignment types (paid, barter, free)
+                                    // ->hidden(fn(Forms\Get $get) => $get('type') !== Assignment::TYPE_PAID)
+                                    // FIXED: Only direktur_utama can edit priority (not manager_keuangan)
                                     ->disabled(function () {
                                         $user = Auth::user();
                                         return !($user && method_exists($user, 'hasRole') &&
-                                            ($user->hasRole('direktur_utama') || $user->hasRole('manager_keuangan')));
+                                            $user->hasRole('direktur_utama'));
                                     }),
 
                                 Forms\Components\Select::make('approval_status')
@@ -289,9 +290,10 @@ class AssignmentResource extends Resource
                     ->label('Prioritas')
                     ->badge()
                     ->formatStateUsing(function ($state) {
-                        // Jika priority null/kosong (untuk staff_keuangan), tampilkan "-"
+                        // MODIFIED: Show priority for all assignment types 
+                        // Jika priority null/kosong, tampilkan "Belum Ditentukan"
                         if (is_null($state)) {
-                            return '-';
+                            return 'Belum Ditentukan';
                         }
                         return match ($state) {
                             Assignment::PRIORITY_NORMAL => 'Biasa',
@@ -510,14 +512,13 @@ class AssignmentResource extends Resource
                             ])
                             ->required()
                             ->default(fn(Assignment $record) => $record->priority ?? Assignment::PRIORITY_NORMAL)
-                            ->visible(fn(Assignment $record) => $record->type === Assignment::TYPE_PAID),
+                            // MODIFIED: Show priority field for all assignment types (paid, barter, free)
+                            // ->visible(fn(Assignment $record) => $record->type === Assignment::TYPE_PAID),
                     ])
                     ->modalHeading('Approve Assignment')
                     ->modalDescription(function (Assignment $record) {
-                        $description = 'Apakah Anda yakin ingin menyetujui assignment ini?';
-                        if ($record->type === Assignment::TYPE_PAID) {
-                            $description .= ' Silakan tentukan tingkat prioritas untuk assignment ini.';
-                        }
+                        // MODIFIED: Show priority selection for all assignment types
+                        $description = 'Apakah Anda yakin ingin menyetujui assignment ini? Silakan tentukan tingkat prioritas untuk assignment ini.';
                         return $description;
                     })
                     ->modalSubmitActionLabel('Ya, Approve')
@@ -528,8 +529,8 @@ class AssignmentResource extends Resource
                             'approved_at' => now(),
                         ];
 
-                        // Set priority only for paid assignments and if provided
-                        if ($record->type === Assignment::TYPE_PAID && isset($data['priority'])) {
+                        // MODIFIED: Set priority for all assignment types (paid, barter, free)
+                        if (isset($data['priority'])) {
                             $updateData['priority'] = $data['priority'];
                         }
 
