@@ -34,13 +34,13 @@ class LoginIntern extends BaseLogin
     {
         return $form
             ->schema([
-                View::make('filament.notes.first-login-info'),
                 $this->getNameFormComponent(),
                 $this->getPasswordFormComponent(),
+                View::make('filament.notes.first-login-info'),
                 $this->getRememberFormComponent(),
             ])
             ->statePath('data')
-            ->extraAttributes(['class' => 'my-16']);
+            ->extraAttributes(['class' => 'my-10']);
     }
 
     protected function getNameFormComponent(): Component
