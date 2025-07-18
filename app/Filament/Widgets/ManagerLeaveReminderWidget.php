@@ -19,25 +19,59 @@ class ManagerLeaveReminderWidget extends Widget
         // Get current manager
         $manager = Auth::user();
         
-        if (!$manager->hasRole('manager')) {
+        // Cek apakah user memiliki role manager atau kepala
+        $isManager = $manager->roles()->where('name', 'like', 'manager%')->exists();
+        $isKepala = $manager->roles()->where('name', 'like', 'kepala%')->exists();
+        
+        if (!$isManager && !$isKepala) {
             return collect();
         }
         
-        // Get staff in the same division as the manager, and only those with a division_id
-        $staffIds = User::where('division_id', $manager->division_id)
-            ->whereNotNull('division_id')
+        // Get staff yang dikelola oleh manager/kepala ini
+        $staffQuery = User::where('is_active', true);
+        
+        // 1. Staff yang memiliki manager_id = manager ini
+        $directStaffIds = User::where('manager_id', $manager->id)
+            ->where('is_active', true)
             ->pluck('id')
             ->toArray();
         
-        $currentYear = Carbon::now()->year;
+        // 2. Staff dari divisi yang sama (menggunakan many-to-many divisions)
+        $managerDivisionIds = $manager->divisions()->pluck('divisions.id')->toArray();
+        if (empty($managerDivisionIds) && $manager->division_id) {
+            $managerDivisionIds = [$manager->division_id];
+        }
         
+        $divisionStaffIds = [];
+        if (!empty($managerDivisionIds)) {
+            $divisionStaffIds = User::where('is_active', true)
+                ->where(function ($query) use ($managerDivisionIds) {
+                    $query->whereHas('divisions', function ($q) use ($managerDivisionIds) {
+                        $q->whereIn('divisions.id', $managerDivisionIds);
+                    })
+                    ->orWhereIn('division_id', $managerDivisionIds);
+                })
+                ->whereHas('roles', function ($query) {
+                    $query->where('name', 'like', 'staff_%');
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+        
+        // Gabungkan staff dari kedua sumber
+        $allStaffIds = array_unique(array_merge($directStaffIds, $divisionStaffIds));
+        
+        $currentYear = Carbon::now()->year;
         $staffLeaveData = [];
         
-        foreach ($staffIds as $staffId) {
+        foreach ($allStaffIds as $staffId) {
             $staff = User::find($staffId);
             if (!$staff || $staff->id === $manager->id) continue;
-            // Exclude super admin and hrd
-            if ($staff->hasRole('super_admin') || $staff->hasRole('hrd') || $staff->hasRole('manager')) continue;
+            
+            // Exclude super admin, hrd, dan manager lainnya
+            if ($staff->hasRole('super_admin') || $staff->hasRole('hrd')) continue;
+            if ($staff->roles()->where('name', 'like', 'manager%')->exists()) continue;
+            if ($staff->roles()->where('name', 'like', 'kepala%')->exists()) continue;
             
             // Get quota information
             $quota = $staff->getCurrentYearQuota();
@@ -79,7 +113,11 @@ class ManagerLeaveReminderWidget extends Widget
     
     public static function canView(): bool
     {
-        return Auth::user()->hasRole('manager');
+        $user = Auth::user();
+        $isManager = $user->roles()->where('name', 'like', 'manager%')->exists();
+        $isKepala = $user->roles()->where('name', 'like', 'kepala%')->exists();
+        
+        return $isManager || $isKepala;
     }
 
     public static function getSort(): int

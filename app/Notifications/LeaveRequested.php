@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class LeaveRequested extends Notification implements ShouldQueue
 {
@@ -29,7 +30,16 @@ class LeaveRequested extends Notification implements ShouldQueue
     {
         $baseUrl = config('app.url');
 
-        $role = $notifiable->hasRole('manager') ? 'manager' : 'hrd';
+        // Perbaiki penentuan role: cek jika user memiliki role manager_ atau kepala_
+        $isManager = $notifiable->roles()->where('name', 'like', 'manager%')->exists();
+        $isKepala = $notifiable->roles()->where('name', 'like', 'kepala%')->exists();
+        
+        Log::info('Debugging role detection untuk ' . $notifiable->email . ':');
+        Log::info('- isManager: ' . ($isManager ? 'true' : 'false'));
+        Log::info('- isKepala: ' . ($isKepala ? 'true' : 'false'));
+        Log::info('- All roles: ' . $notifiable->roles()->pluck('name')->implode(', '));
+        
+        $role = ($isManager || $isKepala) ? 'manager' : 'hrd';
 
         $approveUrl = $baseUrl . '/leave/approve-by-token/' . $this->leave->approval_token . '?role=' . $role;
         $rejectUrl = $baseUrl . '/leave/reject-by-token/' . $this->leave->approval_token . '?role=' . $role;
@@ -39,6 +49,8 @@ class LeaveRequested extends Notification implements ShouldQueue
         Log::info('Mengirim email permintaan cuti ke: ' . $notifiable->email . ' sebagai ' . $role);
         Log::info('Link approve: ' . $approveUrl);
         Log::info('Link reject: ' . $rejectUrl);
+        Log::info('Role yang terdeteksi untuk ' . $notifiable->name . ' (' . $notifiable->email . '): ' . $role);
+        Log::info('Roles user: ' . $notifiable->roles()->pluck('name')->implode(', '));
 
         // Gunakan view kustom modern dengan Tailwind dan font Poppins
         return (new MailMessage)

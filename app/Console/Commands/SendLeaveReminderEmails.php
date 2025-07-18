@@ -13,13 +13,19 @@ class SendLeaveReminderEmails extends Command
 
     public function handle()
     {
-        $managers = User::role('manager')->get();
+        // Kirim reminder ke semua manager dan kepala
+        $managers = User::whereHas('roles', function ($query) {
+            $query->where('name', 'like', 'manager_%')
+                  ->orWhere('name', 'like', 'kepala_%');
+        })
+        ->where('is_active', true)
+        ->get();
         
         foreach ($managers as $manager) {
             SendLeaveReminderEmailJob::dispatch($manager);
         }
         
-        $this->info('Leave reminder emails have been dispatched successfully.');
+        $this->info('Leave reminder emails have been dispatched successfully to ' . $managers->count() . ' managers/kepala.');
         
         return Command::SUCCESS;
     }

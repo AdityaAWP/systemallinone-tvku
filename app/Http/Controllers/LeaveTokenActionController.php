@@ -27,23 +27,29 @@ class LeaveTokenActionController extends Controller
 
         // Cek parameter role dari URL
         $role = request()->query('role');
+        Log::info('Parameter role yang diterima: ' . ($role ?? 'null'));
+        Log::info('URL lengkap: ' . request()->fullUrl());
 
         if ($role == 'manager') {
             $leave->approval_manager = true;
             $approverRole = 'Manager';
+            Log::info('Setting approval_manager = true untuk leave ID: ' . $leave->id);
 
             // Jika HRD sudah approve
             if ($leave->approval_hrd === true) {
                 $leave->status = 'approved';
+                Log::info('HRD sudah approve, setting status = approved');
             }
         } else {
             // Default ke HRD jika tidak disebutkan
             $leave->approval_hrd = true;
             $approverRole = 'HRD';
+            Log::info('Setting approval_hrd = true untuk leave ID: ' . $leave->id);
 
             // Jika Manager sudah approve
             if ($leave->approval_manager === true) {
                 $leave->status = 'approved';
+                Log::info('Manager sudah approve, setting status = approved');
             }
         }
 
@@ -51,6 +57,9 @@ class LeaveTokenActionController extends Controller
         $leave->save();
 
         Log::info('Cuti dengan ID ' . $leave->id . ' disetujui oleh ' . $approverRole);
+        Log::info('Status approval_manager: ' . ($leave->approval_manager ? 'true' : 'false'));
+        Log::info('Status approval_hrd: ' . ($leave->approval_hrd ? 'true' : 'false'));
+        Log::info('Status cuti: ' . $leave->status);
 
         // Kirim notifikasi ke staff jika status berubah menjadi approved
         if ($leave->status == 'approved') {
@@ -86,16 +95,20 @@ class LeaveTokenActionController extends Controller
 
         // Cek parameter role dari URL
         $role = request()->query('role');
+        Log::info('Parameter role yang diterima: ' . ($role ?? 'null'));
+        Log::info('URL lengkap: ' . request()->fullUrl());
 
         if ($role == 'manager') {
             $leave->approval_manager = false;
             $leave->rejection_reason = 'Ditolak oleh Manager melalui email';
             $rejecterRole = 'Manager';
+            Log::info('Setting approval_manager = false untuk leave ID: ' . $leave->id);
         } else {
             // Default ke HRD jika tidak disebutkan
             $leave->approval_hrd = false;
             $leave->rejection_reason = 'Ditolak oleh HRD melalui email';
             $rejecterRole = 'HRD';
+            Log::info('Setting approval_hrd = false untuk leave ID: ' . $leave->id);
         }
 
         $leave->status = 'rejected';

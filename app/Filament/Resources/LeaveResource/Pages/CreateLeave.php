@@ -188,17 +188,72 @@ class CreateLeave extends CreateRecord
 
     private function sendLeaveRequestNotifications(Leave $leave): void
     {
+        // Kirim ke HRD
         $hrdUsers = User::role('hrd')->get();
         Notification::send($hrdUsers, new LeaveRequested($leave));
 
-        // Get the staff's role and convert to manager role
-        $staffRole = $leave->user->roles->first()?->name;
+        // Kirim ke manager/kepala yang sesuai dengan divisi staff
+        $staff = $leave->user;
+        
+        // Pertama, cek apakah staff memiliki manager yang ditugaskan manual
+        if ($staff->manager_id) {
+            $assignedManager = User::find($staff->manager_id);
+            if ($assignedManager && $assignedManager->is_active) {
+                Notification::send([$assignedManager], new LeaveRequested($leave));
+                Log::info('Notifikasi cuti dikirim ke assigned manager: ' . $assignedManager->name);
+            }
+        }
+        
+        // Kedua, kirim ke manager/kepala berdasarkan divisi staff
+        $staffDivisionIds = $staff->divisions()->pluck('divisions.id')->toArray();
+        if (empty($staffDivisionIds) && $staff->division_id) {
+            $staffDivisionIds = [$staff->division_id];
+        }
+        
+        if (!empty($staffDivisionIds)) {
+            // Cari manager/kepala yang mengelola divisi yang sama dengan staff
+            $managersAndHeads = User::where('is_active', true)
+                ->whereHas('roles', function ($query) {
+                    $query->where('name', 'like', 'manager_%')
+                          ->orWhere('name', 'like', 'kepala_%');
+                })
+                ->where(function ($query) use ($staffDivisionIds) {
+                    $query->whereHas('divisions', function ($q) use ($staffDivisionIds) {
+                        $q->whereIn('divisions.id', $staffDivisionIds);
+                    })
+                    ->orWhereIn('division_id', $staffDivisionIds);
+                })
+                ->get();
+                
+            if ($managersAndHeads->count() > 0) {
+                Notification::send($managersAndHeads, new LeaveRequested($leave));
+                Log::info('Notifikasi cuti dikirim ke manager/kepala divisi: ' . $managersAndHeads->pluck('name')->implode(', '));
+            }
+        }
+        
+        // Fallback: Jika tidak ada manager/kepala ditemukan berdasarkan divisi, 
+        // cari berdasarkan role mapping (staff_it -> manager_it)
+        $staffRole = $staff->roles->first()?->name;
         if ($staffRole && str_starts_with($staffRole, 'staff_')) {
             $managerRole = 'manager_' . substr($staffRole, 6);
-            // Cek apakah role manager ada
+            $kepalaRole = 'kepala_' . substr($staffRole, 6);
+            
+            // Cek manager role
             if (\Spatie\Permission\Models\Role::where('name', $managerRole)->exists()) {
-                $managers = User::role($managerRole)->get();
-                Notification::send($managers, new LeaveRequested($leave));
+                $managers = User::role($managerRole)->where('is_active', true)->get();
+                if ($managers->count() > 0) {
+                    Notification::send($managers, new LeaveRequested($leave));
+                    Log::info('Notifikasi cuti dikirim ke manager berdasarkan role: ' . $managers->pluck('name')->implode(', '));
+                }
+            }
+            
+            // Cek kepala role
+            if (\Spatie\Permission\Models\Role::where('name', $kepalaRole)->exists()) {
+                $kepala = User::role($kepalaRole)->where('is_active', true)->get();
+                if ($kepala->count() > 0) {
+                    Notification::send($kepala, new LeaveRequested($leave));
+                    Log::info('Notifikasi cuti dikirim ke kepala berdasarkan role: ' . $kepala->pluck('name')->implode(', '));
+                }
             }
         }
     }

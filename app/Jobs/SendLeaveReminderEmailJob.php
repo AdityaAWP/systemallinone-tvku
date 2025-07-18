@@ -25,10 +25,37 @@ class SendLeaveReminderEmailJob implements ShouldQueue
 
     public function handle()
     {
-        // Get staff members in the same division as the manager
-        $staffIds = User::where('division_id', $this->manager->division_id)
+        // Get staff members yang dikelola manager ini
+        // 1. Staff yang memiliki manager_id = manager ini
+        $directStaffIds = User::where('manager_id', $this->manager->id)
+            ->where('is_active', true)
             ->pluck('id')
             ->toArray();
+        
+        // 2. Staff dari divisi yang sama (menggunakan many-to-many divisions)
+        $managerDivisionIds = $this->manager->divisions()->pluck('divisions.id')->toArray();
+        if (empty($managerDivisionIds) && $this->manager->division_id) {
+            $managerDivisionIds = [$this->manager->division_id];
+        }
+        
+        $divisionStaffIds = [];
+        if (!empty($managerDivisionIds)) {
+            $divisionStaffIds = User::where('is_active', true)
+                ->where(function ($query) use ($managerDivisionIds) {
+                    $query->whereHas('divisions', function ($q) use ($managerDivisionIds) {
+                        $q->whereIn('divisions.id', $managerDivisionIds);
+                    })
+                    ->orWhereIn('division_id', $managerDivisionIds);
+                })
+                ->whereHas('roles', function ($query) {
+                    $query->where('name', 'like', 'staff_%');
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+        
+        // Gabungkan staff dari kedua sumber
+        $staffIds = array_unique(array_merge($directStaffIds, $divisionStaffIds));
         
         // Skip if no staff
         if (empty($staffIds)) {
