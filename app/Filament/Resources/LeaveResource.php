@@ -94,13 +94,13 @@ class LeaveResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         $user = Auth::user();
-
+        // Jika super_admin, hanya tampilkan jumlah cuti milik sendiri
         if ($user->roles()->where('name', 'super_admin')->exists()) {
-            $count = Leave::count();
+            $count = Leave::where('user_id', $user->id)->count();
             return $count > 0 ? (string) $count : null;
         }
 
-        if ($user->hasRole('hrd')) {
+        if (static::isHrd($user)) {
             $count = Leave::count();
             return $count > 0 ? (string) $count : null;
         }
@@ -341,7 +341,7 @@ class LeaveResource extends Resource
                         Forms\Components\Toggle::make('approval_hrd')
                             ->label('Persetujuan HRD')
                             ->helperText('Setujui atau tolak permohonan cuti ini')
-                            ->visible(fn() => $user->hasRole('hrd') && !$isCreating)
+                            ->visible(fn() => static::isHrd($user) && !$isCreating)
                             ->hiddenOn('view')
                             ->reactive(),
 
@@ -355,7 +355,7 @@ class LeaveResource extends Resource
                                     return true;
                                 }
 
-                                if ($user->hasRole('hrd') && $get('approval_hrd') === false) {
+                                if (static::isHrd($user) && $get('approval_hrd') === false) {
                                     return true;
                                 }
 
@@ -366,7 +366,7 @@ class LeaveResource extends Resource
                                     return true;
                                 }
 
-                                if ($user->hasRole('hrd') && $get('approval_hrd') === false) {
+                                if (static::isHrd($user) && $get('approval_hrd') === false) {
                                     return true;
                                 }
 
@@ -404,14 +404,14 @@ class LeaveResource extends Resource
                 Tables\Actions\Action::make('reset_to_all')
                     ->label('Semua Cuti Staff')
                     ->icon('heroicon-o-users')
-                    ->visible(fn() => $user->hasRole('hrd') || static::isManager($user) || static::isKepala($user))
+                    ->visible(fn() => static::isHrd($user) || static::isManager($user) || static::isKepala($user))
                     ->url(fn() => request()->url())
                     ->color(fn() => !request()->hasAny(['tableFilters']) || request()->input('tableFilters.my_leave.value') === 'false' ? 'primary' : 'gray'),
 
                 Tables\Actions\Action::make('filter_my_leave')
                     ->label('Cuti Saya')
                     ->icon('heroicon-o-user')
-                    ->visible(fn() => $user->hasRole('hrd') || static::isManager($user) || static::isKepala($user))
+                    ->visible(fn() => static::isHrd($user) || static::isManager($user) || static::isKepala($user))
                     ->url(fn() => request()->url() . '?tableFilters[my_leave][value]=true')
                     ->color(fn() => request()->input('tableFilters.my_leave.value') === 'true' ? 'primary' : 'gray'),
 
@@ -443,14 +443,7 @@ class LeaveResource extends Resource
                                 $options = ['personal' => 'Data Pribadi Saya'];
 
                                 // Cek role HRD dengan method checking yang sudah ada
-                                $userRoles = [];
-                                if ($user && method_exists($user, 'getRoleNames')) {
-                                    $userRoles = $user->getRoleNames()->toArray();
-                                } elseif ($user && property_exists($user, 'roles')) {
-                                    $userRoles = collect($user->roles)->pluck('name')->toArray();
-                                }
-
-                                if (in_array('hrd', $userRoles)) {
+                                if (static::isHrd($user)) {
                                     $options['all'] = 'Semua Data Staff';
                                 } elseif (static::isManager($user) || static::isKepala($user)) {
                                     $options['division'] = 'Semua Data Staff Divisi Saya';
@@ -459,7 +452,7 @@ class LeaveResource extends Resource
                                 return $options;
                             })
                             ->default('personal')
-                            ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
+                            ->visible(fn() => static::isHrd(Auth::user()) || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                             ->required(),
                     ])
                     ->action(function (array $data) {
@@ -467,7 +460,7 @@ class LeaveResource extends Resource
                         $user = Auth::user();
 
                         // Tentukan userId dan divisionIds berdasarkan pilihan export
-                        if ($user->hasRole('hrd') && isset($data['export_type']) && $data['export_type'] === 'all') {
+                        if (static::isHrd($user) && isset($data['export_type']) && $data['export_type'] === 'all') {
                             $userId = null; // Export semua data
                             $divisionIds = null;
                             $filename = "laporan_cuti_semua_staff_{$year}.xlsx";
@@ -637,7 +630,7 @@ class LeaveResource extends Resource
 
                 Tables\Filters\TernaryFilter::make('my_leave')
                     ->label('Tampilkan Cuti Saya')
-                    ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
+                    ->visible(fn() => static::isHrd(Auth::user()) || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                     ->trueLabel('Cuti Saya')
                     ->falseLabel('Semua Cuti Staff')
                     ->queries(
@@ -660,7 +653,7 @@ class LeaveResource extends Resource
                     ->icon('heroicon-o-document-text')
                     ->color('success')
                     ->tooltip('Export laporan cuti karyawan ini')
-                    ->visible(fn() => Auth::user()->hasRole('hrd'))
+                    ->visible(fn() => static::isHrd(Auth::user()))
                     ->modalHeading(fn(Leave $record) => 'Export Laporan Cuti - ' . $record->user->name)
                     ->modalDescription('Export laporan cuti karyawan ini')
                     ->modalWidth('md')
@@ -699,14 +692,14 @@ class LeaveResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => Auth::user()->hasRole('hrd')),
+                        ->visible(fn() => static::isHrd(Auth::user())),
 
                     Tables\Actions\ExportAction::make()
                         ->exporter(LeaveExporter::class)
                         ->label('Ekspor')
                         ->color('success')
                         ->icon('heroicon-o-document-download')
-                        ->visible(fn() => Auth::user()->hasRole('hrd')),
+                        ->visible(fn() => static::isHrd(Auth::user())),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
@@ -740,19 +733,19 @@ class LeaveResource extends Resource
         });
 
         // Logika untuk staff biasa tetap, beroperasi pada query yang sudah difilter.
-        if (static::isStaff($user) && !$user->hasRole('hrd') && !static::isManager($user) && !static::isKepala($user)) {
+        if (static::isStaff($user) && !static::isHrd($user) && !static::isManager($user) && !static::isKepala($user)) {
             return $query->where('user_id', $user->id);
         }
 
         // Logika untuk HRD, Manager, dan Kepala.
-        if ($user->hasRole('hrd') || static::isManager($user) || static::isKepala($user)) {
+        if (static::isHrd($user) || static::isManager($user) || static::isKepala($user)) {
 
             // Langkah 1: Dapatkan ID karyawan yang dapat diakses DAN AKTIF.
             $accessibleUsersQuery = \App\Models\User::query()
                 ->where('is_active', true); // <-- TAMBAHKAN FILTER INI
 
             // Logika pembatasan berdasarkan divisi tetap sama.
-            if (!$user->hasRole('hrd')) {
+            if (!static::isHrd($user)) {
                 // ... (logika divisi yang sudah ada tidak perlu diubah)
                 $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
                 if (empty($userDivisionIds) && $user->division_id) {
@@ -769,13 +762,11 @@ class LeaveResource extends Resource
                 }
             }
             
-            // Langkah 2: Buat subquery untuk mendapatkan ID cuti terakhir.
-            $latestLeaveIdsSubquery = Leave::selectRaw('MAX(id)')
-                ->whereIn('user_id', $accessibleUsersQuery->select('id'))
-                ->groupBy('user_id');
-
-            // Langkah 3: Filter query utama dengan subquery.
-            return $query->whereIn('id', $latestLeaveIdsSubquery);
+            // Langkah 2: Tampilkan SEMUA cuti dari user yang dapat diakses, bukan hanya yang terakhir
+            $accessibleUserIds = $accessibleUsersQuery->pluck('id')->toArray();
+            
+            // Langkah 3: Filter query utama untuk menampilkan semua cuti dari user yang dapat diakses
+            return $query->whereIn('user_id', $accessibleUserIds);
         }
 
         // Fallback default.
