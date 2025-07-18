@@ -100,6 +100,7 @@ class UserResource extends Resource
                             ->label('Manager/Atasan')
                             ->searchable()
                             ->preload()
+                            ->reactive()
                             ->options(function () {
                                 // Show all users with any manager, kepala, head, or direktur role
                                 return User::whereHas('roles', function ($query) {
@@ -112,7 +113,33 @@ class UserResource extends Resource
                                 ->toArray();
                             })
                             ->placeholder('Pilih Manager/Atasan')
-                            ->helperText('Pilih manager dari semua divisi yang tersedia'),
+                            ->helperText('Pilih manager dari semua divisi yang tersedia')
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                // Clear manager division selection when manager changes
+                                $set('manager_division_id', null);
+                            }),
+                        Select::make('manager_division_id')
+                            ->label('Divisi Manager/Atasan')
+                            ->searchable()
+                            ->preload()
+                            ->options(function (callable $get) {
+                                $managerId = $get('manager_id');
+                                if (!$managerId) {
+                                    return [];
+                                }
+                                
+                                $manager = User::with('divisions')->find($managerId);
+                                if (!$manager || $manager->divisions->isEmpty()) {
+                                    return [];
+                                }
+                                
+                                return $manager->divisions->pluck('name', 'id')->toArray();
+                            })
+                            ->placeholder('Pilih divisi manager/atasan')
+                            ->helperText('Pilih divisi spesifik dari manager/atasan yang dipilih')
+                            ->visible(fn (callable $get) => !empty($get('manager_id')))
+                            ->reactive()
+                            ->dehydrated(false), // Don't save this field to database unless you want to
                         Forms\Components\Toggle::make('is_active')
                             ->label('Status Aktif')
                             ->helperText('Nonaktifkan untuk mencegah user login')

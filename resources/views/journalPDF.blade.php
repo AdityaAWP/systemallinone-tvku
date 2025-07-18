@@ -66,7 +66,7 @@
         <tr>
             <td>Nama</td>
             <td class="colon">:</td>
-            <td>{{ $journal[0]->intern->name ?? 'N/A' }}</td>
+            <td>{{ $journal[0]->intern->fullname ?? 'N/A' }}</td>
         </tr>
         <tr>
             <td>NIS/NIM</td>
