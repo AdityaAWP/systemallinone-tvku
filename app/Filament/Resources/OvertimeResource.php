@@ -93,19 +93,22 @@ class OvertimeResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
-        $query = parent::getEloquentQuery();
+        
+        $query = parent::getEloquentQuery()->whereHas('user', function ($query) {
+            $query->where('is_active', true);
+        });
 
-        // Cek jika pengguna adalah staff biasa (bukan manager/hrd/kepala)
-        // Mereka akan melihat semua data lembur mereka sendiri.
         if (static::isStaff($user) && !$user->hasRole('hrd') && !static::isManager($user) && !static::isKepala($user)) {
+            // Logika ini tetap, karena $query sudah difilter di atas.
             return $query->where('user_id', $user->id);
         }
 
         // Untuk HRD, Manager, dan Kepala: tampilkan hanya data lembur TERAKHIR per karyawan.
         if ($user->hasRole('hrd') || static::isManager($user) || static::isKepala($user)) {
 
-            // Langkah 1: Tentukan query untuk mendapatkan ID karyawan yang dapat diakses.
-            $accessibleUsersQuery = \App\Models\User::query();
+            // Langkah 1: Tentukan query untuk mendapatkan ID karyawan yang dapat diakses DAN AKTIF.
+            $accessibleUsersQuery = \App\Models\User::query()
+                ->where('is_active', true); // <-- TAMBAHKAN FILTER INI
 
             // Jika bukan HRD (yaitu manager/kepala), batasi hanya untuk staff mereka + diri sendiri.
             if (!$user->hasRole('hrd')) {
@@ -123,7 +126,7 @@ class OvertimeResource extends Resource
                 ->groupBy('user_id');
 
             // Langkah 3: Filter query utama untuk hanya menyertakan ID yang ditemukan.
-            // Ini akan secara efektif menampilkan hanya satu baris (yang terbaru) per karyawan.
+            // Query utama sudah memiliki filter `whereHas` dari awal, jadi ini aman.
             return $query->whereIn('id', $latestOvertimeIdsSubquery);
         }
 

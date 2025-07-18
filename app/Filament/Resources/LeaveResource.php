@@ -728,54 +728,58 @@ class LeaveResource extends Resource
         ];
     }
 
+
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
-        $query = parent::getEloquentQuery();
+        
+        // MODIFIKASI: Mulai query dengan filter user aktif sebagai dasar.
+        // Ini memastikan SEMUA data cuti yang diambil HANYA dari user yang aktif.
+        $query = parent::getEloquentQuery()->whereHas('user', function ($query) {
+            $query->where('is_active', true);
+        });
 
-        // Jika pengguna adalah staff biasa (bukan manager/hrd/kepala),
-        // mereka akan melihat semua data cuti mereka sendiri.
+        // Logika untuk staff biasa tetap, beroperasi pada query yang sudah difilter.
         if (static::isStaff($user) && !$user->hasRole('hrd') && !static::isManager($user) && !static::isKepala($user)) {
             return $query->where('user_id', $user->id);
         }
 
-        // Untuk HRD, Manager, dan Kepala: tampilkan hanya data cuti TERAKHIR per karyawan.
+        // Logika untuk HRD, Manager, dan Kepala.
         if ($user->hasRole('hrd') || static::isManager($user) || static::isKepala($user)) {
 
-            // Langkah 1: Tentukan query untuk mendapatkan ID karyawan yang dapat diakses.
-            $accessibleUsersQuery = \App\Models\User::query();
+            // Langkah 1: Dapatkan ID karyawan yang dapat diakses DAN AKTIF.
+            $accessibleUsersQuery = \App\Models\User::query()
+                ->where('is_active', true); // <-- TAMBAHKAN FILTER INI
 
-            // Jika bukan HRD (yaitu manager/kepala), batasi hanya untuk staff di divisi mereka + diri sendiri.
+            // Logika pembatasan berdasarkan divisi tetap sama.
             if (!$user->hasRole('hrd')) {
+                // ... (logika divisi yang sudah ada tidak perlu diubah)
                 $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
                 if (empty($userDivisionIds) && $user->division_id) {
                     $userDivisionIds = [$user->division_id];
                 }
 
                 if (!empty($userDivisionIds)) {
-                    // Filter untuk user yang ada di divisi yang dikelola ATAU user itu sendiri
                     $accessibleUsersQuery->where(function ($q) use ($userDivisionIds, $user) {
                         $q->whereIn('division_id', $userDivisionIds)
-                          ->orWhere('id', $user->id); // Sertakan data cuti manager itu sendiri
+                          ->orWhere('id', $user->id);
                     });
                 } else {
-                    // Jika manager tidak mengelola divisi apapun, hanya tampilkan datanya sendiri
                     $accessibleUsersQuery->where('id', $user->id);
                 }
             }
             
-            // Langkah 2: Buat subquery untuk mendapatkan ID dari entri cuti terakhir
-            // untuk setiap karyawan yang dapat diakses.
+            // Langkah 2: Buat subquery untuk mendapatkan ID cuti terakhir.
             $latestLeaveIdsSubquery = Leave::selectRaw('MAX(id)')
                 ->whereIn('user_id', $accessibleUsersQuery->select('id'))
                 ->groupBy('user_id');
 
-            // Langkah 3: Filter query utama untuk hanya menyertakan ID yang ditemukan.
-            // Ini akan secara efektif menampilkan hanya satu baris (yang terbaru) per karyawan.
+            // Langkah 3: Filter query utama dengan subquery.
             return $query->whereIn('id', $latestLeaveIdsSubquery);
         }
 
-        // Fallback default: hanya bisa melihat cuti sendiri jika tidak ada peran yang cocok.
+        // Fallback default.
         return $query->where('user_id', $user->id);
     }
+
 }
