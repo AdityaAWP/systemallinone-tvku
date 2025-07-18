@@ -97,7 +97,7 @@ class MySupervisedInternResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('fullname')
                     ->label('Nama')
                     ->searchable()
                     ->sortable(),

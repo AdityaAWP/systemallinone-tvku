@@ -78,6 +78,24 @@ class JournalResource extends Resource
         return false;
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        if (Auth::guard('intern')->check()) {
+            return true;
+        }
+
+        // Hide navigation for supervisors, they can access journals through MySupervisedIntern table
+        if (Auth::guard('web')->check()) {
+            /** @var User $user */
+            $user = Auth::guard('web')->user();
+            
+            // Only show navigation for admin_magang
+            return $user->hasRole('admin_magang');
+        }
+
+        return false;
+    }
+
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
@@ -185,7 +203,7 @@ class JournalResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('intern.name')
+                TextColumn::make('intern.fullname')
                     ->label('Nama Magang')
                     ->searchable()
                     ->sortable()

@@ -33,10 +33,9 @@ class InternSupervisorResource extends Resource
             Log::info('InternSupervisorResource canViewAny check', [
                 'user_id' => $user->id,
                 'user_roles' => $user->getRoleNames(),
-                'has_super_admin' => $user->hasRole('super_admin'),
                 'has_admin_magang' => $user->hasRole('admin_magang')
             ]);
-            return $user->hasRole(['super_admin', 'admin_magang']);
+            return $user->hasRole(['admin_magang']);
         }
         return false;
     }
@@ -113,7 +112,7 @@ class InternSupervisorResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('fullname')
                     ->label('Nama')
                     ->searchable()
                     ->sortable(),
