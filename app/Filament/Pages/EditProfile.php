@@ -9,6 +9,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\TimePicker; 
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
@@ -122,6 +123,16 @@ class EditProfile extends Page
                             ->maxLength(100)
                             ->columnSpan(2)
                             ->default($user->position),
+                        TimePicker::make('office_start_time')
+                            ->label('Jam Masuk Kantor')
+                            ->seconds(false)
+                            ->columnSpan(2)
+                            ->default($user->office_start_time),
+                        TimePicker::make('office_end_time')
+                            ->label('Jam Pulang Kantor')
+                            ->seconds(false)
+                            ->columnSpan(2)
+                            ->default($user->office_end_time),
                         TextInput::make('address')
                             ->label('Alamat')
                             ->maxLength(500)
@@ -229,18 +240,29 @@ class EditProfile extends Page
                     ])->columns(2),
                 Section::make('Informasi Pekerjaan')
                     ->schema([
-                        TextEntry::make('last_education')
-                            ->label('Pendidikan Terakhir')
-                            ->icon('heroicon-o-academic-cap'),
                         TextEntry::make('division.name')
                             ->label('Divisi')
                             ->icon('heroicon-o-building-office'),
-                        TextEntry::make('address')
-                            ->label('Alamat')
-                            ->icon('heroicon-o-map-pin'),
                         TextEntry::make('position')
                             ->label('Jabatan')
                             ->icon('heroicon-o-briefcase'),
+                        // START: MODIFICATION - Display work hours
+                        TextEntry::make('office_start_time')
+                            ->label('Jam Masuk Kantor')
+                            ->icon('heroicon-o-arrow-right-end-on-rectangle')
+                            ->time('H:i'),
+                        TextEntry::make('office_end_time')
+                            ->label('Jam Pulang Kantor')
+                            ->icon('heroicon-o-arrow-left-end-on-rectangle')
+                            ->time('H:i'),
+                        // END: MODIFICATION
+                        TextEntry::make('last_education')
+                            ->label('Pendidikan Terakhir')
+                            ->icon('heroicon-o-academic-cap'),
+                        TextEntry::make('address')
+                            ->label('Alamat')
+                            ->icon('heroicon-o-map-pin')
+                            ->columnSpanFull(),
                     ])->columns(2),
             ]);
     }

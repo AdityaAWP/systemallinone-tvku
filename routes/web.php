@@ -68,6 +68,14 @@ Route::get('pdfjournal', [PDFJournalController::class, 'downloadpdf'])->name('jo
 Route::get('pdfjournal/monthly', [PDFJournalController::class, 'downloadMonthlyPdf'])
     ->name('journal.monthly');
 
+Route::middleware(['auth:web'])->group(function () {
+    Route::get('/supervisor/intern/{intern}/journals/all', [PDFJournalController::class, 'downloadSupervisorInternJournalsAll'])
+        ->name('supervisor.intern.journal.report.all');
+    Route::get('/supervisor/intern/{intern}/journals/monthly', [PDFJournalController::class, 'downloadSupervisorInternMonthlyPdf'])
+        ->name('supervisor.intern.journal.report.monthly');
+});
+
+
 Route::get('/overtime/user/{user_id}/monthly/pdf', [PDFController::class, 'downloadUserMonthlyPdf'])
     ->name('overtime.user.monthly.pdf');
 
@@ -76,9 +84,6 @@ Route::get('/assignments/{id}/xml', [PDFAssignmentController::class, 'generateXm
     Route::get('/reports/journal/user', [JournalReportController::class, 'downloadUserReport'])->name('journal.report.user');
 
 
-// Add this to your routes/web.php file
-
-// Add this to your routes/web.php file
 
 Route::middleware(['auth'])->group(function () {
     // ZIP backup download (Spatie package)

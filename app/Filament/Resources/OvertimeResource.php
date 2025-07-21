@@ -166,11 +166,13 @@ class OvertimeResource extends Resource
                             ->label('Waktu Mulai Kerja Normal')
                             ->required(fn(Get $get): bool => $get('is_holiday') == 0)
                             ->hidden(fn(Get $get): bool => $get('is_holiday') == 1)
+                            ->default(fn () => Auth::user()->office_start_time)
                             ->seconds(false),
                         TimePicker::make('normal_work_time_check_out')
                             ->label('Waktu Selesai Kerja Normal')
                             ->required(fn(Get $get): bool => $get('is_holiday') == 0)
                             ->hidden(fn(Get $get): bool => $get('is_holiday') == 1)
+                            ->default(fn () => Auth::user()->office_start_time)
                             ->seconds(false),
                     ])
                     ->hidden(fn(Get $get): bool => $get('is_holiday') == 1),

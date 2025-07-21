@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\InternSupervisorResource\Pages;
 use App\Models\Intern;
 use App\Models\User;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -202,6 +203,7 @@ class InternSupervisorResource extends Resource
             ])
             ->bulkActions([])
             ->defaultSort('created_at', 'desc');
+
     }
 
     public static function getRelations(): array

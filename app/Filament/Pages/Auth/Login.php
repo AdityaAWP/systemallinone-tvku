@@ -18,7 +18,7 @@ class Login extends BaseLogin
 
     public function getHeading(): string
     {
-        return ''; // Menghapus teks "Masuk ke akun Anda"
+        return ''; 
     }
 
     public function form(Form $form): Form

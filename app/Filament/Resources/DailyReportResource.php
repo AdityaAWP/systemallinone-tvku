@@ -39,25 +39,16 @@ class DailyReportResource extends Resource
     protected static ?string $label = 'Laporan Harian';
     protected static ?int $navigationSort = 1;
 
-    /**
-     * Check if user has any staff role
-     */
     private static function isStaff($user): bool
     {
         return $user->roles()->where('name', 'like', 'staff%')->exists();
     }
 
-    /**
-     * Check if user has any manager role
-     */
     private static function isManager($user): bool
     {
         return $user->roles()->where('name', 'like', 'manager%')->exists();
     }
-
-    /**
-     * Check if user has any kepala role
-     */
+    
     private static function isKepala($user): bool
     {
         return $user->roles()->where('name', 'like', 'kepala%')->exists();
@@ -106,28 +97,23 @@ class DailyReportResource extends Resource
         return $query->where('user_id', $user->id);
     }
 
-
     public static function getNavigationBadge(): ?string
     {
         $user = Auth::user();
 
         if (static::isStaff($user)) {
-            // Staff: jumlah lembur miliknya sendiri
             $count = DailyReport::where('user_id', $user->id)->count();
             return $count > 0 ? (string) $count : null;
         }
 
         if ($user->hasRole('hrd')) {
-            // HRD: jumlah semua data lembur
             $count = DailyReport::count();
             return $count > 0 ? (string) $count : null;
         }
 
         if (static::isManager($user) || static::isKepala($user)) {
-            // Manager & Kepala: jumlah lembur di divisinya (semua divisi yang dikelola)
             $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
 
-            // Jika tidak ada divisi dari many-to-many, fallback ke primary division
             if (empty($userDivisionIds) && $user->division_id) {
                 $userDivisionIds = [$user->division_id];
             }
@@ -138,10 +124,10 @@ class DailyReportResource extends Resource
             return $count > 0 ? (string) $count : null;
         }
 
-        // Default: jumlah lembur miliknya sendiri
         $count = DailyReport::where('user_id', $user->id)->count();
         return $count > 0 ? (string) $count : null;
     }
+
 
     public static function form(Form $form): Form
     {
@@ -155,11 +141,13 @@ class DailyReportResource extends Resource
                         TimePicker::make('check_in')
                             ->label('Waktu Mulai Bekerja')
                             ->seconds(false)
-                            ->required(),
+                            ->required()
+                            ->default(fn () => Auth::user()->office_start_time),
                         TimePicker::make('check_out')
                             ->label('Waktu Berakhir Bekerja')
                             ->seconds(false)
                             ->required()
+                            ->default(fn () => Auth::user()->office_end_time)
                             ->live()
                             ->afterStateUpdated(function (Get $get, Set $set) {
                                 $tanggal = $get('entry_date');
@@ -247,11 +235,9 @@ class DailyReportResource extends Resource
                             ->options(function () {
                                 $user = Auth::user();
                                 
-                                // Ambil user yang memiliki data daily report
                                 $query = \App\Models\User::query()
                                     ->whereHas('dailyReports'); // hanya user yang punya data daily report
                                 
-                                // Jika manager, hanya bisa lihat anak buahnya yang punya data daily report
                                 if (static::isManager($user) && !$user->hasRole('hrd')) {
                                     $query->where('manager_id', $user->id);
                                 }
@@ -268,7 +254,6 @@ class DailyReportResource extends Resource
                                 $years = [];
                                 $currentYear = now()->year;
                                 
-                                // Generate 5 tahun mundur dari tahun sekarang
                                 for ($i = 0; $i < 5; $i++) {
                                     $year = $currentYear - $i;
                                     $years[$year] = $year;
@@ -283,7 +268,6 @@ class DailyReportResource extends Resource
                         $employeeId = $data['employee_id'];
                         $year = $data['year'];
 
-                        // Get employee info
                         $employee = \App\Models\User::find($employeeId);
                         
                         if (!$employee) {
@@ -295,7 +279,6 @@ class DailyReportResource extends Resource
                             return;
                         }
 
-                        // Check if employee has daily reports
                         $reportCount = DailyReport::where('user_id', $employeeId)
                             ->whereYear('entry_date', $year)
                             ->count();
@@ -309,7 +292,6 @@ class DailyReportResource extends Resource
                             return;
                         }
 
-                        // Export Excel (Daily Report tidak ada PDF)
                         $userName = str_replace(' ', '_', $employee->name);
                         $filename = "laporan_harian_{$userName}_{$year}.xlsx";
                         return (new DailyReportExcel($year, $employeeId))->download($filename);
@@ -349,19 +331,14 @@ class DailyReportResource extends Resource
                         $year = $data['year'];
                         $user = Auth::user();
 
-                        // Jika HRD, Manager, atau Kepala dan pilih "all", export semua data staff/divisi
                         if (
                             ($user->hasRole('hrd') || DailyReportResource::isManager($user) || DailyReportResource::isKepala($user))
                             && isset($data['export_type']) && $data['export_type'] === 'all'
                         ) {
-                            // Untuk HRD: semua data staff
-                            // Untuk Manager/Kepala: semua data staff di divisi yang dikelola
                             $userId = null;
                             $filename = "laporan_harian_semua_staff_{$year}.xlsx";
-                            // Untuk Manager/Kepala, filter di dalam DailyReportExcel jika perlu
                             return (new DailyReportExcel($year, $userId))->download($filename);
                         } else {
-                            // Untuk staff, manager, kepala, atau HRD yang pilih "personal"
                             $userId = $user->id;
                             $userName = str_replace(' ', '_', $user->name);
                             $filename = "laporan_harian_{$userName}_{$year}.xlsx";
@@ -461,7 +438,6 @@ class DailyReportResource extends Resource
                         $months = [];
                         $query = DailyReport::query();
 
-                        // Apply same query logic as getEloquentQuery
                         $user = Auth::user();
                         if (!$user->hasRole('hrd')) {
                             if (static::isManager($user) || static::isKepala($user)) {
@@ -534,7 +510,6 @@ class DailyReportResource extends Resource
                                 $years = [];
                                 $currentYear = now()->year;
 
-                                // Generate 5 tahun mundur dari tahun sekarang
                                 for ($i = 0; $i < 5; $i++) {
                                     $year = $currentYear - $i;
                                     $years[$year] = $year;
@@ -557,7 +532,6 @@ class DailyReportResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    // Bulk delete dihapus karena tidak ada yang boleh melakukan bulk delete
                     ExportBulkAction::make()
                         ->exporter(DailyReportExporter::class)
                         ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
@@ -565,11 +539,9 @@ class DailyReportResource extends Resource
                 ]),
             ]);
     }
-
     public static function getRelations(): array
     {
         return [
-            //
         ];
     }
 

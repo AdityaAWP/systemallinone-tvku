@@ -35,7 +35,9 @@ class User extends Authenticatable implements FilamentUser
         'no_phone',
         'npp',
         'division_id',
-        'manager_id', // Add this to fillable
+        'manager_id', 
+        'office_start_time', 
+        'office_end_time',
     ];
 
     protected $hidden = [
@@ -49,6 +51,8 @@ class User extends Authenticatable implements FilamentUser
         'is_admin' => 'boolean',
         'is_active' => 'boolean',
         'birth' => 'date',
+        'office_start_time' => 'datetime:H:i',
+        'office_end_time' => 'datetime:H:i',  
     ];
 
     // Add this boot method to handle auto-population of division_id
