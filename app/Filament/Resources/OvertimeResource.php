@@ -172,7 +172,7 @@ class OvertimeResource extends Resource
                             ->label('Waktu Selesai Kerja Normal')
                             ->required(fn(Get $get): bool => $get('is_holiday') == 0)
                             ->hidden(fn(Get $get): bool => $get('is_holiday') == 1)
-                            ->default(fn () => Auth::user()->office_start_time)
+                            ->default(fn () => Auth::user()->office_end_time)
                             ->seconds(false),
                     ])
                     ->hidden(fn(Get $get): bool => $get('is_holiday') == 1),
