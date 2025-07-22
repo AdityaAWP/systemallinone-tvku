@@ -186,20 +186,10 @@ class DailyReportResource extends Resource
 
                 Forms\Components\Grid::make(4)
                     ->schema([
-                        TextInput::make('work_hours_component')
-                            ->label('Jam')
-                            ->disabled()
-                            ->numeric()
-                            ->columnSpan(1),
-                        TextInput::make('work_minutes_component')
-                            ->label('Menit')
-                            ->disabled()
-                            ->numeric()
-                            ->columnSpan(1),
                         RichEditor::make('description')
                             ->label('Deskripsi')
                             ->required()
-                            ->columnSpan(3),
+                            ->columnSpan(4),
                     ]),
             ]);
     }
