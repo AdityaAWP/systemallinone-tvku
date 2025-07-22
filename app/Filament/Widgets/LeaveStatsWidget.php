@@ -56,16 +56,26 @@ class LeaveStatsWidget extends BaseWidget
         // Hitung total hari yang diajukan (exclude weekend)
         $pendingDays = $this->calculateWorkingDays($pendingLeavesData);
 
-        return [
-            Stat::make('Cuti Tahunan', $quota->remaining_casual_quota . ' kesempatan')
-                ->description($quota->casual_used . ' kali sudah diambil tahun ini')
-                ->descriptionIcon('heroicon-o-calendar')
-                ->color('purple'),
+        // Ambil data cuti melahirkan yang sudah diajukan
+        $maternityLeaves = Leave::where('user_id', $user->id)
+            ->where('leave_type', 'maternity')
+            ->whereYear('from_date', $currentYear)
+            ->whereIn('status', ['pending', 'approved'])
+            ->get();
 
-            Stat::make('Cuti Tahunan', $approvedCasualLeaveDays . ' Hari')
-                ->description('Total hari yang sudah disetujui')
+        // Hitung total hari cuti melahirkan (exclude weekend)
+        $maternityLeaveDays = $this->calculateWorkingDays($maternityLeaves);
+
+        return [
+            Stat::make('Cuti Tahunan', (12 - $approvedCasualLeaveDays) . ' Hari')
+                ->description($approvedCasualLeaveDays . ' hari sudah digunakan tahun ini')
                 ->descriptionIcon('heroicon-o-calendar-days')
                 ->color('zinc'),
+
+            Stat::make('Cuti Melahirkan', $maternityLeaveDays . ' Hari')
+                ->description('Total hari yang sudah disetujui')
+                ->descriptionIcon('heroicon-o-calendar')
+                ->color('purple'),
 
             Stat::make('Cuti Sakit', $medicalLeaveDays . ' Hari')
                 ->description('Total hari yang sudah disetujui')

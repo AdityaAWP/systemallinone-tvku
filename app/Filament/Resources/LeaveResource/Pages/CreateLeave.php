@@ -114,7 +114,7 @@ class CreateLeave extends CreateRecord
 
         if ($data['leave_type'] === 'casual') {
             $quota = LeaveQuota::getUserQuota($user->id);
-            $quota->casual_used += 1;
+            $quota->casual_used += 1; // Tambah 1 kesempatan, bukan hari
             $quota->save();
         }
 
@@ -141,11 +141,37 @@ class CreateLeave extends CreateRecord
         if ($data['leave_type'] === 'casual') {
             $quota = LeaveQuota::getUserQuota($user->id);
             $days = $data['days'] ?? 1;
-
-            if (($quota->casual_used + $days) > $quota->casual_quota) {
+            
+            // Cek kesempatan cuti tahunan
+            if ($quota->casual_used >= $quota->casual_quota) {
                 FilamentNotification::make()
-                    ->title('Kuota Cuti Tahunan Terlampaui')
-                    ->body('Anda telah melebihi kuota cuti tahunan Anda untuk tahun ini.')
+                    ->title('Kesempatan Cuti Tahunan Habis')
+                    ->body('Anda telah habis kesempatan untuk mengajukan cuti tahunan tahun ini.')
+                    ->danger()
+                    ->persistent()
+                    ->send();
+                $this->halt();
+            }
+
+            // Hitung total hari cuti tahunan yang sudah digunakan tahun ini
+            $currentYear = date('Y');
+            $approvedCasualLeaves = Leave::where('user_id', $user->id)
+                ->where('leave_type', 'casual')
+                ->whereYear('from_date', $currentYear)
+                ->where('status', 'approved')
+                ->get();
+            
+            $usedDays = 0;
+            foreach ($approvedCasualLeaves as $leave) {
+                $usedDays += \App\Filament\Resources\LeaveResource::calculateWorkingDays($leave->from_date, $leave->to_date);
+            }
+            
+            // Cek apakah hari yang diminta melebihi sisa kuota 12 hari per tahun
+            if (($usedDays + $days) > 12) {
+                $remainingDays = 12 - $usedDays;
+                FilamentNotification::make()
+                    ->title('Kuota Hari Cuti Tahunan Terlampaui')
+                    ->body("Anda hanya memiliki {$remainingDays} hari cuti tahunan tersisa dari 12 hari per tahun. Hari yang diminta: {$days} hari.")
                     ->danger()
                     ->persistent()
                     ->send();
