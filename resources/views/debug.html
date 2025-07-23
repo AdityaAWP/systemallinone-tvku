@@ -1,441 +1,386 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
     <head>
         <meta charset="UTF-8" />
-        <title>Lembar Disposisi - {{ $record->reference_number }}</title>
+        <title>{{ $title ?? 'Surat Permohonan Ijin Lembur' }}</title>
         <style>
             @page {
-                margin: 10mm 15mm;
                 size: A4;
+                /* Explicitly set paper size to A4 */
+                margin: 20mm;
+                /* Standard A4 margins */
             }
 
             body {
-                font-family: Arial, sans-serif;
-                font-size: 10px;
-                line-height: 1.1;
-                margin: 0;
-                padding: 0;
-                color: #000;
+                font-family: "Times New Roman", Times, serif, Helvetica,
+                    sans-serif;
+                /* Common sans-serif font */
+                font-size: 11pt;
+                /* Standard font size */
+                line-height: 1.4;
             }
 
-            .header-container {
-                border: 2px solid #000;
-                padding: 0;
-                margin-bottom: 3px;
-            }
-
-            .header-content {
-                display: table;
-                width: 100%;
-                padding: 8px;
-            }
-
-            .logo-cell {
-                display: table-cell;
-                width: 70px;
-                vertical-align: middle;
+            .text-center {
                 text-align: center;
-                padding-right: 10px;
             }
 
-            .logo-box {
-                border: 2px solid #000;
-                width: 60px;
-                height: 60px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 16px;
+            .text-bold {
                 font-weight: bold;
-                background: #f8f8f8;
             }
 
-            .company-info {
-                display: table-cell;
-                vertical-align: middle;
-                padding-left: 5px;
-            }
-
-            .company-name {
-                font-size: 11px;
+            .header-title {
+                font-size: 12pt;
                 font-weight: bold;
-                margin: 0 0 3px 0;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-
-            .company-details {
-                font-size: 8px;
-                line-height: 1.2;
-                margin: 1px 0;
-            }
-
-            .title-section {
                 text-align: center;
-                margin: 8px 0;
-                font-size: 12px;
+                margin-bottom: 2px;
+            }
+
+            .header-subtitle {
+                font-size: 12pt;
                 font-weight: bold;
-                letter-spacing: 3px;
-                text-transform: uppercase;
-            }
-
-            .main-container {
-                border: 2px solid #000;
-                padding: 10px;
-            }
-
-            /* Top field with two columns - TANGGAL AGENDA and NO. AGENDA on same row */
-            .top-field {
-                margin-bottom: 10px;
-                padding-bottom: 8px;
-                border-bottom: 1px solid #000;
-                display: table;
-                width: 100%;
-            }
-
-            .top-left {
-                display: table-cell;
-                width: 60%;
-                vertical-align: top;
-            }
-
-            .top-right {
-                display: table-cell;
-                width: 40%;
-                vertical-align: top;
-                padding-left: 20px;
-            }
-
-            .field-row {
-                display: table;
-                width: 100%;
-            }
-
-            .field-label {
-                display: table-cell;
-                width: 90px;
-                font-size: 9px;
-                font-weight: normal;
-                vertical-align: top;
-                padding-right: 5px;
-            }
-
-            .field-separator {
-                display: table-cell;
-                width: 8px;
-                vertical-align: top;
-            }
-
-            .field-value {
-                display: table-cell;
-                vertical-align: top;
-                border-bottom: 1px dotted #000;
-                min-height: 12px;
-                padding-bottom: 1px;
-                font-size: 9px;
-            }
-
-            /* Two column layout for middle section */
-            .content-wrapper {
-                display: table;
-                width: 100%;
-                margin-top: 5px;
-            }
-
-            .left-section {
-                display: table-cell;
-                width: 65%;
-                vertical-align: top;
-                padding-right: 15px;
-            }
-
-            .right-section {
-                display: table-cell;
-                width: 35%;
-                vertical-align: top;
-                padding-left: 10px;
-            }
-
-            .form-field {
-                margin-bottom: 6px;
-                min-height: 12px;
-            }
-
-            .priority-section {
-                margin-top: 10px;
-            }
-
-            .priority-item {
-                display: table;
-                width: 100%;
-                margin-bottom: 4px;
-                font-size: 9px;
-            }
-
-            .priority-label {
-                display: table-cell;
-                width: 60px;
-                vertical-align: middle;
-            }
-
-            .priority-checkbox {
-                display: table-cell;
-                width: 20px;
                 text-align: center;
-                vertical-align: middle;
+                margin-bottom: 30px;
             }
 
-            .checkbox-symbol {
-                display: inline-block;
-                width: 12px;
-                height: 12px;
-                border: 1px solid #000;
+            /* Combined table for recipient and employee details for alignment */
+            .info-section-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 15px;
+            }
+
+            .info-section-table td {
+                padding: 1px 5px;
+                vertical-align: top;
+            }
+
+            .info-label {
+                width: 80px;
+            }
+
+            .info-colon {
+                width: 15px;
                 text-align: center;
-                line-height: 10px;
-                font-size: 8px;
-                margin-right: 3px;
             }
 
-            /* Bottom section spanning full width */
-            .bottom-section {
+            .details-table {
+                width: 100%;
+                border-collapse: collapse;
                 margin-top: 15px;
-                padding-top: 10px;
-                border-top: 1px solid #000;
-            }
-
-            .disposition-section {
                 margin-bottom: 15px;
             }
 
-            .disposition-label {
-                font-size: 9px;
+            .details-table th,
+            .details-table td {
+                border: 1px solid black;
+                padding: 1px 8px;
+                text-align: left;
+                vertical-align: top;
+            }
+
+            .details-table th {
+                text-align: center;
                 font-weight: bold;
-                margin-bottom: 5px;
+                /* Light gray background for header */
             }
 
-            .disposition-field {
-                border-bottom: 1px dotted #000;
-                min-height: 20px;
-                margin-bottom: 8px;
-                font-size: 9px;
+            .details-table td.no {
+                text-align: center;
+                width: 30px;
             }
 
-            .keterangan-field {
-                border-bottom: 1px dotted #000;
-                min-height: 25px;
-                margin-bottom: 15px;
-                font-size: 9px;
+            .details-table td.date {
+                width: 180px;
             }
 
-            .signature-area {
-                text-align: right;
-                font-size: 9px;
+            .details-table td.time {
+                width: 100px;
+                text-align: center;
+            }
+
+            .closing-text {
+                margin-top: 20px;
+                margin-bottom: 30px;
+            }
+
+            .signature-table {
+                width: 120%;
+                border-collapse: collapse;
                 margin-top: 20px;
             }
 
-            .signature-date {
-                margin-bottom: 40px;
+            .signature-table td {
+                width: 33.33%;
+                text-align: center;
+                vertical-align: top;
+                padding: 0 10px;
             }
 
-            .signature-line {
-                border-bottom: 1px solid #000;
-                width: 120px;
-                margin-left: auto;
+            .signature-space {
+                height: 70px;
+                /* Space for actual signature */
+            }
+
+            .no-data {
                 text-align: center;
-                padding-top: 3px;
-                font-size: 8px;
+                color: #666;
+                padding: 40px;
+                border: 1px dashed #ccc;
+                margin-top: 30px;
             }
         </style>
     </head>
+
     <body>
-        <!-- Header -->
-        <div class="header-container">
-            <div class="header-content">
-                <div class="logo-cell">
-                    <div class="logo-box">TVKU</div>
-                </div>
-                <div class="company-info">
-                    <div class="company-name">
-                        PT. TELEVISI KAMPUS UNIVERSITAS DIAN NUSWANTORO
-                    </div>
-                    <div class="company-details">
-                        Jl. Nakula I No. 5 - 11, Gedung E Lt. 1, Kompleks Udinus
-                        Semarang
-                    </div>
-                    <div class="company-details">
-                        Telp. 024 - 3566445, Fax. 024 - 3566446
-                    </div>
-                    <div class="company-details">
-                        Homepage: tvku.tv, email: tvku.semarang@dinus.ac.id
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div class="header-title">SURAT PERMOHONAN IJIN LEMBUR</div>
+        <div class="header-subtitle">TVKU SEMARANG</div>
 
-        <!-- Title -->
-        <div class="title-section">LEMBAR DISPOSISI</div>
+        {{-- Combined Recipient/Subject and Employee Details Table for Alignment
+        --}}
+        <table class="info-section-table" style="margin-left: 10px">
+            <tr>
+                <td class="info-label">Kepada</td>
+                <td class="info-colon">:</td>
+                <td>Staff HRD TVKU Semarang</td>
+            </tr>
+            <tr>
+                <td class="info-label">Hal</td>
+                <td class="info-colon">:</td>
+                <td>Permohonan Lembur Karyawan</td>
+            </tr>
+            {{-- Spacer row for visual separation --}}
+            <tr>
+                <td colspan="3" style="padding-top: 10px; padding-bottom: 40px">
+                    Dengan ini saya,
+                </td>
+            </tr>
+            {{-- Employee Details - Assuming data comes from the first overtime
+            record's user --}} @if($overtime->count() > 0) @if(isset($scope) &&
+            ($scope === 'all_data' || $scope === 'division_data')) {{-- Untuk
+            semua data atau data divisi, tampilkan info umum --}}
+            <tr>
+                <td class="info-label">Periode</td>
+                <td class="info-colon">:</td>
+                <td>{{ $period ?? 'Tidak diketahui' }}</td>
+            </tr>
 
-        <!-- Main Content -->
-        <div class="main-container">
-            <!-- Top field with TANGGAL AGENDA and NO. AGENDA on same row -->
-            <div class="top-field">
-                <div class="top-left">
-                    <div class="field-row">
-                        <div class="field-label">TANGGAL AGENDA</div>
-                        <div class="field-separator">:</div>
-                        <div class="field-value">
-                            {{ $record->received_date ?
-                            $record->received_date->format('d/m/Y') : '' }}
-                        </div>
-                    </div>
-                </div>
-                <div class="top-right">
-                    <div class="field-row">
-                        <div class="field-label">NO. AGENDA</div>
-                        <div class="field-separator">:</div>
-                        <div class="field-value">
-                            {{ $record->reference_number ?? '' }}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <tr>
+                <td class="info-label">Total Karyawan</td>
+                <td class="info-colon">:</td>
+                <td>{{ $overtime->unique('user_id')->count() }} orang</td>
+            </tr>
+            <tr>
+                <td class="info-label">Total Lembur</td>
+                <td class="info-colon">:</td>
+                <td>{{ $overtime->count() }} hari</td>
+            </tr>
+            @else {{-- Untuk data individual --}} @php $user =
+            $overtime[0]->user; $divisionName = ''; // Cek apakah user memiliki
+            divisions (relasi many-to-many) if ($user->divisions &&
+            $user->divisions->count() > 0) { $divisionName =
+            $user->divisions->pluck('name')->implode(', '); } // Fallback ke
+            division (relasi belongsTo) elseif ($user->division) { $divisionName
+            = $user->division->name; } // Fallback terakhir else { $divisionName
+            = 'Tidak diketahui'; } @endphp
+            <tr>
+                <td class="info-label">Nama</td>
+                <td class="info-colon">:</td>
+                <td>{{ Str::headline($user->name ?? 'Nama Karyawan') }}</td>
+            </tr>
+            <tr>
+                <td class="info-label">Jabatan</td>
+                <td class="info-colon">:</td>
+                <td>{{ Str::headline($user->roles->first()->name ?? '-') }}</td>
+            </tr>
+            <tr>
+                <td class="info-label">Divisi</td>
+                <td class="info-colon">:</td>
+                <td>{{ Str::headline($divisionName) }}</td>
+            </tr>
+            @endif @else {{-- Placeholder if no overtime data --}}
+            <tr>
+                <td colspan="3" style="padding-top: 5px">
+                    (Detail tidak tersedia)
+                </td>
+            </tr>
+            @endif
+        </table>
 
-            <!-- Two column layout -->
-            <div class="content-wrapper">
-                <!-- Left Section -->
-                <div class="left-section">
-                    <div class="form-field">
-                        <div class="field-row">
-                            <div class="field-label">DARI</div>
-                            <div class="field-separator">:</div>
-                            <div class="field-value">
-                                {{ $record->sender ?? '' }}
-                            </div>
-                        </div>
-                    </div>
+        @if($overtime->count() > 0) @if(isset($scope) && ($scope === 'all_data'
+        || $scope === 'division_data'))
+        <p style="margin-top: 20px; margin-left: 10px">
+            Rekapitulasi lembur karyawan pada periode {{ $period ?? '' }},
+        </p>
 
-                    <div class="form-field">
-                        <div class="field-row">
-                            <div class="field-label">NOMOR</div>
-                            <div class="field-separator">:</div>
-                            <div class="field-value">
-                                {{ $record->letter_number ?? '' }}
-                            </div>
-                        </div>
-                    </div>
+        {{-- Table dengan kolom nama karyawan --}}
+        <table class="details-table">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama Karyawan</th>
+                    <th>Divisi</th>
+                    <th>Hari/Tanggal</th>
+                    <th>Jam Kerja Normal</th>
+                    <th>Jam Lembur</th>
+                    <th>Guna</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($overtime as $index => $item) @php $user = $item->user;
+                $divisionName = ''; // Cek apakah user memiliki divisions
+                (relasi many-to-many) if ($user->divisions &&
+                $user->divisions->count() > 0) { $divisionName =
+                $user->divisions->pluck('name')->implode(', '); } // Fallback ke
+                division (relasi belongsTo) elseif ($user->division) {
+                $divisionName = $user->division->name; } // Fallback terakhir
+                else { $divisionName = 'Tidak diketahui'; } @endphp
+                <tr>
+                    <td class="no">{{ $index + 1 }}</td>
+                    <td>{{ Str::headline($user->name ?? '') }}</td>
+                    <td>{{ Str::headline($divisionName) }}</td>
+                    <td class="date">
+                        {{
+                        \Carbon\Carbon::parse($item->tanggal_overtime)->locale('id')->isoFormat('dddd,
+                        D MMMM YYYY') }}
+                    </td>
+                    <td class="time">
+                        @if($item->is_holiday) Hari Libur @else @php $normalIn =
+                        $item->normal_work_time_check_in ?
+                        \Carbon\Carbon::parse($item->normal_work_time_check_in)->format('H.i')
+                        : 'N/A'; $normalOut = $item->normal_work_time_check_out
+                        ?
+                        \Carbon\Carbon::parse($item->normal_work_time_check_out)->format('H.i')
+                        : 'N/A'; echo $normalIn . ' - ' . $normalOut; @endphp
+                        @endif
+                    </td>
+                    <td class="time">
+                        @php $overtimeIn = $item->check_in ?
+                        \Carbon\Carbon::parse($item->check_in)->format('H.i') :
+                        'N/A'; $overtimeOut = $item->check_out ?
+                        \Carbon\Carbon::parse($item->check_out)->format('H.i') :
+                        'N/A'; echo $overtimeIn . ' - ' . $overtimeOut; @endphp
+                    </td>
+                    <td>{{ $item->description ?? '' }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        @else {{-- Table original untuk individual --}}
+        <p style="margin-top: 20px; margin-left: 10px">
+            Memohon untuk bekerja ekstra pada,
+        </p>
 
-                    <div class="form-field">
-                        <div class="field-row">
-                            <div class="field-label">TANGGAL</div>
-                            <div class="field-separator">:</div>
-                            <div class="field-value">
-                                {{ $record->letter_date ?
-                                $record->letter_date->format('d/m/Y') : '' }}
-                            </div>
-                        </div>
-                    </div>
+        <table class="details-table">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Hari/Tanggal</th>
+                    <th>Jam Kerja Normal</th>
+                    <th>Jam Lembur</th>
+                    <th>Guna</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($overtime as $index => $item)
+                <tr>
+                    <td class="no">{{ $index + 1 }}</td>
+                    <td class="date">
+                        {{
+                        \Carbon\Carbon::parse($item->tanggal_overtime)->locale('id')->isoFormat('dddd,
+                        D MMMM YYYY') }}
+                    </td>
+                    <td class="time">
+                        @if($item->is_holiday) Hari Libur @else @php $normalIn =
+                        $item->normal_work_time_check_in ?
+                        \Carbon\Carbon::parse($item->normal_work_time_check_in)->format('H.i')
+                        : 'N/A'; $normalOut = $item->normal_work_time_check_out
+                        ?
+                        \Carbon\Carbon::parse($item->normal_work_time_check_out)->format('H.i')
+                        : 'N/A'; echo $normalIn . ' - ' . $normalOut; @endphp
+                        @endif
+                    </td>
+                    <td class="time">
+                        @php $overtimeIn = $item->check_in ?
+                        \Carbon\Carbon::parse($item->check_in)->format('H.i') :
+                        'N/A'; $overtimeOut = $item->check_out ?
+                        \Carbon\Carbon::parse($item->check_out)->format('H.i') :
+                        'N/A'; echo $overtimeIn . ' - ' . $overtimeOut; @endphp
+                    </td>
+                    <td>{{ $item->description ?? '' }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        @endif
 
-                    <div class="form-field">
-                        <div class="field-row">
-                            <div class="field-label">HAL</div>
-                            <div class="field-separator">:</div>
-                            <div class="field-value">
-                                {{ $record->subject ?? '' }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <p class="closing-text" style="margin-left: 10px">
+            Demikian permohonan dari kami, atas persetujuannya kami ucapkan
+            terimakasih
+        </p>
 
-                <!-- Right Section -->
-                 <table>
-                <div class="right-section">
-                    <!-- Priority Checkboxes -->
-                    <div class="priority-section">
-                        <div class="priority-item">
-                            <div class="priority-label">RAHASIA</div>
-                            <div class="priority-checkbox">
-                                <span class="checkbox-symbol"
-                                    >{{ $record->type === 'internal' ? '\u2713'
-                                    : '' }}</span
-                                >
-                                ( )
-                            </div>
-                        </div>
+        @php $direkturOperasional = \App\Models\User::whereHas('roles', function
+        ($query) { $query->where('name', 'direktur_operasional'); })->first();
+        // Get division name for signature section $firstUser =
+        $overtime[0]->user; $signatureDivisionName = ''; if
+        ($firstUser->divisions && $firstUser->divisions->count() > 0) {
+        $signatureDivisionName =
+        $firstUser->divisions->pluck('name')->implode(', '); } elseif
+        ($firstUser->division) { $signatureDivisionName =
+        $firstUser->division->name; } else { $signatureDivisionName = 'Divisi';
+        } @endphp
 
-                        <div class="priority-item">
-                            <div class="priority-label">PENTING</div>
-                            <div class="priority-checkbox">
-                                <span class="checkbox-symbol"
-                                    >{{ $record->type === 'general' ? '\u2713' :
-                                    '' }}</span
-                                >
-                                ( )
-                            </div>
-                        </div>
+        <table class="signature-table">
+            <tr>
+                <td>Pemohon,</td>
+                <td>Mengetahui,</td>
+                <td>Menyetujui,</td>
+            </tr>
+            <tr>
+                <td class="signature-space"></td>
+                <td class="signature-space"></td>
+                <td class="signature-space"></td>
+            </tr>
+            <tr>
+                <td>
+                    <span class="text-bold"
+                        >{{ Str::headline($overtime[0]->user->name ?? '')
+                        }}</span
+                    ><br />
+                    {{ Str::headline($signatureDivisionName) }}
+                </td>
+                <td>
+                    @if($overtime[0]->user->atasan)
+                    <span class="text-bold"
+                        >{{ Str::headline($overtime[0]->user->atasan->name)
+                        }}</span
+                    ><br />
+                    {{ $overtime[0]->user->jabatan_atasan }} @else
+                    <span class="text-bold">-</span><br />
+                    - @endif
+                </td>
+                <td>
+                    @if($direkturOperasional)
+                    <span class="text-bold"
+                        >{{ Str::headline($direkturOperasional->name) }}</span
+                    ><br />
+                    Direktur Operasional @else
+                    <span class="text-bold">-</span><br />
+                    Direktur Operasional @endif
+                </td>
+            </tr>
+        </table>
 
-                        <div class="priority-item">
-                            <div class="priority-label">SEGERA</div>
-                            <div class="priority-checkbox">
-                                <span class="checkbox-symbol"
-                                    >{{ $record->type === 'visit' ? '\u2713' :
-                                    '' }}</span
-                                >
-                                ( )
-                            </div>
-                        </div>
-
-                        <div class="priority-item">
-                            <div class="priority-label">BIASA</div>
-                            <div class="priority-checkbox">
-                                <span class="checkbox-symbol"></span>
-                                ( )
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            </table>
-
-            <!-- Bottom section spanning full width -->
-            <div class="bottom-section">
-                <!-- Disposition Section -->
-                <div class="disposition-section">
-                    <div class="disposition-label">DITERUSKAN KE:</div>
-                    <div class="disposition-field"></div>
-                    <div class="disposition-field"></div>
-
-                    <div class="disposition-label">Keterangan:</div>
-                    <div class="keterangan-field">
-                        {{ $record->notes ?? '' }}
-                    </div>
-                </div>
-
-                <!-- Signature Area -->
-                <div class="signature-area">
-                    <div class="signature-date">
-                        Semarang, .........................
-                    </div>
-                    <div class="signature-line"></div>
-                </div>
-            </div>
-        </div>
-
-        @if($record->content)
-        <div style="page-break-before: always; margin-top: 20px">
-            <div style="border: 2px solid #000; padding: 15px">
-                <div
-                    style="
-                        font-weight: bold;
-                        margin-bottom: 10px;
-                        font-size: 10px;
-                    "
-                >
-                    ISI SURAT:
-                </div>
-                <div style="line-height: 1.4; font-size: 9px">
-                    {!! strip_tags($record->content) !!}
-                </div>
-            </div>
+        @else {{-- No Data Section --}}
+        <div class="no-data">
+            <h3>TIDAK ADA DATA LEMBUR</h3>
+            @isset($period)
+            <p>
+                Tidak ada data lembur untuk periode
+                <strong>{{ $period }}</strong>.
+            </p>
+            @else
+            <p>Tidak ada data lembur yang tersedia.</p>
+            @endisset
         </div>
         @endif
     </body>

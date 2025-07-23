@@ -309,7 +309,6 @@ class DailyReportResource extends Resource
                             ->label('Jenis Export')
                             ->options([
                                 'personal' => 'Data Pribadi Saya',
-                                'all' => 'Semua Data Staff'
                             ])
                             ->default('personal')
                             ->visible(fn() => Auth::user()->hasRole('hrd') ||

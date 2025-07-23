@@ -155,7 +155,7 @@
         <table>
             <tr>
                 <td>Deadline Pengerjaan</td>
-                <td>{{ \Carbon\Carbon::parse($assignment->deadline)->format('d F Y')}}</td>
+                <td>{{ \Carbon\Carbon::parse($assignment->deadline)->locale('id')->isoFormat('dddd, D MMMM YYYY')}}</td>
             </tr>
             <tr>
                 <td>Info Waktu Produksi/Penayangan</td>
@@ -185,7 +185,7 @@
 
         <div class="footer">
             <div style="text-align: left;">
-                Semarang, {{ \Carbon\Carbon::parse($assignment->created_date)->format('d F Y') }}
+                Semarang, {{ \Carbon\Carbon::parse($assignment->created_date)->locale('id')->isoFormat('D MMMM YYYY') }}
                 <div>
                     Direktur Utama<br>
                     PT. Televisi Kampus Udinus

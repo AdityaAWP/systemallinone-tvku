@@ -711,7 +711,7 @@ class LeaveResource extends Resource
 
                                 // Cek role HRD dengan method checking yang sudah ada
                                 if (static::isHrd($user)) {
-                                    $options['all'] = 'Semua Data Staff';
+                                    
                                 } elseif (static::isManager($user) || static::isKepala($user)) {
                                     $options['division'] = 'Semua Data Staff Divisi Saya';
                                 }

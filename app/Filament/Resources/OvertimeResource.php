@@ -433,10 +433,8 @@ class OvertimeResource extends Resource
                                             $options['my_data'] = 'Data Lembur Saya';
                                         } elseif ($user->hasRole('hrd')) {
                                             $options['my_data'] = 'Data Lembur Saya';
-                                            $options['all_data'] = 'Semua Data Lembur Staff';
                                         } elseif (static::isManager($user) || static::isKepala($user)) {
                                             $options['my_data'] = 'Data Lembur Saya';
-                                            $options['staff_data'] = 'Data Lembur Staff Saya';
                                         } else {
                                             $options['my_data'] = 'Data Lembur Saya';
                                         }
