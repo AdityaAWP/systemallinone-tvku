@@ -859,6 +859,14 @@ class JournalResource extends Resource
                     ->circular(),
                 TextColumn::make('location_address')
                     ->label('Lokasi')
+                    ->color('primary')
+                    ->url(
+                    fn (Journal $record): ?string => ($record->latitude && $record->longitude) 
+                        ? "https://www.google.com/maps?q={$record->latitude},{$record->longitude}" 
+                        : null,
+                    shouldOpenInNewTab: true 
+                )
+
                     ->limit(30)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
                         $state = $column->getState();
