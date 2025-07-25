@@ -7,16 +7,12 @@
     <style>
         @page {
             size: A4;
-            /* Explicitly set paper size to A4 */
             margin: 20mm;
-            /* Standard A4 margins */
         }
 
         body {
             font-family: 'Times New Roman', Times, serif, Helvetica, sans-serif;
-            /* Common sans-serif font */
             font-size: 11pt;
-            /* Standard font size */
             line-height: 1.4;
         }
 
@@ -42,7 +38,6 @@
             margin-bottom: 30px;
         }
 
-        /* Combined table for recipient and employee details for alignment */
         .info-section-table {
             width: 100%;
             border-collapse: collapse;
@@ -81,7 +76,6 @@
         .details-table th {
             text-align: center;
             font-weight: bold;
-            /* Light gray background for header */
         }
 
         .details-table td.no {
@@ -104,21 +98,33 @@
         }
 
         .signature-table {
-            width: 110%;
+            width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            table-layout: fixed;
         }
 
         .signature-table td {
-            width: 33.33%;
             text-align: center;
             vertical-align: top;
             padding: 0 10px;
         }
 
+        .signature-table .col-pemohon {
+            width: 30%;
+        }
+
+        .signature-table .col-mengetahui {
+            width: 30%;
+        }
+
+        .signature-table .col-menyetujui {
+            width: 40%;
+        }
+
+
         .signature-space {
             height: 70px;
-            /* Space for actual signature */
         }
 
         .no-data {
@@ -136,7 +142,6 @@
     <div class="header-title">SURAT PERMOHONAN IJIN LEMBUR</div>
     <div class="header-subtitle">TVKU SEMARANG</div>
 
-    {{-- Combined Recipient/Subject and Employee Details Table for Alignment --}}
     <table class="info-section-table" style="margin-left: 10px">
         <tr>
             <td class="info-label">Kepada</td>
@@ -148,14 +153,11 @@
             <td class="info-colon">:</td>
             <td>Permohonan Lembur Karyawan</td>
         </tr>
-        {{-- Spacer row for visual separation --}}
         <tr>
             <td colspan="3" style="padding-top: 10px; padding-bottom: 40px">Dengan ini saya,</td>
         </tr>
-        {{-- Employee Details - Assuming data comes from the first overtime record's user --}}
         @if($overtime->count() > 0)
             @if(isset($scope) && ($scope === 'all_data' || $scope === 'division_data'))
-                {{-- Untuk semua data atau data divisi, tampilkan info umum --}}
                 <tr>
                     <td class="info-label">Periode</td>
                     <td class="info-colon">:</td>
@@ -173,20 +175,16 @@
                     <td>{{ $overtime->count() }} hari</td>
                 </tr>
             @else
-                {{-- Untuk data individual --}}
                 @php
                     $user = $overtime[0]->user;
                     $divisionName = '';
                     
-                    // Cek apakah user memiliki divisions (relasi many-to-many)
                     if ($user->divisions && $user->divisions->count() > 0) {
                         $divisionName = $user->divisions->pluck('name')->implode(', ');
                     }
-                    // Fallback ke division (relasi belongsTo)
                     elseif ($user->division) {
                         $divisionName = $user->division->name;
                     }
-                    // Fallback terakhir
                     else {
                         $divisionName = 'Tidak diketahui';
                     }
@@ -208,7 +206,6 @@
                 </tr>
             @endif
         @else
-            {{-- Placeholder if no overtime data --}}
             <tr>
                 <td colspan="3" style="padding-top: 5px;">(Detail tidak tersedia)</td>
             </tr>
@@ -238,15 +235,12 @@
                             $user = $item->user;
                             $divisionName = '';
                             
-                            // Cek apakah user memiliki divisions (relasi many-to-many)
                             if ($user->divisions && $user->divisions->count() > 0) {
                                 $divisionName = $user->divisions->pluck('name')->implode(', ');
                             }
-                            // Fallback ke division (relasi belongsTo)
                             elseif ($user->division) {
                                 $divisionName = $user->division->name;
                             }
-                            // Fallback terakhir
                             else {
                                 $divisionName = 'Tidak diketahui';
                             }
@@ -339,7 +333,6 @@
                 $query->where('name', 'direktur_operasional');
             })->first();
             
-            // Get division name for signature section
             $firstUser = $overtime[0]->user;
             $signatureDivisionName = '';
             
@@ -354,21 +347,21 @@
 
         <table class="signature-table">
             <tr>
-                <td>Pemohon,</td>
-                <td>Mengetahui,</td>
-                <td>Menyetujui,</td>
+                <td class="col-pemohon">Pemohon,</td>
+                <td class="col-mengetahui">Mengetahui,</td>
+                <td class="col-menyetujui">Menyetujui,</td>
             </tr>
             <tr>
-                <td class="signature-space"></td>
-                <td class="signature-space"></td>
-                <td class="signature-space"></td>
+                <td class="col-pemohon signature-space"></td>
+                <td class="col-mengetahui signature-space"></td>
+                <td class="col-menyetujui signature-space"></td>
             </tr>
             <tr>
-                <td>
+                <td class="col-pemohon">
                     <span class="text-bold">{{ Str::headline($overtime[0]->user->name ?? '') }}</span><br>
                     {{ Str::headline($signatureDivisionName) }}
                 </td>
-                <td>
+                <td class="col-mengetahui">
                     @if($overtime[0]->user->atasan)
                         <span class="text-bold">{{ Str::headline($overtime[0]->user->atasan->name) }}</span><br>
                         {{ $overtime[0]->user->jabatan_atasan }}
@@ -377,7 +370,7 @@
                         -
                     @endif
                 </td>
-                <td>
+                <td class="col-menyetujui">
                     @if($direkturOperasional)
                         <span class="text-bold">{{ Str::headline($direkturOperasional->name) }}</span><br>
                         Direktur Operasional
