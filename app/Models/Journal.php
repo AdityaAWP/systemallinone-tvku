@@ -19,6 +19,9 @@ class Journal extends Model
         'status',
         'image',
         'reason_of_absence',
+        'latitude',
+        'longitude',
+        'location_address',
     ];
 
     protected $casts = [
