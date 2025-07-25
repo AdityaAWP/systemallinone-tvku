@@ -71,17 +71,17 @@ class LeaveResource extends Resource
         if (static::isStaff($user)) {
             return !($record->approval_manager || $record->approval_hrd);
         }
-        
+
         // HRD bisa edit jika HRD belum approve
         if (static::isHrd($user)) {
             return $record->approval_hrd !== true;
         }
-        
+
         // Manager/Kepala bisa edit jika Manager/Kepala belum approve
         if (static::isManager($user) || static::isKepala($user)) {
             return $record->approval_manager !== true;
         }
-        
+
         // Default: tidak bisa edit
         return false;
     }
@@ -109,13 +109,13 @@ class LeaveResource extends Resource
             $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
 
             if (empty($userDivisionIds) && $user->division_id) {
-            $userDivisionIds = [$user->division_id];
+                $userDivisionIds = [$user->division_id];
             }
 
             $count = Leave::whereHas('user', function ($query) use ($userDivisionIds) {
                 $query->whereIn('division_id', $userDivisionIds);
             })
-            ->count();
+                ->count();
             return $count > 0 ? (string) $count : null;
         }
 
@@ -132,7 +132,7 @@ class LeaveResource extends Resource
         $from = Carbon::parse($fromDate);
         $to = Carbon::parse($toDate);
 
-         $holidays = [
+        $holidays = [
             '2025-01-01', // Tahun Baru
             '2025-01-29', // Tahun Baru Imlek
             '2025-02-12', // Isra Mi'raj
@@ -234,12 +234,12 @@ class LeaveResource extends Resource
                                     'maternity' => 'Cuti Melahirkan',
                                     'other' => 'Cuti Lainnya',
                                 ];
-                                
+
                                 // Hanya tampilkan opsi "Cuti Tahunan" jika masih ada kesempatan dan hari
                                 if ($isStaff && $isCreating) {
                                     $quota = LeaveQuota::getUserQuota($user->id);
                                     $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-                                    
+
                                     // Hitung sisa hari cuti tahunan
                                     $currentYear = date('Y');
                                     $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
@@ -247,13 +247,13 @@ class LeaveResource extends Resource
                                         ->whereYear('from_date', $currentYear)
                                         ->where('status', 'approved')
                                         ->get();
-                                    
+
                                     $usedDays = 0;
                                     foreach ($approvedCasualLeaves as $leave) {
                                         $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
                                     }
                                     $remainingDays = 12 - $usedDays;
-                                    
+
                                     // Tampilkan opsi cuti tahunan hanya jika masih ada kesempatan DAN hari
                                     if ($sisaKesempatan > 0 && $remainingDays > 0) {
                                         $options = ['casual' => 'Cuti Tahunan'] + $options;
@@ -262,7 +262,7 @@ class LeaveResource extends Resource
                                     // Untuk edit atau non-staff, tetap tampilkan semua opsi
                                     $options = ['casual' => 'Cuti Tahunan'] + $options;
                                 }
-                                
+
                                 return $options;
                             })
                             ->required()
@@ -274,13 +274,13 @@ class LeaveResource extends Resource
                                         if ($value === 'casual' && $isStaff && $isCreating) {
                                             $quota = LeaveQuota::getUserQuota($user->id);
                                             $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-                                            
+
                                             // Cek kesempatan
                                             if ($sisaKesempatan <= 0) {
                                                 $fail('Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.');
                                                 return;
                                             }
-                                            
+
                                             // Hitung sisa hari cuti tahunan
                                             $currentYear = date('Y');
                                             $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
@@ -288,13 +288,13 @@ class LeaveResource extends Resource
                                                 ->whereYear('from_date', $currentYear)
                                                 ->where('status', 'approved')
                                                 ->get();
-                                            
+
                                             $usedDays = 0;
                                             foreach ($approvedCasualLeaves as $leave) {
                                                 $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
                                             }
                                             $remainingDays = 12 - $usedDays;
-                                            
+
                                             // Cek sisa hari
                                             if ($remainingDays <= 0) {
                                                 $fail('Kuota 12 hari cuti tahunan Anda sudah habis untuk tahun ini.');
@@ -309,7 +309,7 @@ class LeaveResource extends Resource
                                     $targetUser = $isCreating ? $user : ($record?->user ?? $user);
                                     $quota = LeaveQuota::getUserQuota($targetUser->id);
                                     $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-                                    
+
                                     // Hitung total hari cuti tahunan yang sudah digunakan tahun ini
                                     $currentYear = date('Y');
                                     $approvedCasualLeaves = \App\Models\Leave::where('user_id', $targetUser->id)
@@ -317,13 +317,13 @@ class LeaveResource extends Resource
                                         ->whereYear('from_date', $currentYear)
                                         ->where('status', 'approved')
                                         ->get();
-                                    
+
                                     $usedDays = 0;
                                     foreach ($approvedCasualLeaves as $leave) {
                                         $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
                                     }
                                     $remainingDays = 12 - $usedDays;
-                                    
+
                                     if ($sisaKesempatan <= 0) {
                                         return "⚠️ Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.";
                                     }
@@ -335,7 +335,7 @@ class LeaveResource extends Resource
                                     // Tampilkan info kuota saat belum memilih jenis cuti
                                     $quota = LeaveQuota::getUserQuota($user->id);
                                     $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-                                    
+
                                     // Hitung sisa hari
                                     $currentYear = date('Y');
                                     $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
@@ -343,13 +343,13 @@ class LeaveResource extends Resource
                                         ->whereYear('from_date', $currentYear)
                                         ->where('status', 'approved')
                                         ->get();
-                                    
+
                                     $usedDays = 0;
                                     foreach ($approvedCasualLeaves as $leave) {
                                         $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
                                     }
                                     $remainingDays = 12 - $usedDays;
-                                    
+
                                     if ($sisaKesempatan <= 0 || $remainingDays <= 0) {
                                         return "⚠️ Kuota cuti tahunan Anda sudah habis. Anda hanya bisa mengajukan cuti sakit, melahirkan, atau lainnya.";
                                     }
@@ -358,13 +358,13 @@ class LeaveResource extends Resource
                             }),
 
                         Forms\Components\TextInput::make('remaining_casual_leave')
-                            ->label('Sisa Cuti Tahunan')
+                            ->label('Sisa Kesempatan Cuti')
                             ->formatStateUsing(function ($record) use ($user, $isCreating) {
                                 // Untuk edit, gunakan user dari record, untuk create gunakan current user
                                 $targetUser = $isCreating ? $user : ($record?->user ?? $user);
                                 $quota = LeaveQuota::getUserQuota($targetUser->id);
                                 $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-                                
+
                                 // Hitung sisa hari cuti tahunan
                                 $currentYear = date('Y');
                                 $approvedCasualLeaves = \App\Models\Leave::where('user_id', $targetUser->id)
@@ -372,13 +372,13 @@ class LeaveResource extends Resource
                                     ->whereYear('from_date', $currentYear)
                                     ->where('status', 'approved')
                                     ->get();
-                                
+
                                 $usedDays = 0;
                                 foreach ($approvedCasualLeaves as $leave) {
                                     $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
                                 }
                                 $remainingDays = 12 - $usedDays;
-                                
+
                                 return "{$sisaKesempatan} Kesempatan";
                             })
                             ->disabled(),
@@ -410,12 +410,12 @@ class LeaveResource extends Resource
                                     // Hitung hari kerja saja (tidak termasuk weekend dan hari libur)
                                     $workingDays = static::calculateWorkingDays($fromDate, $toDate);
                                     $set('days', $workingDays);
-                                    
+
                                     // Validasi kuota cuti tahunan jika jenisnya casual
                                     if ($get('leave_type') === 'casual' && $isCreating) {
                                         $quota = LeaveQuota::getUserQuota($user->id);
                                         $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-                                        
+
                                         // Hitung sisa hari cuti tahunan
                                         $currentYear = date('Y');
                                         $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
@@ -423,13 +423,13 @@ class LeaveResource extends Resource
                                             ->whereYear('from_date', $currentYear)
                                             ->where('status', 'approved')
                                             ->get();
-                                        
+
                                         $usedDays = 0;
                                         foreach ($approvedCasualLeaves as $leave) {
                                             $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
                                         }
                                         $remainingDays = 12 - $usedDays;
-                                        
+
                                         if ($sisaKesempatan <= 0) {
                                             $set('days_error', "Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.");
                                         } elseif ($workingDays > $remainingDays) {
@@ -448,16 +448,16 @@ class LeaveResource extends Resource
                                         if ($get('leave_type') === 'casual' && $isCreating && $get('from_date') && $value) {
                                             $quota = LeaveQuota::getUserQuota($user->id);
                                             $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-                                            
+
                                             // Cek kesempatan
                                             if ($sisaKesempatan <= 0) {
                                                 $fail('Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.');
                                                 return;
                                             }
-                                            
+
                                             // Hitung hari kerja berdasarkan tanggal
                                             $workingDays = static::calculateWorkingDays($get('from_date'), $value);
-                                            
+
                                             // Hitung sisa hari cuti tahunan
                                             $currentYear = date('Y');
                                             $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
@@ -465,13 +465,13 @@ class LeaveResource extends Resource
                                                 ->whereYear('from_date', $currentYear)
                                                 ->where('status', 'approved')
                                                 ->get();
-                                            
+
                                             $usedDays = 0;
                                             foreach ($approvedCasualLeaves as $leave) {
                                                 $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
                                             }
                                             $remainingDays = 12 - $usedDays;
-                                            
+
                                             // Cek apakah hari yang diminta melebihi sisa kuota
                                             if ($workingDays > $remainingDays) {
                                                 $fail("Hari cuti yang diminta ({$workingDays} hari) melebihi sisa kuota cuti tahunan Anda ({$remainingDays} hari).");
@@ -513,7 +513,7 @@ class LeaveResource extends Resource
                                     $days = $get('days');
                                     $quota = LeaveQuota::getUserQuota($user->id);
                                     $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-                                    
+
                                     // Hitung sisa hari cuti tahunan
                                     $currentYear = date('Y');
                                     $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
@@ -521,13 +521,13 @@ class LeaveResource extends Resource
                                         ->whereYear('from_date', $currentYear)
                                         ->where('status', 'approved')
                                         ->get();
-                                    
+
                                     $usedDays = 0;
                                     foreach ($approvedCasualLeaves as $leave) {
                                         $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
                                     }
                                     $remainingDays = 12 - $usedDays;
-                                    
+
                                     if ($sisaKesempatan <= 0) {
                                         $set('days_error', "Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.");
                                     } elseif ($days > $remainingDays) {
@@ -545,13 +545,13 @@ class LeaveResource extends Resource
                                         if ($get('leave_type') === 'casual' && $isCreating) {
                                             $quota = LeaveQuota::getUserQuota($user->id);
                                             $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-                                            
+
                                             // Cek kesempatan
                                             if ($sisaKesempatan <= 0) {
                                                 $fail('Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.');
                                                 return;
                                             }
-                                            
+
                                             // Hitung sisa hari cuti tahunan
                                             $currentYear = date('Y');
                                             $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
@@ -559,13 +559,13 @@ class LeaveResource extends Resource
                                                 ->whereYear('from_date', $currentYear)
                                                 ->where('status', 'approved')
                                                 ->get();
-                                            
+
                                             $usedDays = 0;
                                             foreach ($approvedCasualLeaves as $leave) {
                                                 $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
                                             }
                                             $remainingDays = 12 - $usedDays;
-                                            
+
                                             // Cek apakah hari yang diminta melebihi sisa kuota
                                             if ($value > $remainingDays) {
                                                 $fail("Hari cuti yang diminta ({$value} hari) melebihi sisa kuota cuti tahunan Anda ({$remainingDays} hari).");
@@ -666,7 +666,7 @@ class LeaveResource extends Resource
         $isStaff = static::isStaff($user);
 
         return $table
-        ->recordUrl(null)
+            ->recordUrl(null)
             ->headerActions([
                 Tables\Actions\Action::make('reset_to_all')
                     ->label('Semua Cuti Staff')
@@ -711,7 +711,6 @@ class LeaveResource extends Resource
 
                                 // Cek role HRD dengan method checking yang sudah ada
                                 if (static::isHrd($user)) {
-                                    
                                 } elseif (static::isManager($user) || static::isKepala($user)) {
                                     $options['division'] = 'Semua Data Staff Divisi Saya';
                                 }
@@ -830,27 +829,25 @@ class LeaveResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('remaining_casual_leave')
-                    ->label('Sisa Cuti Tahunan')
+                    ->label('Sisa Hari Cuti Tahunan')
                     ->alignCenter()
                     ->getStateUsing(function ($record) {
-                        $quota = $record->user?->leaveQuotas?->first();
-                        $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-                        
-                        // Hitung sisa hari cuti tahunan
                         $currentYear = date('Y');
+                        // Ambil semua cuti tahunan yang sudah disetujui tahun ini
                         $approvedCasualLeaves = \App\Models\Leave::where('user_id', $record->user_id)
                             ->where('leave_type', 'casual')
                             ->whereYear('from_date', $currentYear)
                             ->where('status', 'approved')
                             ->get();
-                        
+                        // Hitung total hari kerja cuti tahunan yang sudah digunakan
                         $usedDays = 0;
                         foreach ($approvedCasualLeaves as $leave) {
                             $usedDays += \App\Filament\Resources\LeaveResource::calculateWorkingDays($leave->from_date, $leave->to_date);
                         }
-                        $remainingDays = 12 - $usedDays;
-                        
-                        return "{$sisaKesempatan} Kesempatan";
+                        // Sisa hari cuti tahunan dari total 12 hari
+                        $remainingDays = max(12 - $usedDays, 0);
+
+                        return "{$remainingDays} Hari";
                     })
                     ->sortable(),
 
@@ -1008,7 +1005,7 @@ class LeaveResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
-        
+
         // MODIFIKASI: Mulai query dengan filter user aktif sebagai dasar.
         // Ini memastikan SEMUA data cuti yang diambil HANYA dari user yang aktif.
         $query = parent::getEloquentQuery()->whereHas('user', function ($query) {
@@ -1038,16 +1035,16 @@ class LeaveResource extends Resource
                 if (!empty($userDivisionIds)) {
                     $accessibleUsersQuery->where(function ($q) use ($userDivisionIds, $user) {
                         $q->whereIn('division_id', $userDivisionIds)
-                          ->orWhere('id', $user->id);
+                            ->orWhere('id', $user->id);
                     });
                 } else {
                     $accessibleUsersQuery->where('id', $user->id);
                 }
             }
-            
+
             // Langkah 2: Tampilkan SEMUA cuti dari user yang dapat diakses, bukan hanya yang terakhir
             $accessibleUserIds = $accessibleUsersQuery->pluck('id')->toArray();
-            
+
             // Langkah 3: Filter query utama untuk menampilkan semua cuti dari user yang dapat diakses
             return $query->whereIn('user_id', $accessibleUserIds);
         }
@@ -1055,5 +1052,4 @@ class LeaveResource extends Resource
         // Fallback default.
         return $query->where('user_id', $user->id);
     }
-
 }
