@@ -22,7 +22,22 @@ class CreateLeave extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['status'] = 'pending';
+        $user = Auth::user();
+        
+        // Check if user is manager or kepala using LeaveResource methods
+        $isManager = LeaveResource::isManager($user);
+        $isKepala = LeaveResource::isKepala($user);
+        
+        if ($isManager || $isKepala) {
+            // Manager/Kepala cuti langsung approved
+            $data['status'] = 'approved';
+            $data['approval_manager'] = true;
+            $data['approval_hrd'] = true;
+            Log::info('Manager/Kepala mengajukan cuti - langsung approved: ' . $user->name);
+        } else {
+            $data['status'] = 'pending';
+        }
+        
         // Always set user_id to the authenticated user (scalar, force int)
         $data['user_id'] = (int) Auth::id();
         // Generate token unik setiap kali membuat permintaan cuti baru
@@ -214,12 +229,35 @@ class CreateLeave extends CreateRecord
 
     private function sendLeaveRequestNotifications(Leave $leave): void
     {
+        $staff = $leave->user;
+        
+        // Check if the leave applicant is manager or kepala
+        $isManagerApplicant = LeaveResource::isManager($staff);
+        $isKepalaApplicant = LeaveResource::isKepala($staff);
+        
+        if ($isManagerApplicant || $isKepalaApplicant) {
+            // For manager/kepala applicants, only notify directors for information
+            $directors = User::where('is_active', true)
+                ->whereHas('roles', function ($query) {
+                    $query->where('name', 'direktur_utama')
+                          ->orWhere('name', 'direktur_operasional');
+                })
+                ->get();
+                
+            if ($directors->count() > 0) {
+                Notification::send($directors, new LeaveRequested($leave));
+                Log::info('Notifikasi cuti manager/kepala dikirim ke direktur untuk informasi: ' . $directors->pluck('name')->implode(', '));
+            }
+            
+            return; // Don't send to other approvers for manager/kepala
+        }
+        
+        // Original notification logic for regular staff
         // Kirim ke HRD
         $hrdUsers = User::role('hrd')->get();
         Notification::send($hrdUsers, new LeaveRequested($leave));
 
         // Kirim ke manager/kepala yang sesuai dengan divisi staff
-        $staff = $leave->user;
         
         // Pertama, cek apakah staff memiliki manager yang ditugaskan manual
         if ($staff->manager_id) {

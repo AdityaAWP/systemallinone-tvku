@@ -33,6 +33,15 @@ class LeaveResource extends Resource
     protected static ?string $navigationLabel = 'Cuti';
     protected static ?string $label = 'Permohonan Cuti';
 
+    public static function getNavigationLabel(): string
+    {
+        $user = Auth::user();
+        if ($user && static::isDirector($user)) {
+            return 'Cuti (Info Manager/Kepala)';
+        }
+        return 'Cuti';
+    }
+
     /**
      * Check if user has HRD role
      */
@@ -52,14 +61,22 @@ class LeaveResource extends Resource
     /**
      * Check if user has any manager role
      */
-    private static function isManager($user): bool
+    public static function isManager($user): bool
     {
         return $user->roles()->where('name', 'like', 'manager%')->exists();
     }
 
-    private static function isKepala($user): bool
+    public static function isKepala($user): bool
     {
         return $user->roles()->where('name', 'like', 'kepala%')->exists();
+    }
+
+    /**
+     * Check if user is director
+     */
+    public static function isDirector($user): bool
+    {
+        return $user->roles()->whereIn('name', ['direktur_utama', 'direktur_operasional'])->exists();
     }
 
     /**
@@ -67,6 +84,11 @@ class LeaveResource extends Resource
      */
     private static function canEditLeave($user, $record): bool
     {
+        // Direktur tidak bisa edit cuti apapun (hanya melihat untuk informasi)
+        if (static::isDirector($user)) {
+            return false;
+        }
+
         // Staff tidak bisa edit jika sudah ada approval
         if (static::isStaff($user)) {
             return !($record->approval_manager || $record->approval_hrd);
@@ -701,12 +723,6 @@ class LeaveResource extends Resource
                             ])
                             ->required(),
 
-                        Forms\Components\Placeholder::make('days_error')
-                            ->label('')
-                            ->content(fn(callable $get) => $get('days_error'))
-                            ->visible(fn(callable $get) => !empty($get('days_error')))
-                            ->extraAttributes(['class' => 'text-red-600 font-medium']),
-
                         Forms\Components\Textarea::make('reason')
                             ->label('Keterangan')
                             ->required()
@@ -1100,14 +1116,20 @@ class LeaveResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => static::isHrd(Auth::user())),
+                        ->visible(function() {
+                            $user = Auth::user();
+                            return static::isHrd($user) && !static::isDirector($user);
+                        }),
 
                     Tables\Actions\ExportAction::make()
                         ->exporter(LeaveExporter::class)
                         ->label('Ekspor')
                         ->color('success')
                         ->icon('heroicon-o-document-download')
-                        ->visible(fn() => static::isHrd(Auth::user())),
+                        ->visible(function() {
+                            $user = Auth::user();
+                            return static::isHrd($user) && !static::isDirector($user);
+                        }),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
@@ -1139,6 +1161,16 @@ class LeaveResource extends Resource
         $query = parent::getEloquentQuery()->whereHas('user', function ($query) {
             $query->where('is_active', true);
         });
+
+        // Check if user is direktur
+        if (static::isDirector($user)) {
+            return $query->whereHas('user', function ($q) {
+                $q->whereHas('roles', function ($roleQuery) {
+                    $roleQuery->where('name', 'like', 'manager_%')
+                              ->orWhere('name', 'like', 'kepala_%');
+                });
+            });
+        }
 
         // Logika untuk staff biasa tetap, beroperasi pada query yang sudah difilter.
         if (static::isStaff($user) && !static::isHrd($user) && !static::isManager($user) && !static::isKepala($user)) {
