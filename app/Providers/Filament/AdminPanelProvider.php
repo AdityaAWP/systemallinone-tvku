@@ -33,18 +33,18 @@ class AdminPanelProvider extends PanelProvider
     {
         $faviconPath = null;
         $faviconUrl = null;
-        
+
         if (Schema::hasTable('settings_site')) {
             $faviconPath = SettingSite::get('site_favicon');
             $faviconUrl = $faviconPath ? Storage::disk('public')->url($faviconPath) : null;
         }
-    
+
         return $panel
             ->default()
             ->id('admin')
             ->path('/')
             ->login(Login::class)
-            ->favicon($faviconUrl)  
+            ->favicon($faviconUrl)
             ->passwordReset()
             ->colors([
                 'primary' => Color::Blue,
@@ -111,7 +111,6 @@ class AdminPanelProvider extends PanelProvider
             ->plugins([
                 \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make()
             ])
-            ->spa()
-            ->sidebarCollapsibleOnDesktop();
+            ->spa();
     }
 }

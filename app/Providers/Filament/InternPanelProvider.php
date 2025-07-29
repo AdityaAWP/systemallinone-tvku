@@ -82,7 +82,6 @@ class InternPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->authGuard('intern')
-            ->spa()
-            ->sidebarCollapsibleOnDesktop();
+            ->spa();
     }
 }
