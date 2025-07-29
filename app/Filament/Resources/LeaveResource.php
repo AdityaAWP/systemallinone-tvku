@@ -276,32 +276,36 @@ class LeaveResource extends Resource
                                     if ($fromDate) {
                                         // Cari tanggal akhir untuk 2 hari kerja
                                         $startDate = Carbon::parse($fromDate);
-                                        $endDate = $startDate->copy();
+                                        $currentDate = $startDate->copy();
+                                        $endDate = null;
                                         $workingDaysCount = 0;
+                                        
+                                        // Holidays list
+                                        $holidays = [
+                                            '2025-01-01', '2025-01-29', '2025-02-12', '2025-03-14', '2025-03-29',
+                                            '2025-03-30', '2025-03-31', '2025-04-01', '2025-05-01', '2025-05-12',
+                                            '2025-05-29', '2025-06-01', '2025-06-06', '2025-06-27', '2025-08-17',
+                                            '2025-09-05', '2025-12-25'
+                                        ];
                                         
                                         // Hitung 2 hari kerja dari tanggal mulai
                                         while ($workingDaysCount < 2) {
-                                            if (!$endDate->isWeekend()) {
-                                                // Cek apakah bukan hari libur nasional
-                                                $holidays = [
-                                                    '2025-01-01', '2025-01-29', '2025-02-12', '2025-03-14', '2025-03-29',
-                                                    '2025-03-30', '2025-03-31', '2025-04-01', '2025-05-01', '2025-05-12',
-                                                    '2025-05-29', '2025-06-01', '2025-06-06', '2025-06-27', '2025-08-17',
-                                                    '2025-09-05', '2025-12-25'
-                                                ];
-                                                
-                                                if (!in_array($endDate->format('Y-m-d'), $holidays)) {
-                                                    $workingDaysCount++;
+                                            // Cek apakah hari ini adalah hari kerja (bukan weekend dan bukan libur)
+                                            if (!$currentDate->isWeekend() && !in_array($currentDate->format('Y-m-d'), $holidays)) {
+                                                $workingDaysCount++;
+                                                if ($workingDaysCount == 2) {
+                                                    $endDate = $currentDate->copy();
+                                                    break;
                                                 }
                                             }
-                                            if ($workingDaysCount < 2) {
-                                                $endDate->addDay();
-                                            }
+                                            $currentDate->addDay();
                                         }
                                         
-                                        $set('to_date', $endDate->format('Y-m-d'));
-                                        $set('back_to_work_date', $endDate->addDay()->format('Y-m-d'));
-                                        $set('days', 2);
+                                        if ($endDate) {
+                                            $set('to_date', $endDate->format('Y-m-d'));
+                                            $set('back_to_work_date', $endDate->addDay()->format('Y-m-d'));
+                                            $set('days', 2);
+                                        }
                                     }
                                 }
                             })
@@ -434,32 +438,36 @@ class LeaveResource extends Resource
                                 if ($get('leave_type') === 'marriage' && $isCreating && $get('from_date')) {
                                     $fromDate = $get('from_date');
                                     $startDate = Carbon::parse($fromDate);
-                                    $endDate = $startDate->copy();
+                                    $currentDate = $startDate->copy();
+                                    $endDate = null;
                                     $workingDaysCount = 0;
+                                    
+                                    // Holidays list
+                                    $holidays = [
+                                        '2025-01-01', '2025-01-29', '2025-02-12', '2025-03-14', '2025-03-29',
+                                        '2025-03-30', '2025-03-31', '2025-04-01', '2025-05-01', '2025-05-12',
+                                        '2025-05-29', '2025-06-01', '2025-06-06', '2025-06-27', '2025-08-17',
+                                        '2025-09-05', '2025-12-25'
+                                    ];
                                     
                                     // Hitung 2 hari kerja dari tanggal mulai
                                     while ($workingDaysCount < 2) {
-                                        if (!$endDate->isWeekend()) {
-                                            // Cek apakah bukan hari libur nasional
-                                            $holidays = [
-                                                '2025-01-01', '2025-01-29', '2025-02-12', '2025-03-14', '2025-03-29',
-                                                '2025-03-30', '2025-03-31', '2025-04-01', '2025-05-01', '2025-05-12',
-                                                '2025-05-29', '2025-06-01', '2025-06-06', '2025-06-27', '2025-08-17',
-                                                '2025-09-05', '2025-12-25'
-                                            ];
-                                            
-                                            if (!in_array($endDate->format('Y-m-d'), $holidays)) {
-                                                $workingDaysCount++;
+                                        // Cek apakah hari ini adalah hari kerja (bukan weekend dan bukan libur)
+                                        if (!$currentDate->isWeekend() && !in_array($currentDate->format('Y-m-d'), $holidays)) {
+                                            $workingDaysCount++;
+                                            if ($workingDaysCount == 2) {
+                                                $endDate = $currentDate->copy();
+                                                break;
                                             }
                                         }
-                                        if ($workingDaysCount < 2) {
-                                            $endDate->addDay();
-                                        }
+                                        $currentDate->addDay();
                                     }
                                     
-                                    $set('to_date', $endDate->format('Y-m-d'));
-                                    $set('back_to_work_date', $endDate->addDay()->format('Y-m-d'));
-                                    $set('days', 2);
+                                    if ($endDate) {
+                                        $set('to_date', $endDate->format('Y-m-d'));
+                                        $set('back_to_work_date', $endDate->addDay()->format('Y-m-d'));
+                                        $set('days', 2);
+                                    }
                                 }
                             }),
 
