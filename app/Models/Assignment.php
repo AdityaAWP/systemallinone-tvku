@@ -115,4 +115,20 @@ class Assignment extends Model
     {
         return $this->submit_status === self::SUBMIT_BELUM;
     }
+
+    /**
+     * Get the net amount (amount - marketing_expense)
+     */
+    public function getNetAmountAttribute(): ?float
+    {
+        // Return null for free assignments
+        if ($this->type === self::TYPE_FREE) {
+            return null;
+        }
+
+        $amount = $this->amount ?? 0;
+        $marketingExpense = $this->marketing_expense ?? 0;
+        
+        return $amount - $marketingExpense;
+    }
 }

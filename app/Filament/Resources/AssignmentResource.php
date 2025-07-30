@@ -76,71 +76,82 @@ class AssignmentResource extends Resource
                     ->tabs([
                         Forms\Components\Tabs\Tab::make('Informasi Dasar')
                             ->schema([
-                                Forms\Components\Select::make('type')
-                                    ->label('Jenis Penugasan')
-                                    ->options([
-                                        Assignment::TYPE_FREE => 'Free',
-                                        Assignment::TYPE_PAID => 'Berbayar',
-                                        Assignment::TYPE_BARTER => 'Barter',
-                                    ])
-                                    ->required()
-                                    ->live()
-                                    ->default(Assignment::TYPE_FREE)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
+                                Forms\Components\Grid::make(3)
+                                    ->schema([
+                                        Forms\Components\Select::make('type')
+                                            ->label('Jenis Penugasan')
+                                            ->options([
+                                                Assignment::TYPE_FREE => 'Free',
+                                                Assignment::TYPE_PAID => 'Berbayar',
+                                                Assignment::TYPE_BARTER => 'Barter',
+                                            ])
+                                            ->required()
+                                            ->live()
+                                            ->default(Assignment::TYPE_FREE)
+                                            ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
 
-                                Forms\Components\DatePicker::make('created_date')
-                                    ->required()
-                                    ->label('Tanggal Dibuat')
-                                    ->default(Carbon::now()),
+                                        Forms\Components\DatePicker::make('created_date')
+                                            ->required()
+                                            ->label('Tanggal Dibuat')
+                                            ->default(Carbon::now()),
 
-                                Forms\Components\DatePicker::make('deadline')
-                                    ->required()
-                                    ->minDate(Carbon::now())
-                                    ->label('Batas Waktu')
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
+                                        Forms\Components\DatePicker::make('deadline')
+                                            ->required()
+                                            ->minDate(Carbon::now())
+                                            ->label('Batas Waktu')
+                                            ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
+                                    ]),
+                                Forms\Components\Grid::make(3)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('client')
+                                            ->required()
+                                            ->label('Klien')
+                                            ->maxLength(255)
+                                            ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
 
-                                Forms\Components\TextInput::make('client')
-                                    ->required()
-                                    ->label('Klien')
-                                    ->maxLength(255)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
+                                        Forms\Components\TextInput::make('spp_number')
+                                            ->label('Nomor SPP')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
 
-                                Forms\Components\TextInput::make('spp_number')
-                                    ->label('Nomor SPP')
-                                    ->required()
-                                    ->maxLength(255)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
-
-                                Forms\Components\TextInput::make('spk_number')
-                                    ->label('Nomor SPK')
-                                    ->maxLength(255)
-                                    ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
-
+                                        Forms\Components\TextInput::make('spk_number')
+                                            ->label('Nomor SPK')
+                                            ->maxLength(255)
+                                            ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
+                                            ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
+                                    ]),
                                 Forms\Components\Textarea::make('description')
                                     ->required()
                                     ->label('Keterangan')
                                     ->columnSpanFull()
+                                    ->rows(5)
                                     ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
                             ]),
 
                         Forms\Components\Tabs\Tab::make('Detail Keuangan')
                             ->schema([
-                                Forms\Components\TextInput::make('amount')
-                                    ->label('Jumlah Nominal')
-                                    ->numeric()
-                                    ->prefix('Rp')
-                                    ->inputMode('decimal')
-                                    ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('amount')
+                                            ->label('Jumlah Nominal')
+                                            ->numeric()
+                                            ->prefix('Rp')
+                                            ->inputMode('decimal')
+                                            ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
+                                            ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
+                                    ]),
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('marketing_expense')
+                                            ->label('Biaya Pemasaran')
+                                            ->numeric()
+                                            ->prefix('Rp')
+                                            ->inputMode('decimal')
+                                            ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
+                                            ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
 
-                                Forms\Components\TextInput::make('marketing_expense')
-                                    ->label('Biaya Pemasaran')
-                                    ->numeric()
-                                    ->prefix('Rp')
-                                    ->inputMode('decimal')
-                                    ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE)
-                                    ->disabled(fn($context) => $context === 'edit' && Auth::user()->hasRole('direktur_utama')),
+                                    ]),
                             ])
                             ->hidden(fn(Forms\Get $get) => $get('type') === Assignment::TYPE_FREE),
 
@@ -275,10 +286,18 @@ class AssignmentResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('amount')
+                Tables\Columns\TextColumn::make('net_amount')
                     ->label('Nominal')
                     ->money('IDR')
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(function (Assignment $record) {
+                        // For free assignments, show nothing or dash
+                        if ($record->type === Assignment::TYPE_FREE) {
+                            return null;
+                        }
+                        return $record->net_amount;
+                    })
+                    ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('deadline')
                     ->date('d M Y')
@@ -512,8 +531,8 @@ class AssignmentResource extends Resource
                             ])
                             ->required()
                             ->default(fn(Assignment $record) => $record->priority ?? Assignment::PRIORITY_NORMAL)
-                            // MODIFIED: Show priority field for all assignment types (paid, barter, free)
-                            // ->visible(fn(Assignment $record) => $record->type === Assignment::TYPE_PAID),
+                        // MODIFIED: Show priority field for all assignment types (paid, barter, free)
+                        // ->visible(fn(Assignment $record) => $record->type === Assignment::TYPE_PAID),
                     ])
                     ->modalHeading('Approve Assignment')
                     ->modalDescription(function (Assignment $record) {
@@ -649,7 +668,7 @@ class AssignmentResource extends Resource
             // Staff keuangan: only see assignments they created
             elseif ($user->hasRole('staff_keuangan')) {
                 $query->where('created_by', Auth::id());
-                
+
                 // Handle staff-specific filters
                 if ($statusFilter === 'my_pending') {
                     $query->where('approval_status', Assignment::STATUS_PENDING);
@@ -668,7 +687,7 @@ class AssignmentResource extends Resource
                         $roleQuery->where('name', 'staff_keuangan');
                     });
                 });
-                
+
                 // Handle manager-specific filters
                 if ($statusFilter === 'need_submission') {
                     $query->where('submit_status', Assignment::SUBMIT_BELUM);
