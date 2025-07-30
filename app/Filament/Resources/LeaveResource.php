@@ -215,38 +215,41 @@ class LeaveResource extends Resource
                             ->disabled()
                             ->required(),
 
-                        Forms\Components\TextInput::make('employee_npp')
-                            ->label('NPP')
-                            ->formatStateUsing(function ($record) use ($user, $isCreating) {
-                                if ($isCreating) {
-                                    return $user->npp;
-                                }
-                                return $record?->user?->npp ?? $user->npp;
-                            })
-                            ->disabled()
-                            ->required(),
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('employee_npp')
+                                    ->label('NPP')
+                                    ->formatStateUsing(function ($record) use ($user, $isCreating) {
+                                        if ($isCreating) {
+                                            return $user->npp;
+                                        }
+                                        return $record?->user?->npp ?? $user->npp;
+                                    })
+                                    ->disabled()
+                                    ->required(),
 
-                        Forms\Components\TextInput::make('employee_division')
-                            ->label('Divisi')
-                            ->formatStateUsing(function ($record) use ($user, $isCreating) {
-                                if ($isCreating) {
-                                    return $user->division?->name ?? '-';
-                                }
-                                return $record?->user?->division?->name ?? $user->division?->name ?? '-';
-                            })
-                            ->disabled()
-                            ->required(),
+                                Forms\Components\TextInput::make('employee_division')
+                                    ->label('Divisi')
+                                    ->formatStateUsing(function ($record) use ($user, $isCreating) {
+                                        if ($isCreating) {
+                                            return $user->division?->name ?? '-';
+                                        }
+                                        return $record?->user?->division?->name ?? $user->division?->name ?? '-';
+                                    })
+                                    ->disabled()
+                                    ->required(),
 
-                        Forms\Components\TextInput::make('employee_position')
-                            ->label('Jabatan')
-                            ->formatStateUsing(function ($record) use ($user, $isCreating) {
-                                if ($isCreating) {
-                                    return $user->position ?? '-';
-                                }
-                                return $record?->user?->position ?? $user->position ?? '-';
-                            })
-                            ->disabled()
-                            ->required(),
+                                Forms\Components\TextInput::make('employee_position')
+                                    ->label('Jabatan')
+                                    ->formatStateUsing(function ($record) use ($user, $isCreating) {
+                                        if ($isCreating) {
+                                            return $user->position ?? '-';
+                                        }
+                                        return $record?->user?->position ?? $user->position ?? '-';
+                                    })
+                                    ->disabled()
+                                    ->required(),
+                            ]),
 
                         Forms\Components\Grid::make(3)
                             ->schema([
@@ -481,313 +484,315 @@ class LeaveResource extends Resource
                                     ->disabled(),
                             ]),
 
-                        Forms\Components\DatePicker::make('from_date')
-                            ->label('Tanggal Mulai Cuti')
-                            ->helperText('Tanggal pertama tidak masuk kerja')
-                            ->required()
-                            ->disabled(!$isCreating && !$isStaff)
-                            ->minDate(fn() => $isCreating ? Carbon::now() : null)
-                            ->reactive()
-                            ->afterStateUpdated(function (callable $set, callable $get) use ($isCreating) {
-                                // Auto-fill untuk cuti tahunan berdasarkan tujuan
-                                if ($get('leave_type') === 'casual' && $isCreating && $get('from_date') && $get('is_for_marriage') !== null) {
-                                    $fromDate = $get('from_date');
-                                    $isForMarriage = $get('is_for_marriage');
-                                    $maxDays = $isForMarriage ? 3 : 2;
+                        Forms\Components\Grid::make(4)
+                            ->schema([
+                                Forms\Components\DatePicker::make('from_date')
+                                    ->label('Tanggal Mulai Cuti')
+                                    ->helperText('Tanggal pertama tidak masuk kerja')
+                                    ->required()
+                                    ->disabled(!$isCreating && !$isStaff)
+                                    ->minDate(fn() => $isCreating ? Carbon::now() : null)
+                                    ->reactive()
+                                    ->afterStateUpdated(function (callable $set, callable $get) use ($isCreating) {
+                                        // Auto-fill untuk cuti tahunan berdasarkan tujuan
+                                        if ($get('leave_type') === 'casual' && $isCreating && $get('from_date') && $get('is_for_marriage') !== null) {
+                                            $fromDate = $get('from_date');
+                                            $isForMarriage = $get('is_for_marriage');
+                                            $maxDays = $isForMarriage ? 3 : 2;
 
-                                    $startDate = Carbon::parse($fromDate);
-                                    $currentDate = $startDate->copy();
-                                    $endDate = null;
-                                    $workingDaysCount = 0;
+                                            $startDate = Carbon::parse($fromDate);
+                                            $currentDate = $startDate->copy();
+                                            $endDate = null;
+                                            $workingDaysCount = 0;
 
-                                    // Holidays list
-                                    $holidays = [
-                                        '2025-01-01',
-                                        '2025-01-29',
-                                        '2025-02-12',
-                                        '2025-03-14',
-                                        '2025-03-29',
-                                        '2025-03-30',
-                                        '2025-03-31',
-                                        '2025-04-01',
-                                        '2025-05-01',
-                                        '2025-05-12',
-                                        '2025-05-29',
-                                        '2025-06-01',
-                                        '2025-06-06',
-                                        '2025-06-27',
-                                        '2025-08-17',
-                                        '2025-09-05',
-                                        '2025-12-25'
-                                    ];
+                                            // Holidays list
+                                            $holidays = [
+                                                '2025-01-01',
+                                                '2025-01-29',
+                                                '2025-02-12',
+                                                '2025-03-14',
+                                                '2025-03-29',
+                                                '2025-03-30',
+                                                '2025-03-31',
+                                                '2025-04-01',
+                                                '2025-05-01',
+                                                '2025-05-12',
+                                                '2025-05-29',
+                                                '2025-06-01',
+                                                '2025-06-06',
+                                                '2025-06-27',
+                                                '2025-08-17',
+                                                '2025-09-05',
+                                                '2025-12-25'
+                                            ];
 
-                                    // Hitung hari kerja berdasarkan maksimal hari
-                                    while ($workingDaysCount < $maxDays) {
-                                        // Cek apakah hari ini adalah hari kerja (bukan weekend dan bukan libur)
-                                        if (!$currentDate->isWeekend() && !in_array($currentDate->format('Y-m-d'), $holidays)) {
-                                            $workingDaysCount++;
-                                            if ($workingDaysCount == $maxDays) {
-                                                $endDate = $currentDate->copy();
-                                                break;
+                                            // Hitung hari kerja berdasarkan maksimal hari
+                                            while ($workingDaysCount < $maxDays) {
+                                                // Cek apakah hari ini adalah hari kerja (bukan weekend dan bukan libur)
+                                                if (!$currentDate->isWeekend() && !in_array($currentDate->format('Y-m-d'), $holidays)) {
+                                                    $workingDaysCount++;
+                                                    if ($workingDaysCount == $maxDays) {
+                                                        $endDate = $currentDate->copy();
+                                                        break;
+                                                    }
+                                                }
+                                                $currentDate->addDay();
+                                            }
+
+                                            if ($endDate) {
+                                                $set('to_date', $endDate->format('Y-m-d'));
+                                                $set('back_to_work_date', $endDate->addDay()->format('Y-m-d'));
+                                                $set('days', $maxDays);
                                             }
                                         }
-                                        $currentDate->addDay();
-                                    }
+                                    }),
 
-                                    if ($endDate) {
-                                        $set('to_date', $endDate->format('Y-m-d'));
-                                        $set('back_to_work_date', $endDate->addDay()->format('Y-m-d'));
-                                        $set('days', $maxDays);
-                                    }
-                                }
-                            }),
+                                Forms\Components\DatePicker::make('to_date')
+                                    ->label('Tanggal Berakhir Cuti')
+                                    ->helperText('Tanggal terakhir tidak masuk kerja')
+                                    ->required()
+                                    ->disabled(!$isCreating && !$isStaff)
+                                    ->minDate(function (callable $get) use ($isCreating) {
+                                        if (!$isCreating) return null;
 
-                        Forms\Components\DatePicker::make('to_date')
-                            ->label('Tanggal Berakhir Cuti')
-                            ->helperText('Tanggal terakhir tidak masuk kerja')
-                            ->required()
-                            ->disabled(!$isCreating && !$isStaff)
-                            ->minDate(function (callable $get) use ($isCreating) {
-                                if (!$isCreating) return null;
-
-                                $fromDate = $get('from_date');
-                                if ($fromDate) {
-                                    return Carbon::parse($fromDate);
-                                }
-
-                                return Carbon::now();
-                            })
-                            ->reactive()
-                            ->afterStateUpdated(function (callable $set, callable $get) use ($user, $isCreating) {
-                                if ($get('from_date') && $get('to_date')) {
-                                    $fromDate = $get('from_date');
-                                    $toDate = $get('to_date');
-
-                                    // Tanggal masuk kerja kembali = H+1 setelah tanggal berakhir cuti
-                                    $backToWorkDate = Carbon::parse($toDate)->addDay()->format('Y-m-d');
-                                    $set('back_to_work_date', $backToWorkDate);
-
-                                    // Hitung hari kerja saja (tidak termasuk weekend dan hari libur)
-                                    $workingDays = static::calculateWorkingDays($fromDate, $toDate);
-                                    $set('days', $workingDays);
-
-                                    // Validasi kuota cuti tahunan jika jenisnya casual
-                                    if ($get('leave_type') === 'casual' && $isCreating) {
-                                        // Validasi berdasarkan tujuan cuti
-                                        $isForMarriage = $get('is_for_marriage');
-                                        $maxDays = $isForMarriage ? 3 : 2;
-
-                                        if ($workingDays > $maxDays) {
-                                            $cutType = $isForMarriage ? 'menikah' : 'biasa';
-                                            $set('days_error', "Cuti tahunan untuk {$cutType} maksimal {$maxDays} hari berturut. Anda meminta {$workingDays} hari.");
-                                            return;
+                                        $fromDate = $get('from_date');
+                                        if ($fromDate) {
+                                            return Carbon::parse($fromDate);
                                         }
 
-                                        $quota = LeaveQuota::getUserQuota($user->id);
-                                        $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
+                                        return Carbon::now();
+                                    })
+                                    ->reactive()
+                                    ->afterStateUpdated(function (callable $set, callable $get) use ($user, $isCreating) {
+                                        if ($get('from_date') && $get('to_date')) {
+                                            $fromDate = $get('from_date');
+                                            $toDate = $get('to_date');
 
-                                        // Hitung sisa hari cuti tahunan
-                                        $currentYear = date('Y');
-                                        $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
-                                            ->where('leave_type', 'casual')
-                                            ->whereYear('from_date', $currentYear)
-                                            ->where('status', 'approved')
-                                            ->get();
+                                            // Tanggal masuk kerja kembali = H+1 setelah tanggal berakhir cuti
+                                            $backToWorkDate = Carbon::parse($toDate)->addDay()->format('Y-m-d');
+                                            $set('back_to_work_date', $backToWorkDate);
 
-                                        $usedDays = 0;
-                                        foreach ($approvedCasualLeaves as $leave) {
-                                            $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
+                                            // Hitung hari kerja saja (tidak termasuk weekend dan hari libur)
+                                            $workingDays = static::calculateWorkingDays($fromDate, $toDate);
+                                            $set('days', $workingDays);
+
+                                            // Validasi kuota cuti tahunan jika jenisnya casual
+                                            if ($get('leave_type') === 'casual' && $isCreating) {
+                                                // Validasi berdasarkan tujuan cuti
+                                                $isForMarriage = $get('is_for_marriage');
+                                                $maxDays = $isForMarriage ? 3 : 2;
+
+                                                if ($workingDays > $maxDays) {
+                                                    $cutType = $isForMarriage ? 'menikah' : 'biasa';
+                                                    $set('days_error', "Cuti tahunan untuk {$cutType} maksimal {$maxDays} hari berturut. Anda meminta {$workingDays} hari.");
+                                                    return;
+                                                }
+
+                                                $quota = LeaveQuota::getUserQuota($user->id);
+                                                $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
+
+                                                // Hitung sisa hari cuti tahunan
+                                                $currentYear = date('Y');
+                                                $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
+                                                    ->where('leave_type', 'casual')
+                                                    ->whereYear('from_date', $currentYear)
+                                                    ->where('status', 'approved')
+                                                    ->get();
+
+                                                $usedDays = 0;
+                                                foreach ($approvedCasualLeaves as $leave) {
+                                                    $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
+                                                }
+                                                $remainingDays = 12 - $usedDays;
+
+                                                if ($sisaKesempatan <= 0) {
+                                                    $set('days_error', "Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.");
+                                                } elseif ($workingDays > $remainingDays) {
+                                                    $set('days_error', "Hari cuti yang diminta ({$workingDays} hari) melebihi sisa kuota cuti tahunan Anda ({$remainingDays} hari).");
+                                                } else {
+                                                    $set('days_error', null);
+                                                }
+                                            } else {
+                                                $set('days_error', null);
+                                            }
                                         }
-                                        $remainingDays = 12 - $usedDays;
+                                    })
+                                    ->rules([
+                                        function ($get) use ($user, $isCreating) {
+                                            return function (string $attribute, $value, \Closure $fail) use ($get, $user, $isCreating) {
+                                                // Hanya validasi khusus untuk cuti tahunan
+                                                if ($get('leave_type') === 'casual' && $isCreating && $get('from_date') && $value) {
+                                                    $quota = LeaveQuota::getUserQuota($user->id);
+                                                    $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
 
-                                        if ($sisaKesempatan <= 0) {
-                                            $set('days_error', "Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.");
-                                        } elseif ($workingDays > $remainingDays) {
-                                            $set('days_error', "Hari cuti yang diminta ({$workingDays} hari) melebihi sisa kuota cuti tahunan Anda ({$remainingDays} hari).");
+                                                    // Cek kesempatan
+                                                    if ($sisaKesempatan <= 0) {
+                                                        $fail('Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.');
+                                                        return;
+                                                    }
+
+                                                    // Hitung hari kerja berdasarkan tanggal
+                                                    $workingDays = static::calculateWorkingDays($get('from_date'), $value);
+
+                                                    // Validasi berdasarkan tujuan cuti
+                                                    $isForMarriage = $get('is_for_marriage');
+                                                    $maxDays = $isForMarriage ? 3 : 2;
+
+                                                    if ($workingDays > $maxDays) {
+                                                        $cutType = $isForMarriage ? 'menikah' : 'biasa';
+                                                        $fail("Cuti tahunan untuk {$cutType} maksimal {$maxDays} hari berturut. Anda meminta {$workingDays} hari.");
+                                                        return;
+                                                    }
+
+                                                    // Hitung sisa hari cuti tahunan
+                                                    $currentYear = date('Y');
+                                                    $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
+                                                        ->where('leave_type', 'casual')
+                                                        ->whereYear('from_date', $currentYear)
+                                                        ->where('status', 'approved')
+                                                        ->get();
+
+                                                    $usedDays = 0;
+                                                    foreach ($approvedCasualLeaves as $leave) {
+                                                        $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
+                                                    }
+                                                    $remainingDays = 12 - $usedDays;
+
+                                                    // Cek apakah hari yang diminta melebihi sisa kuota
+                                                    if ($workingDays > $remainingDays) {
+                                                        $fail("Hari cuti yang diminta ({$workingDays} hari) melebihi sisa kuota cuti tahunan Anda ({$remainingDays} hari).");
+                                                    }
+                                                }
+
+                                                // Validasi umum: tanggal berakhir harus >= tanggal mulai
+                                                if ($get('from_date') && $value) {
+                                                    $fromDate = Carbon::parse($get('from_date'));
+                                                    $toDate = Carbon::parse($value);
+
+                                                    if ($toDate->lt($fromDate)) {
+                                                        $fail('Tanggal berakhir cuti harus sama atau setelah tanggal mulai cuti.');
+                                                    }
+                                                }
+                                            };
+                                        }
+                                    ]),
+
+                                Forms\Components\DatePicker::make('back_to_work_date')
+                                    ->label('Tanggal Masuk Kerja Kembali')
+                                    ->helperText('Tanggal pertama masuk kerja setelah cuti (otomatis terisi)')
+                                    ->disabled()
+                                    ->formatStateUsing(function ($record) {
+                                        // Jika editing dan ada to_date, hitung back_to_work_date
+                                        if ($record && $record->to_date) {
+                                            return Carbon::parse($record->to_date)->addDay()->format('Y-m-d');
+                                        }
+                                        return null;
+                                    })
+                                    ->required(),
+
+                                Forms\Components\TextInput::make('days')
+                                    ->label('Jumlah Hari Kerja')
+                                    ->helperText('Hanya hari kerja yang dihitung (tidak termasuk weekend dan hari libur)')
+                                    ->numeric()
+                                    ->disabled()
+                                    ->formatStateUsing(function ($record) {
+                                        // Jika editing dan ada from_date & to_date, hitung ulang working days
+                                        if ($record && $record->from_date && $record->to_date) {
+                                            return static::calculateWorkingDays($record->from_date, $record->to_date);
+                                        }
+                                        return $record?->days ?? 0;
+                                    })
+                                    ->reactive()
+                                    ->afterStateUpdated(function (callable $set, callable $get) use ($user, $isCreating) {
+                                        // Validasi kuota cuti tahunan jika jenisnya casual
+                                        if ($get('leave_type') === 'casual' && $isCreating) {
+                                            $days = $get('days');
+
+                                            // Validasi berdasarkan tujuan cuti
+                                            $isForMarriage = $get('is_for_marriage');
+                                            $maxDays = $isForMarriage ? 3 : 2;
+
+                                            if ($days > $maxDays) {
+                                                $cutType = $isForMarriage ? 'menikah' : 'biasa';
+                                                $set('days_error', "Cuti tahunan untuk {$cutType} maksimal {$maxDays} hari berturut. Anda meminta {$days} hari.");
+                                                return;
+                                            }
+
+                                            $quota = LeaveQuota::getUserQuota($user->id);
+                                            $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
+
+                                            // Hitung sisa hari cuti tahunan
+                                            $currentYear = date('Y');
+                                            $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
+                                                ->where('leave_type', 'casual')
+                                                ->whereYear('from_date', $currentYear)
+                                                ->where('status', 'approved')
+                                                ->get();
+
+                                            $usedDays = 0;
+                                            foreach ($approvedCasualLeaves as $leave) {
+                                                $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
+                                            }
+                                            $remainingDays = 12 - $usedDays;
+
+                                            if ($sisaKesempatan <= 0) {
+                                                $set('days_error', "Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.");
+                                            } elseif ($days > $remainingDays) {
+                                                $set('days_error', "Hari cuti yang diminta ({$days} hari) melebihi sisa kuota cuti tahunan Anda ({$remainingDays} hari).");
+                                            } else {
+                                                $set('days_error', null);
+                                            }
                                         } else {
                                             $set('days_error', null);
                                         }
-                                    } else {
-                                        $set('days_error', null);
-                                    }
-                                }
-                            })
-                            ->rules([
-                                function ($get) use ($user, $isCreating) {
-                                    return function (string $attribute, $value, \Closure $fail) use ($get, $user, $isCreating) {
-                                        // Hanya validasi khusus untuk cuti tahunan
-                                        if ($get('leave_type') === 'casual' && $isCreating && $get('from_date') && $value) {
-                                            $quota = LeaveQuota::getUserQuota($user->id);
-                                            $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
+                                    })
+                                    ->rules([
+                                        function ($get) use ($user, $isCreating) {
+                                            return function (string $attribute, $value, \Closure $fail) use ($get, $user, $isCreating) {
+                                                if ($get('leave_type') === 'casual' && $isCreating) {
+                                                    // Validasi berdasarkan tujuan cuti
+                                                    $isForMarriage = $get('is_for_marriage');
+                                                    $maxDays = $isForMarriage ? 3 : 2;
 
-                                            // Cek kesempatan
-                                            if ($sisaKesempatan <= 0) {
-                                                $fail('Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.');
-                                                return;
-                                            }
+                                                    if ($value > $maxDays) {
+                                                        $cutType = $isForMarriage ? 'menikah' : 'biasa';
+                                                        $fail("Cuti tahunan untuk {$cutType} maksimal {$maxDays} hari berturut. Anda meminta {$value} hari.");
+                                                        return;
+                                                    }
 
-                                            // Hitung hari kerja berdasarkan tanggal
-                                            $workingDays = static::calculateWorkingDays($get('from_date'), $value);
+                                                    $quota = LeaveQuota::getUserQuota($user->id);
+                                                    $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
 
-                                            // Validasi berdasarkan tujuan cuti
-                                            $isForMarriage = $get('is_for_marriage');
-                                            $maxDays = $isForMarriage ? 3 : 2;
+                                                    // Cek kesempatan
+                                                    if ($sisaKesempatan <= 0) {
+                                                        $fail('Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.');
+                                                        return;
+                                                    }
 
-                                            if ($workingDays > $maxDays) {
-                                                $cutType = $isForMarriage ? 'menikah' : 'biasa';
-                                                $fail("Cuti tahunan untuk {$cutType} maksimal {$maxDays} hari berturut. Anda meminta {$workingDays} hari.");
-                                                return;
-                                            }
+                                                    // Hitung sisa hari cuti tahunan
+                                                    $currentYear = date('Y');
+                                                    $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
+                                                        ->where('leave_type', 'casual')
+                                                        ->whereYear('from_date', $currentYear)
+                                                        ->where('status', 'approved')
+                                                        ->get();
 
-                                            // Hitung sisa hari cuti tahunan
-                                            $currentYear = date('Y');
-                                            $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
-                                                ->where('leave_type', 'casual')
-                                                ->whereYear('from_date', $currentYear)
-                                                ->where('status', 'approved')
-                                                ->get();
+                                                    $usedDays = 0;
+                                                    foreach ($approvedCasualLeaves as $leave) {
+                                                        $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
+                                                    }
+                                                    $remainingDays = 12 - $usedDays;
 
-                                            $usedDays = 0;
-                                            foreach ($approvedCasualLeaves as $leave) {
-                                                $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
-                                            }
-                                            $remainingDays = 12 - $usedDays;
-
-                                            // Cek apakah hari yang diminta melebihi sisa kuota
-                                            if ($workingDays > $remainingDays) {
-                                                $fail("Hari cuti yang diminta ({$workingDays} hari) melebihi sisa kuota cuti tahunan Anda ({$remainingDays} hari).");
-                                            }
+                                                    // Cek apakah hari yang diminta melebihi sisa kuota
+                                                    if ($value > $remainingDays) {
+                                                        $fail("Hari cuti yang diminta ({$value} hari) melebihi sisa kuota cuti tahunan Anda ({$remainingDays} hari).");
+                                                    }
+                                                }
+                                            };
                                         }
-
-                                        // Validasi umum: tanggal berakhir harus >= tanggal mulai
-                                        if ($get('from_date') && $value) {
-                                            $fromDate = Carbon::parse($get('from_date'));
-                                            $toDate = Carbon::parse($value);
-
-                                            if ($toDate->lt($fromDate)) {
-                                                $fail('Tanggal berakhir cuti harus sama atau setelah tanggal mulai cuti.');
-                                            }
-                                        }
-                                    };
-                                }
+                                    ])
+                                    ->required(),
                             ]),
-
-                        Forms\Components\DatePicker::make('back_to_work_date')
-                            ->label('Tanggal Masuk Kerja Kembali')
-                            ->helperText('Tanggal pertama masuk kerja setelah cuti (otomatis terisi)')
-                            ->disabled()
-                            ->formatStateUsing(function ($record) {
-                                // Jika editing dan ada to_date, hitung back_to_work_date
-                                if ($record && $record->to_date) {
-                                    return Carbon::parse($record->to_date)->addDay()->format('Y-m-d');
-                                }
-                                return null;
-                            })
-                            ->required(),
-
-                        Forms\Components\TextInput::make('days')
-                            ->label('Jumlah Hari Kerja')
-                            ->helperText('Hanya hari kerja yang dihitung (tidak termasuk weekend dan hari libur)')
-                            ->numeric()
-                            ->disabled()
-                            ->formatStateUsing(function ($record) {
-                                // Jika editing dan ada from_date & to_date, hitung ulang working days
-                                if ($record && $record->from_date && $record->to_date) {
-                                    return static::calculateWorkingDays($record->from_date, $record->to_date);
-                                }
-                                return $record?->days ?? 0;
-                            })
-                            ->reactive()
-                            ->afterStateUpdated(function (callable $set, callable $get) use ($user, $isCreating) {
-                                // Validasi kuota cuti tahunan jika jenisnya casual
-                                if ($get('leave_type') === 'casual' && $isCreating) {
-                                    $days = $get('days');
-
-                                    // Validasi berdasarkan tujuan cuti
-                                    $isForMarriage = $get('is_for_marriage');
-                                    $maxDays = $isForMarriage ? 3 : 2;
-
-                                    if ($days > $maxDays) {
-                                        $cutType = $isForMarriage ? 'menikah' : 'biasa';
-                                        $set('days_error', "Cuti tahunan untuk {$cutType} maksimal {$maxDays} hari berturut. Anda meminta {$days} hari.");
-                                        return;
-                                    }
-
-                                    $quota = LeaveQuota::getUserQuota($user->id);
-                                    $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-
-                                    // Hitung sisa hari cuti tahunan
-                                    $currentYear = date('Y');
-                                    $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
-                                        ->where('leave_type', 'casual')
-                                        ->whereYear('from_date', $currentYear)
-                                        ->where('status', 'approved')
-                                        ->get();
-
-                                    $usedDays = 0;
-                                    foreach ($approvedCasualLeaves as $leave) {
-                                        $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
-                                    }
-                                    $remainingDays = 12 - $usedDays;
-
-                                    if ($sisaKesempatan <= 0) {
-                                        $set('days_error', "Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.");
-                                    } elseif ($days > $remainingDays) {
-                                        $set('days_error', "Hari cuti yang diminta ({$days} hari) melebihi sisa kuota cuti tahunan Anda ({$remainingDays} hari).");
-                                    } else {
-                                        $set('days_error', null);
-                                    }
-                                } else {
-                                    $set('days_error', null);
-                                }
-                            })
-                            ->rules([
-                                function ($get) use ($user, $isCreating) {
-                                    return function (string $attribute, $value, \Closure $fail) use ($get, $user, $isCreating) {
-                                        if ($get('leave_type') === 'casual' && $isCreating) {
-                                            // Validasi berdasarkan tujuan cuti
-                                            $isForMarriage = $get('is_for_marriage');
-                                            $maxDays = $isForMarriage ? 3 : 2;
-
-                                            if ($value > $maxDays) {
-                                                $cutType = $isForMarriage ? 'menikah' : 'biasa';
-                                                $fail("Cuti tahunan untuk {$cutType} maksimal {$maxDays} hari berturut. Anda meminta {$value} hari.");
-                                                return;
-                                            }
-
-                                            $quota = LeaveQuota::getUserQuota($user->id);
-                                            $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-
-                                            // Cek kesempatan
-                                            if ($sisaKesempatan <= 0) {
-                                                $fail('Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.');
-                                                return;
-                                            }
-
-                                            // Hitung sisa hari cuti tahunan
-                                            $currentYear = date('Y');
-                                            $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
-                                                ->where('leave_type', 'casual')
-                                                ->whereYear('from_date', $currentYear)
-                                                ->where('status', 'approved')
-                                                ->get();
-
-                                            $usedDays = 0;
-                                            foreach ($approvedCasualLeaves as $leave) {
-                                                $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
-                                            }
-                                            $remainingDays = 12 - $usedDays;
-
-                                            // Cek apakah hari yang diminta melebihi sisa kuota
-                                            if ($value > $remainingDays) {
-                                                $fail("Hari cuti yang diminta ({$value} hari) melebihi sisa kuota cuti tahunan Anda ({$remainingDays} hari).");
-                                            }
-                                        }
-                                    };
-                                }
-                            ])
-                            ->required(),
-
                         Forms\Components\Textarea::make('reason')
                             ->label('Keterangan')
                             ->required()
