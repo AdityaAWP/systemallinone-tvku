@@ -128,16 +128,16 @@ class LeaveResource extends Resource
         }
 
         if (static::isManager($user) || static::isKepala($user)) {
-            $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
+            $userDivisionId = $user->division_id;
 
-            if (empty($userDivisionIds) && $user->division_id) {
-                $userDivisionIds = [$user->division_id];
+            if ($userDivisionId) {
+                $count = Leave::whereHas('user', function ($query) use ($userDivisionId) {
+                    $query->where('division_id', $userDivisionId);
+                })
+                    ->count();
+            } else {
+                $count = Leave::where('user_id', $user->id)->count();
             }
-
-            $count = Leave::whereHas('user', function ($query) use ($userDivisionIds) {
-                $query->whereIn('division_id', $userDivisionIds);
-            })
-                ->count();
             return $count > 0 ? (string) $count : null;
         }
 
@@ -248,101 +248,21 @@ class LeaveResource extends Resource
                             ->disabled()
                             ->required(),
 
-                        Forms\Components\Select::make('leave_type')
-                            ->label('Jenis Cuti')
-                            ->options(function () use ($user, $isStaff, $isCreating) {
-                                $options = [
-                                    'medical' => 'Cuti Sakit',
-                                    'maternity' => 'Cuti Melahirkan',
-                                    'marriage' => 'Cuti Menikah',
-                                    'other' => 'Cuti Lainnya',
-                                ];
-
-                                // Hanya tampilkan opsi "Cuti Tahunan" jika masih ada kesempatan dan hari
-                                if ($isStaff && $isCreating) {
-                                    $quota = LeaveQuota::getUserQuota($user->id);
-                                    $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-
-                                    // Hitung sisa hari cuti tahunan
-                                    $currentYear = date('Y');
-                                    $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
-                                        ->where('leave_type', 'casual')
-                                        ->whereYear('from_date', $currentYear)
-                                        ->where('status', 'approved')
-                                        ->get();
-
-                                    $usedDays = 0;
-                                    foreach ($approvedCasualLeaves as $leave) {
-                                        $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
-                                    }
-                                    $remainingDays = 12 - $usedDays;
-
-                                    // Tampilkan opsi cuti tahunan hanya jika masih ada kesempatan DAN hari
-                                    if ($sisaKesempatan > 0 && $remainingDays > 0) {
-                                        $options = ['casual' => 'Cuti Tahunan'] + $options;
-                                    }
-                                } else {
-                                    // Untuk edit atau non-staff, tetap tampilkan semua opsi
-                                    $options = ['casual' => 'Cuti Tahunan'] + $options;
-                                }
-
-                                return $options;
-                            })
-                            ->required()
-                            ->reactive()
-                            ->disabled(!$isCreating && !$isStaff)
-                            ->afterStateUpdated(function (callable $set, callable $get) use ($isCreating) {
-                                // Auto-fill dates untuk cuti menikah (2 hari kerja)
-                                if ($get('leave_type') === 'marriage' && $isCreating) {
-                                    $fromDate = $get('from_date');
-                                    if ($fromDate) {
-                                        // Cari tanggal akhir untuk 2 hari kerja
-                                        $startDate = Carbon::parse($fromDate);
-                                        $currentDate = $startDate->copy();
-                                        $endDate = null;
-                                        $workingDaysCount = 0;
-                                        
-                                        // Holidays list
-                                        $holidays = [
-                                            '2025-01-01', '2025-01-29', '2025-02-12', '2025-03-14', '2025-03-29',
-                                            '2025-03-30', '2025-03-31', '2025-04-01', '2025-05-01', '2025-05-12',
-                                            '2025-05-29', '2025-06-01', '2025-06-06', '2025-06-27', '2025-08-17',
-                                            '2025-09-05', '2025-12-25'
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\Select::make('leave_type')
+                                    ->label('Jenis Cuti')
+                                    ->options(function () use ($user, $isStaff, $isCreating) {
+                                        $options = [
+                                            'medical' => 'Cuti Sakit',
+                                            'maternity' => 'Cuti Melahirkan',
+                                            'other' => 'Cuti Lainnya',
                                         ];
-                                        
-                                        // Hitung 2 hari kerja dari tanggal mulai
-                                        while ($workingDaysCount < 2) {
-                                            // Cek apakah hari ini adalah hari kerja (bukan weekend dan bukan libur)
-                                            if (!$currentDate->isWeekend() && !in_array($currentDate->format('Y-m-d'), $holidays)) {
-                                                $workingDaysCount++;
-                                                if ($workingDaysCount == 2) {
-                                                    $endDate = $currentDate->copy();
-                                                    break;
-                                                }
-                                            }
-                                            $currentDate->addDay();
-                                        }
-                                        
-                                        if ($endDate) {
-                                            $set('to_date', $endDate->format('Y-m-d'));
-                                            $set('back_to_work_date', $endDate->addDay()->format('Y-m-d'));
-                                            $set('days', 2);
-                                        }
-                                    }
-                                }
-                            })
-                            ->rules([
-                                function ($get) use ($user, $isStaff, $isCreating) {
-                                    return function (string $attribute, $value, \Closure $fail) use ($get, $user, $isStaff, $isCreating) {
-                                        if ($value === 'casual' && $isStaff && $isCreating) {
+
+                                        // Hanya tampilkan opsi "Cuti Tahunan" jika masih ada kesempatan dan hari
+                                        if ($isStaff && $isCreating) {
                                             $quota = LeaveQuota::getUserQuota($user->id);
                                             $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
-
-                                            // Cek kesempatan
-                                            if ($sisaKesempatan <= 0) {
-                                                $fail('Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.');
-                                                return;
-                                            }
 
                                             // Hitung sisa hari cuti tahunan
                                             $currentYear = date('Y');
@@ -358,95 +278,208 @@ class LeaveResource extends Resource
                                             }
                                             $remainingDays = 12 - $usedDays;
 
-                                            // Cek sisa hari
-                                            if ($remainingDays <= 0) {
-                                                $fail('Kuota 12 hari cuti tahunan Anda sudah habis untuk tahun ini.');
+                                            // Tampilkan opsi cuti tahunan hanya jika masih ada kesempatan DAN hari
+                                            if ($sisaKesempatan > 0 && $remainingDays > 0) {
+                                                $options = ['casual' => 'Cuti Tahunan'] + $options;
+                                            }
+                                        } else {
+                                            // Untuk edit atau non-staff, tetap tampilkan semua opsi
+                                            $options = ['casual' => 'Cuti Tahunan'] + $options;
+                                        }
+
+                                        return $options;
+                                    })
+                                    ->required()
+                                    ->reactive()
+                                    ->disabled(!$isCreating && !$isStaff)
+                                    ->afterStateUpdated(function (callable $set, callable $get) use ($isCreating) {
+                                        // Reset field is_for_marriage ketika jenis cuti berubah
+                                        if ($get('leave_type') !== 'casual') {
+                                            $set('is_for_marriage', null);
+                                        }
+                                    }),
+
+                                Forms\Components\Select::make('is_for_marriage')
+                                    ->label('Tujuan Cuti Tahunan')
+                                    ->options([
+                                        0 => 'Cuti Biasa (Maksimal 2 hari berturut)',
+                                        1 => 'Untuk Menikah (Maksimal 3 hari berturut)',
+                                    ])
+                                    ->visible(fn(callable $get) => $get('leave_type') === 'casual')
+                                    ->required(fn(callable $get) => $get('leave_type') === 'casual')
+                                    ->reactive()
+                                    ->disabled(!$isCreating && !$isStaff)
+                                    ->afterStateUpdated(function (callable $set, callable $get) use ($isCreating) {
+                                        // Auto-fill dates untuk cuti menikah atau biasa
+                                        if ($get('leave_type') === 'casual' && $isCreating && $get('is_for_marriage') !== null) {
+                                            $fromDate = $get('from_date');
+                                            if ($fromDate) {
+                                                $isForMarriage = $get('is_for_marriage');
+                                                $maxDays = $isForMarriage ? 3 : 2;
+
+                                                // Cari tanggal akhir berdasarkan maksimal hari
+                                                $startDate = Carbon::parse($fromDate);
+                                                $currentDate = $startDate->copy();
+                                                $endDate = null;
+                                                $workingDaysCount = 0;
+
+                                                // Holidays list
+                                                $holidays = [
+                                                    '2025-01-01',
+                                                    '2025-01-29',
+                                                    '2025-02-12',
+                                                    '2025-03-14',
+                                                    '2025-03-29',
+                                                    '2025-03-30',
+                                                    '2025-03-31',
+                                                    '2025-04-01',
+                                                    '2025-05-01',
+                                                    '2025-05-12',
+                                                    '2025-05-29',
+                                                    '2025-06-01',
+                                                    '2025-06-06',
+                                                    '2025-06-27',
+                                                    '2025-08-17',
+                                                    '2025-09-05',
+                                                    '2025-12-25'
+                                                ];
+
+                                                // Hitung hari kerja dari tanggal mulai
+                                                while ($workingDaysCount < $maxDays) {
+                                                    // Cek apakah hari ini adalah hari kerja (bukan weekend dan bukan libur)
+                                                    if (!$currentDate->isWeekend() && !in_array($currentDate->format('Y-m-d'), $holidays)) {
+                                                        $workingDaysCount++;
+                                                        if ($workingDaysCount == $maxDays) {
+                                                            $endDate = $currentDate->copy();
+                                                            break;
+                                                        }
+                                                    }
+                                                    $currentDate->addDay();
+                                                }
+
+                                                if ($endDate) {
+                                                    $set('to_date', $endDate->format('Y-m-d'));
+                                                    $set('back_to_work_date', $endDate->addDay()->format('Y-m-d'));
+                                                    $set('days', $maxDays);
+                                                }
                                             }
                                         }
-                                    };
-                                }
-                            ])
-                            ->helperText(function (?string $state, $record) use ($user, $isStaff, $isCreating) {
-                                if ($state === 'casual' && $isStaff) {
-                                    // Untuk edit, gunakan user dari record, untuk create gunakan current user
-                                    $targetUser = $isCreating ? $user : ($record?->user ?? $user);
-                                    $quota = LeaveQuota::getUserQuota($targetUser->id);
-                                    $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
+                                    })
+                                    ->rules([
+                                        function ($get) use ($user, $isStaff, $isCreating) {
+                                            return function (string $attribute, $value, \Closure $fail) use ($get, $user, $isStaff, $isCreating) {
+                                                if ($value === 'casual' && $isStaff && $isCreating) {
+                                                    $quota = LeaveQuota::getUserQuota($user->id);
+                                                    $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
 
-                                    // Hitung total hari cuti tahunan yang sudah digunakan tahun ini
-                                    $currentYear = date('Y');
-                                    $approvedCasualLeaves = \App\Models\Leave::where('user_id', $targetUser->id)
-                                        ->where('leave_type', 'casual')
-                                        ->whereYear('from_date', $currentYear)
-                                        ->where('status', 'approved')
-                                        ->get();
+                                                    // Cek kesempatan
+                                                    if ($sisaKesempatan <= 0) {
+                                                        $fail('Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.');
+                                                        return;
+                                                    }
 
-                                    $usedDays = 0;
-                                    foreach ($approvedCasualLeaves as $leave) {
-                                        $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
-                                    }
-                                    $remainingDays = 12 - $usedDays;
+                                                    // Hitung sisa hari cuti tahunan
+                                                    $currentYear = date('Y');
+                                                    $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
+                                                        ->where('leave_type', 'casual')
+                                                        ->whereYear('from_date', $currentYear)
+                                                        ->where('status', 'approved')
+                                                        ->get();
 
-                                    if ($sisaKesempatan <= 0) {
-                                        return "⚠️ Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.";
-                                    }
-                                    if ($remainingDays <= 0) {
-                                        return "⚠️ Kuota 12 hari cuti tahunan Anda sudah habis untuk tahun ini.";
-                                    }
-                                    return "Sisa {$sisaKesempatan} kesempatan dan {$remainingDays} hari cuti tahunan tahun ini. (Maksimal 3 hari per pengajuan)";
-                                } elseif ($state === 'marriage') {
-                                    return "Cuti menikah default 2 hari kerja. Dapat disesuaikan sesuai kebutuhan.";
-                                } elseif ($isStaff && $isCreating) {
-                                    // Tampilkan info kuota saat belum memilih jenis cuti
-                                    $quota = LeaveQuota::getUserQuota($user->id);
-                                    $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
+                                                    $usedDays = 0;
+                                                    foreach ($approvedCasualLeaves as $leave) {
+                                                        $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
+                                                    }
+                                                    $remainingDays = 12 - $usedDays;
 
-                                    // Hitung sisa hari
-                                    $currentYear = date('Y');
-                                    $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
-                                        ->where('leave_type', 'casual')
-                                        ->whereYear('from_date', $currentYear)
-                                        ->where('status', 'approved')
-                                        ->get();
+                                                    // Cek sisa hari
+                                                    if ($remainingDays <= 0) {
+                                                        $fail('Kuota 12 hari cuti tahunan Anda sudah habis untuk tahun ini.');
+                                                    }
+                                                }
+                                            };
+                                        }
+                                    ])
+                                    ->helperText(function (?string $state, $record) use ($user, $isStaff, $isCreating) {
+                                        if ($state === 'casual' && $isStaff) {
+                                            // Untuk edit, gunakan user dari record, untuk create gunakan current user
+                                            $targetUser = $isCreating ? $user : ($record?->user ?? $user);
+                                            $quota = LeaveQuota::getUserQuota($targetUser->id);
+                                            $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
 
-                                    $usedDays = 0;
-                                    foreach ($approvedCasualLeaves as $leave) {
-                                        $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
-                                    }
-                                    $remainingDays = 12 - $usedDays;
+                                            // Hitung total hari cuti tahunan yang sudah digunakan tahun ini
+                                            $currentYear = date('Y');
+                                            $approvedCasualLeaves = \App\Models\Leave::where('user_id', $targetUser->id)
+                                                ->where('leave_type', 'casual')
+                                                ->whereYear('from_date', $currentYear)
+                                                ->where('status', 'approved')
+                                                ->get();
 
-                                    if ($sisaKesempatan <= 0 || $remainingDays <= 0) {
-                                        return "⚠️ Kuota cuti tahunan Anda sudah habis. Anda hanya bisa mengajukan cuti sakit, melahirkan, menikah, atau lainnya.";
-                                    }
-                                }
-                                return null;
-                            }),
+                                            $usedDays = 0;
+                                            foreach ($approvedCasualLeaves as $leave) {
+                                                $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
+                                            }
+                                            $remainingDays = 12 - $usedDays;
 
-                        Forms\Components\TextInput::make('remaining_casual_leave')
-                            ->label('Sisa Kesempatan Cuti')
-                            ->formatStateUsing(function ($record) use ($user, $isCreating) {
-                                // Untuk edit, gunakan user dari record, untuk create gunakan current user
-                                $targetUser = $isCreating ? $user : ($record?->user ?? $user);
-                                $quota = LeaveQuota::getUserQuota($targetUser->id);
-                                $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
+                                            if ($sisaKesempatan <= 0) {
+                                                return "⚠️ Kesempatan cuti tahunan Anda sudah habis untuk tahun ini.";
+                                            }
+                                            if ($remainingDays <= 0) {
+                                                return "⚠️ Kuota 12 hari cuti tahunan Anda sudah habis untuk tahun ini.";
+                                            }
+                                            return "Sisa {$sisaKesempatan} kesempatan dan {$remainingDays} hari cuti tahunan tahun ini.";
+                                        } elseif ($isStaff && $isCreating) {
+                                            // Tampilkan info kuota saat belum memilih jenis cuti
+                                            $quota = LeaveQuota::getUserQuota($user->id);
+                                            $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
 
-                                // Hitung sisa hari cuti tahunan
-                                $currentYear = date('Y');
-                                $approvedCasualLeaves = \App\Models\Leave::where('user_id', $targetUser->id)
-                                    ->where('leave_type', 'casual')
-                                    ->whereYear('from_date', $currentYear)
-                                    ->where('status', 'approved')
-                                    ->get();
+                                            // Hitung sisa hari
+                                            $currentYear = date('Y');
+                                            $approvedCasualLeaves = \App\Models\Leave::where('user_id', $user->id)
+                                                ->where('leave_type', 'casual')
+                                                ->whereYear('from_date', $currentYear)
+                                                ->where('status', 'approved')
+                                                ->get();
 
-                                $usedDays = 0;
-                                foreach ($approvedCasualLeaves as $leave) {
-                                    $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
-                                }
-                                $remainingDays = 12 - $usedDays;
+                                            $usedDays = 0;
+                                            foreach ($approvedCasualLeaves as $leave) {
+                                                $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
+                                            }
+                                            $remainingDays = 12 - $usedDays;
 
-                                return "{$sisaKesempatan} Kesempatan";
-                            })
-                            ->disabled(),
+                                            if ($sisaKesempatan <= 0 || $remainingDays <= 0) {
+                                                return "⚠️ Kuota cuti tahunan Anda sudah habis. Anda hanya bisa mengajukan cuti sakit, melahirkan, atau lainnya.";
+                                            }
+                                        }
+                                        return null;
+                                    }),
+
+                                Forms\Components\TextInput::make('remaining_casual_leave')
+                                    ->label('Sisa Kesempatan Cuti')
+                                    ->formatStateUsing(function ($record) use ($user, $isCreating) {
+                                        // Untuk edit, gunakan user dari record, untuk create gunakan current user
+                                        $targetUser = $isCreating ? $user : ($record?->user ?? $user);
+                                        $quota = LeaveQuota::getUserQuota($targetUser->id);
+                                        $sisaKesempatan = $quota ? $quota->remaining_casual_quota : 0;
+
+                                        // Hitung sisa hari cuti tahunan
+                                        $currentYear = date('Y');
+                                        $approvedCasualLeaves = \App\Models\Leave::where('user_id', $targetUser->id)
+                                            ->where('leave_type', 'casual')
+                                            ->whereYear('from_date', $currentYear)
+                                            ->where('status', 'approved')
+                                            ->get();
+
+                                        $usedDays = 0;
+                                        foreach ($approvedCasualLeaves as $leave) {
+                                            $usedDays += static::calculateWorkingDays($leave->from_date, $leave->to_date);
+                                        }
+                                        $remainingDays = 12 - $usedDays;
+
+                                        return "{$sisaKesempatan} Kesempatan";
+                                    })
+                                    ->disabled(),
+                            ]),
 
                         Forms\Components\DatePicker::make('from_date')
                             ->label('Tanggal Mulai Cuti')
@@ -456,39 +489,55 @@ class LeaveResource extends Resource
                             ->minDate(fn() => $isCreating ? Carbon::now() : null)
                             ->reactive()
                             ->afterStateUpdated(function (callable $set, callable $get) use ($isCreating) {
-                                // Auto-fill untuk cuti menikah jika dari tanggal diubah
-                                if ($get('leave_type') === 'marriage' && $isCreating && $get('from_date')) {
+                                // Auto-fill untuk cuti tahunan berdasarkan tujuan
+                                if ($get('leave_type') === 'casual' && $isCreating && $get('from_date') && $get('is_for_marriage') !== null) {
                                     $fromDate = $get('from_date');
+                                    $isForMarriage = $get('is_for_marriage');
+                                    $maxDays = $isForMarriage ? 3 : 2;
+
                                     $startDate = Carbon::parse($fromDate);
                                     $currentDate = $startDate->copy();
                                     $endDate = null;
                                     $workingDaysCount = 0;
-                                    
+
                                     // Holidays list
                                     $holidays = [
-                                        '2025-01-01', '2025-01-29', '2025-02-12', '2025-03-14', '2025-03-29',
-                                        '2025-03-30', '2025-03-31', '2025-04-01', '2025-05-01', '2025-05-12',
-                                        '2025-05-29', '2025-06-01', '2025-06-06', '2025-06-27', '2025-08-17',
-                                        '2025-09-05', '2025-12-25'
+                                        '2025-01-01',
+                                        '2025-01-29',
+                                        '2025-02-12',
+                                        '2025-03-14',
+                                        '2025-03-29',
+                                        '2025-03-30',
+                                        '2025-03-31',
+                                        '2025-04-01',
+                                        '2025-05-01',
+                                        '2025-05-12',
+                                        '2025-05-29',
+                                        '2025-06-01',
+                                        '2025-06-06',
+                                        '2025-06-27',
+                                        '2025-08-17',
+                                        '2025-09-05',
+                                        '2025-12-25'
                                     ];
-                                    
-                                    // Hitung 2 hari kerja dari tanggal mulai
-                                    while ($workingDaysCount < 2) {
+
+                                    // Hitung hari kerja berdasarkan maksimal hari
+                                    while ($workingDaysCount < $maxDays) {
                                         // Cek apakah hari ini adalah hari kerja (bukan weekend dan bukan libur)
                                         if (!$currentDate->isWeekend() && !in_array($currentDate->format('Y-m-d'), $holidays)) {
                                             $workingDaysCount++;
-                                            if ($workingDaysCount == 2) {
+                                            if ($workingDaysCount == $maxDays) {
                                                 $endDate = $currentDate->copy();
                                                 break;
                                             }
                                         }
                                         $currentDate->addDay();
                                     }
-                                    
+
                                     if ($endDate) {
                                         $set('to_date', $endDate->format('Y-m-d'));
                                         $set('back_to_work_date', $endDate->addDay()->format('Y-m-d'));
-                                        $set('days', 2);
+                                        $set('days', $maxDays);
                                     }
                                 }
                             }),
@@ -500,12 +549,12 @@ class LeaveResource extends Resource
                             ->disabled(!$isCreating && !$isStaff)
                             ->minDate(function (callable $get) use ($isCreating) {
                                 if (!$isCreating) return null;
-                                
+
                                 $fromDate = $get('from_date');
                                 if ($fromDate) {
                                     return Carbon::parse($fromDate);
                                 }
-                                
+
                                 return Carbon::now();
                             })
                             ->reactive()
@@ -524,9 +573,13 @@ class LeaveResource extends Resource
 
                                     // Validasi kuota cuti tahunan jika jenisnya casual
                                     if ($get('leave_type') === 'casual' && $isCreating) {
-                                        // Validasi maksimal 3 hari untuk cuti tahunan
-                                        if ($workingDays > 3) {
-                                            $set('days_error', "Cuti tahunan maksimal 3 hari per pengajuan. Anda meminta {$workingDays} hari.");
+                                        // Validasi berdasarkan tujuan cuti
+                                        $isForMarriage = $get('is_for_marriage');
+                                        $maxDays = $isForMarriage ? 3 : 2;
+
+                                        if ($workingDays > $maxDays) {
+                                            $cutType = $isForMarriage ? 'menikah' : 'biasa';
+                                            $set('days_error', "Cuti tahunan untuk {$cutType} maksimal {$maxDays} hari berturut. Anda meminta {$workingDays} hari.");
                                             return;
                                         }
 
@@ -576,9 +629,13 @@ class LeaveResource extends Resource
                                             // Hitung hari kerja berdasarkan tanggal
                                             $workingDays = static::calculateWorkingDays($get('from_date'), $value);
 
-                                            // Validasi maksimal 3 hari untuk cuti tahunan
-                                            if ($workingDays > 3) {
-                                                $fail("Cuti tahunan maksimal 3 hari per pengajuan. Anda meminta {$workingDays} hari.");
+                                            // Validasi berdasarkan tujuan cuti
+                                            $isForMarriage = $get('is_for_marriage');
+                                            $maxDays = $isForMarriage ? 3 : 2;
+
+                                            if ($workingDays > $maxDays) {
+                                                $cutType = $isForMarriage ? 'menikah' : 'biasa';
+                                                $fail("Cuti tahunan untuk {$cutType} maksimal {$maxDays} hari berturut. Anda meminta {$workingDays} hari.");
                                                 return;
                                             }
 
@@ -601,12 +658,12 @@ class LeaveResource extends Resource
                                                 $fail("Hari cuti yang diminta ({$workingDays} hari) melebihi sisa kuota cuti tahunan Anda ({$remainingDays} hari).");
                                             }
                                         }
-                                        
+
                                         // Validasi umum: tanggal berakhir harus >= tanggal mulai
                                         if ($get('from_date') && $value) {
                                             $fromDate = Carbon::parse($get('from_date'));
                                             $toDate = Carbon::parse($value);
-                                            
+
                                             if ($toDate->lt($fromDate)) {
                                                 $fail('Tanggal berakhir cuti harus sama atau setelah tanggal mulai cuti.');
                                             }
@@ -645,10 +702,14 @@ class LeaveResource extends Resource
                                 // Validasi kuota cuti tahunan jika jenisnya casual
                                 if ($get('leave_type') === 'casual' && $isCreating) {
                                     $days = $get('days');
-                                    
-                                    // Validasi maksimal 3 hari untuk cuti tahunan
-                                    if ($days > 3) {
-                                        $set('days_error', "Cuti tahunan maksimal 3 hari per pengajuan. Anda meminta {$days} hari.");
+
+                                    // Validasi berdasarkan tujuan cuti
+                                    $isForMarriage = $get('is_for_marriage');
+                                    $maxDays = $isForMarriage ? 3 : 2;
+
+                                    if ($days > $maxDays) {
+                                        $cutType = $isForMarriage ? 'menikah' : 'biasa';
+                                        $set('days_error', "Cuti tahunan untuk {$cutType} maksimal {$maxDays} hari berturut. Anda meminta {$days} hari.");
                                         return;
                                     }
 
@@ -684,9 +745,13 @@ class LeaveResource extends Resource
                                 function ($get) use ($user, $isCreating) {
                                     return function (string $attribute, $value, \Closure $fail) use ($get, $user, $isCreating) {
                                         if ($get('leave_type') === 'casual' && $isCreating) {
-                                            // Validasi maksimal 3 hari untuk cuti tahunan
-                                            if ($value > 3) {
-                                                $fail("Cuti tahunan maksimal 3 hari per pengajuan. Anda meminta {$value} hari.");
+                                            // Validasi berdasarkan tujuan cuti
+                                            $isForMarriage = $get('is_for_marriage');
+                                            $maxDays = $isForMarriage ? 3 : 2;
+
+                                            if ($value > $maxDays) {
+                                                $cutType = $isForMarriage ? 'menikah' : 'biasa';
+                                                $fail("Cuti tahunan untuk {$cutType} maksimal {$maxDays} hari berturut. Anda meminta {$value} hari.");
                                                 return;
                                             }
 
@@ -873,19 +938,18 @@ class LeaveResource extends Resource
                             $filename = "laporan_cuti_semua_staff_{$year}.xlsx";
                         } elseif ((static::isManager($user) || static::isKepala($user)) && isset($data['export_type']) && $data['export_type'] === 'division') {
                             $userId = null; // Export semua data staff dari divisi yang dikelola
-                            $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
+                            $userDivisionId = $user->division_id;
 
-                            // Jika tidak ada divisi dari many-to-many, fallback ke primary division
-                            if (empty($userDivisionIds) && $user->division_id) {
-                                $userDivisionIds = [$user->division_id];
+                            if ($userDivisionId) {
+                                $divisionIds = [$userDivisionId];
+                                $divisionName = $user->division ? $user->division->name : 'Unknown';
+                                $filename = "laporan_cuti_divisi_{$divisionName}_{$year}.xlsx";
+                            } else {
+                                // Jika tidak ada divisi, export data pribadi saja
+                                $userId = $user->id;
+                                $divisionIds = null;
+                                $filename = "laporan_cuti_{$year}.xlsx";
                             }
-
-                            $divisionIds = $userDivisionIds;
-                            $divisionNames = $user->divisions()->pluck('name')->implode('_');
-                            if (empty($divisionNames) && $user->division) {
-                                $divisionNames = $user->division->name;
-                            }
-                            $filename = "laporan_cuti_divisi_{$divisionNames}_{$year}.xlsx";
                         } else {
                             $userId = $user->id; // Export data pribadi
                             $divisionIds = null;
@@ -924,17 +988,27 @@ class LeaveResource extends Resource
                         'casual' => 'success',
                         'medical' => 'warning',
                         'maternity' => 'info',
-                        'marriage' => 'primary',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'casual' => 'Cuti Tahunan',
                         'medical' => 'Cuti Sakit',
                         'maternity' => 'Cuti Melahirkan',
-                        'marriage' => 'Cuti Menikah',
                         'other' => 'Cuti Lainnya',
                         default => 'Tidak Diketahui',
                     }),
+
+                Tables\Columns\TextColumn::make('is_for_marriage')
+                    ->label('Tujuan')
+                    ->badge()
+                    ->color(fn($state, $record): string => $record->leave_type === 'casual' ? ($state ? 'primary' : 'secondary') : 'gray')
+                    ->formatStateUsing(function ($state, $record) {
+                        if ($record->leave_type === 'casual') {
+                            return $state ? 'Menikah' : 'Biasa';
+                        }
+                        return '-';
+                    })
+                    ->visible(fn() => true), // Tampilkan untuk semua role
 
                 Tables\Columns\TextColumn::make('from_date')
                     ->label('Mulai Cuti')
@@ -1031,7 +1105,6 @@ class LeaveResource extends Resource
                         'casual' => 'Cuti Tahunan',
                         'medical' => 'Cuti Sakit',
                         'maternity' => 'Cuti Melahirkan',
-                        'marriage' => 'Cuti Menikah',
                         'other' => 'Cuti Lainnya',
                     ]),
 
@@ -1116,7 +1189,7 @@ class LeaveResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(function() {
+                        ->visible(function () {
                             $user = Auth::user();
                             return static::isHrd($user) && !static::isDirector($user);
                         }),
@@ -1126,7 +1199,7 @@ class LeaveResource extends Resource
                         ->label('Ekspor')
                         ->color('success')
                         ->icon('heroicon-o-document-download')
-                        ->visible(function() {
+                        ->visible(function () {
                             $user = Auth::user();
                             return static::isHrd($user) && !static::isDirector($user);
                         }),
@@ -1167,7 +1240,7 @@ class LeaveResource extends Resource
             return $query->whereHas('user', function ($q) {
                 $q->whereHas('roles', function ($roleQuery) {
                     $roleQuery->where('name', 'like', 'manager_%')
-                              ->orWhere('name', 'like', 'kepala_%');
+                        ->orWhere('name', 'like', 'kepala_%');
                 });
             });
         }
@@ -1186,15 +1259,12 @@ class LeaveResource extends Resource
 
             // Logika pembatasan berdasarkan divisi tetap sama.
             if (!static::isHrd($user)) {
-                // ... (logika divisi yang sudah ada tidak perlu diubah)
-                $userDivisionIds = $user->divisions()->pluck('divisions.id')->toArray();
-                if (empty($userDivisionIds) && $user->division_id) {
-                    $userDivisionIds = [$user->division_id];
-                }
+                // Gunakan division_id langsung karena divisions() method tidak ada
+                $userDivisionId = $user->division_id;
 
-                if (!empty($userDivisionIds)) {
-                    $accessibleUsersQuery->where(function ($q) use ($userDivisionIds, $user) {
-                        $q->whereIn('division_id', $userDivisionIds)
+                if ($userDivisionId) {
+                    $accessibleUsersQuery->where(function ($q) use ($userDivisionId, $user) {
+                        $q->where('division_id', $userDivisionId)
                             ->orWhere('id', $user->id);
                     });
                 } else {
