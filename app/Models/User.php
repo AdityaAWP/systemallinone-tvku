@@ -35,8 +35,8 @@ class User extends Authenticatable implements FilamentUser
         'no_phone',
         'npp',
         'division_id',
-        'manager_id', 
-        'office_start_time', 
+        'manager_id',
+        'office_start_time',
         'office_end_time',
     ];
 
@@ -52,14 +52,14 @@ class User extends Authenticatable implements FilamentUser
         'is_active' => 'boolean',
         'birth' => 'date',
         'office_start_time' => 'datetime:H:i',
-        'office_end_time' => 'datetime:H:i',  
+        'office_end_time' => 'datetime:H:i',
     ];
 
     // Add this boot method to handle auto-population of division_id
     protected static function boot()
     {
         parent::boot();
-        
+
         // When a user is saved, ensure division_id is set if divisions exist
         static::saved(function ($user) {
             // Only auto-set if division_id is null and user has divisions
@@ -106,23 +106,23 @@ class User extends Authenticatable implements FilamentUser
     public function supervisedInterns()
     {
         return $this->belongsToMany(Intern::class, 'intern_supervisor', 'supervisor_id', 'intern_id')
-                    ->withPivot(['is_primary', 'notes', 'assigned_date', 'ended_date'])
-                    ->withTimestamps();
+            ->withPivot(['is_primary', 'notes', 'assigned_date', 'ended_date'])
+            ->withTimestamps();
     }
 
     // Method untuk mendapatkan anak magang yang dibimbing saat ini (Legacy)
     public function activeSupervisedInterns()
     {
         return $this->supervisedInterns()
-                    ->whereNull('intern_supervisor.ended_date')
-                    ->orWhere('intern_supervisor.ended_date', '>=', now());
+            ->whereNull('intern_supervisor.ended_date')
+            ->orWhere('intern_supervisor.ended_date', '>=', now());
     }
 
     // Method untuk mendapatkan anak magang dengan pembimbingan utama (Legacy)
     public function primarySupervisedInterns()
     {
         return $this->supervisedInterns()
-                    ->wherePivot('is_primary', true);
+            ->wherePivot('is_primary', true);
     }
 
     // Method untuk cek apakah user bisa menjadi pembimbing
@@ -131,21 +131,26 @@ class User extends Authenticatable implements FilamentUser
         if (!$this->is_active) {
             return false;
         }
-        
+
         // Cek apakah user memiliki role yang bisa menjadi pembimbing
         return $this->roles()->where(function ($query) {
             $query->where('name', 'like', 'staff_%')
-                  ->orWhere('name', 'like', 'manager_%')
-                  ->orWhere('name', 'like', 'kepala_%')
-                  ->orWhere('name', 'like', 'direktur_%')
-                  ->orWhere('name', 'hrd')
-                  ->orWhere('name', 'admin_magang');
+                ->orWhere('name', 'like', 'manager_%')
+                ->orWhere('name', 'like', 'kepala_%')
+                ->orWhere('name', 'like', 'direktur_%')
+                ->orWhere('name', 'hrd')
+                ->orWhere('name', 'admin_magang');
         })->exists();
     }
 
     public function dailyReports()
     {
         return $this->hasMany(DailyReport::class);
+    }
+
+    public function uploadedFiles()
+    {
+        return $this->hasMany(UploadedFile::class, 'uploaded_by');
     }
 
     public function overtimes(): HasMany
@@ -190,13 +195,13 @@ class User extends Authenticatable implements FilamentUser
         }
 
         // Fallback to finding any manager with appropriate role (not division-based)
-        $manager = User::whereHas('roles', function($query) {
+        $manager = User::whereHas('roles', function ($query) {
             $query->where('name', 'like', 'manager_%');
         })->first();
 
         // If no manager found, look for head/kepala roles
         if (!$manager) {
-            $manager = User::whereHas('roles', function($query) {
+            $manager = User::whereHas('roles', function ($query) {
                 $query->where('name', 'like', 'kepala_%')
                     ->orWhere('name', 'like', 'head_%');
             })->first();
