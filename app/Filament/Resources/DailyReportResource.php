@@ -5,12 +5,15 @@ namespace App\Filament\Resources;
 use App\Filament\Exports\DailyReportExporter;
 use App\Filament\Resources\DailyReportResource\Pages;
 use App\Models\DailyReport;
+use App\Models\UploadedFile;
 use App\Exports\DailyReportExcel;
+use App\Imports\DailyReportImport;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\MarkdownEditor;
@@ -18,6 +21,7 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -29,7 +33,8 @@ use Filament\Tables\Actions\Action;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
-
+use Maatwebsite\Excel\Facades\Excel;
+use Filament\Notifications\Notification;
 
 class DailyReportResource extends Resource
 {
@@ -128,7 +133,6 @@ class DailyReportResource extends Resource
         return $count > 0 ? (string) $count : null;
     }
 
-
     public static function form(Form $form): Form
     {
         return $form
@@ -213,6 +217,138 @@ class DailyReportResource extends Resource
                     ->url(fn() => request()->url() . '?tableFilters[my_reports][value]=true')
                     ->color(fn() => request()->input('tableFilters.my_reports.value') === 'true' ? 'primary' : 'gray'),
 
+                // Import Excel Action
+                Action::make('import_excel')
+                    ->label('Import Excel')
+                    ->icon('heroicon-o-arrow-up-tray')
+                    ->color('info')
+                    //->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
+                    ->form([
+                        FileUpload::make('excel_file')
+                            ->label('File Excel')
+                            ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', '.xlsx', '.xls'])
+                            ->required()
+                            ->maxSize(10240) // 10MB
+                            ->helperText('Format yang didukung: .xlsx, .xls (Maksimal 10MB)')
+                            ->directory('imports/daily-reports')
+                            ->storeFileNamesIn('original_filename'),
+                            
+                        Forms\Components\TextInput::make('title')
+                            ->label('Judul Import')
+                            ->required()
+                            ->placeholder('Masukkan judul untuk import ini...'),
+                            
+                        Forms\Components\Textarea::make('description')
+                            ->label('Keterangan')
+                            ->placeholder('Masukkan keterangan untuk import ini...')
+                            ->rows(3),
+                    ])
+                    ->action(function (array $data) {
+                        try {
+                            $filePath = $data['excel_file'];
+                            $title = $data['title'];
+                            $description = $data['description'] ?? 'Import Excel Daily Report';
+                            
+                            if (!$filePath) {
+                                throw new \Exception('File tidak ditemukan');
+                            }
+
+                            // Import data menggunakan Laravel Excel
+                            $import = new DailyReportImport();
+                            Excel::import($import, storage_path('app/public/' . $filePath));
+
+                            // Simpan informasi file yang diupload
+                            UploadedFile::create([
+                                'filename' => basename($filePath),
+                                'original_filename' => $data['original_filename'] ?? basename($filePath),
+                                'file_path' => $filePath,
+                                'file_type' => 'daily_report_import',
+                                'file_size' => Storage::disk('public')->size($filePath),
+                                'uploaded_by' => Auth::id(),
+                                'title' => $title,
+                                'description' => $description,
+                                'status' => 'completed'
+                            ]);
+
+                            Notification::make()
+                                ->title('Import Berhasil')
+                                ->body('Data berhasil diimport dari file Excel')
+                                ->success()
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            Log::error('Import Excel Error: ' . $e->getMessage());
+                            
+                            Notification::make()
+                                ->title('Import Gagal')
+                                ->body('Terjadi kesalahan saat import: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
+                // Upload File Action
+                Action::make('upload_file')
+                    ->label('Upload File')
+                    ->icon('heroicon-o-document-arrow-up')
+                    ->color('indigo')
+                    //->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
+                    ->form([
+                        FileUpload::make('uploaded_file')
+                            ->label('File')
+                            ->required()
+                            ->maxSize(20480) // 20MB
+                            ->acceptedFileTypes(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'text/plain'])
+                            ->helperText('Format yang didukung: PDF, DOC, DOCX, JPG, PNG, TXT (Maksimal 20MB)')
+                            ->directory('uploads/daily-reports')
+                            ->storeFileNamesIn('original_filename'),
+                        Forms\Components\TextInput::make('title')
+                            ->label('Judul File')
+                            ->required()
+                            ->placeholder('Masukkan judul file...'),
+                        Forms\Components\Textarea::make('description')
+                            ->label('Deskripsi')
+                            ->placeholder('Masukkan deskripsi file...')
+                            ->rows(3),
+                    ])
+                    ->action(function (array $data) {
+                        try {
+                            $filePath = $data['uploaded_file'];
+                            
+                            if (!$filePath) {
+                                throw new \Exception('File tidak ditemukan');
+                            }
+
+                            // Simpan informasi file yang diupload
+                            UploadedFile::create([
+                                'filename' => basename($filePath),
+                                'original_filename' => $data['original_filename'] ?? basename($filePath),
+                                'file_path' => $filePath,
+                                'file_type' => 'daily_report_document',
+                                'file_size' => Storage::disk('public')->size($filePath),
+                                'uploaded_by' => Auth::id(),
+                                'title' => $data['title'],
+                                'description' => $data['description'] ?? '',
+                                'status' => 'completed'
+                            ]);
+
+                            Notification::make()
+                                ->title('Upload Berhasil')
+                                ->body('File berhasil diupload')
+                                ->success()
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            Log::error('Upload File Error: ' . $e->getMessage());
+                            
+                            Notification::make()
+                                ->title('Upload Gagal')
+                                ->body('Terjadi kesalahan saat upload: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
                 Action::make('download_employee_dailyreport')
                     ->label('Download Laporan Karyawan')
                     ->icon('heroicon-o-document-arrow-down')
@@ -226,7 +362,7 @@ class DailyReportResource extends Resource
                                 $user = Auth::user();
                                 
                                 $query = \App\Models\User::query()
-                                    ->whereHas('dailyReports'); // hanya user yang punya data daily report
+                                    ->whereHas('dailyReports');
                                 
                                 if (static::isManager($user) && !$user->hasRole('hrd')) {
                                     $query->where('manager_id', $user->id);
@@ -517,21 +653,19 @@ class DailyReportResource extends Resource
                         $filename = "laporan_harian_{$userName}_{$year}.xlsx";
                         return (new DailyReportExcel($year, $user->id))->download($filename);
                     }),
-
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     ExportBulkAction::make()
                         ->exporter(DailyReportExporter::class)
                         ->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
-
                 ]),
             ]);
     }
+
     public static function getRelations(): array
     {
-        return [
-        ];
+        return [];
     }
 
     public static function getPages(): array
