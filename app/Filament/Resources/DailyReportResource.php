@@ -53,7 +53,7 @@ class DailyReportResource extends Resource
     {
         return $user->roles()->where('name', 'like', 'manager%')->exists();
     }
-    
+
     private static function isKepala($user): bool
     {
         return $user->roles()->where('name', 'like', 'kepala%')->exists();
@@ -62,7 +62,7 @@ class DailyReportResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
-        
+
         $query = parent::getEloquentQuery()->whereHas('user', function ($query) {
             $query->where('is_active', true);
         });
@@ -85,13 +85,13 @@ class DailyReportResource extends Resource
                 if (!empty($userDivisionIds)) {
                     $accessibleUsersQuery->where(function ($q) use ($userDivisionIds, $user) {
                         $q->whereIn('division_id', $userDivisionIds)
-                          ->orWhere('id', $user->id);
+                            ->orWhere('id', $user->id);
                     });
                 } else {
                     $accessibleUsersQuery->where('id', $user->id);
                 }
             }
-            
+
             $latestReportIdsSubquery = DailyReport::selectRaw('MAX(id)')
                 ->whereIn('user_id', $accessibleUsersQuery->select('id'))
                 ->groupBy('user_id');
@@ -146,12 +146,12 @@ class DailyReportResource extends Resource
                             ->label('Waktu Mulai Bekerja')
                             ->seconds(false)
                             ->required()
-                            ->default(fn () => Auth::user()->office_start_time),
+                            ->default(fn() => Auth::user()->office_start_time),
                         TimePicker::make('check_out')
                             ->label('Waktu Berakhir Bekerja')
                             ->seconds(false)
                             ->required()
-                            ->default(fn () => Auth::user()->office_end_time)
+                            ->default(fn() => Auth::user()->office_end_time)
                             ->live()
                             ->afterStateUpdated(function (Get $get, Set $set) {
                                 $tanggal = $get('entry_date');
@@ -230,55 +230,68 @@ class DailyReportResource extends Resource
                             ->required()
                             ->maxSize(10240) // 10MB
                             ->helperText('Format yang didukung: .xlsx, .xls (Maksimal 10MB)')
-                            ->directory('imports/daily-reports')
-                            ->storeFileNamesIn('original_filename'),
-                            
-                        Forms\Components\TextInput::make('title')
-                            ->label('Judul Import')
-                            ->required()
-                            ->placeholder('Masukkan judul untuk import ini...'),
-                            
-                        Forms\Components\Textarea::make('description')
-                            ->label('Keterangan')
-                            ->placeholder('Masukkan keterangan untuk import ini...')
-                            ->rows(3),
+                            ->directory('temp/imports') // Folder temporary untuk import
+                            ->disk('public'), // Menggunakan disk public untuk temporary file
                     ])
                     ->action(function (array $data) {
                         try {
                             $filePath = $data['excel_file'];
-                            $title = $data['title'];
-                            $description = $data['description'] ?? 'Import Excel Daily Report';
-                            
+
                             if (!$filePath) {
                                 throw new \Exception('File tidak ditemukan');
                             }
 
+                            // Dapatkan path lengkap file
+                            $fullPath = storage_path('app/public/' . $filePath);
+
+                            // Cek apakah file benar-benar ada
+                            if (!file_exists($fullPath)) {
+                                throw new \Exception('File tidak ditemukan di path: ' . $fullPath);
+                            }
+
+                            Log::info("Import file path: " . $fullPath);
+
                             // Import data menggunakan Laravel Excel
                             $import = new DailyReportImport();
-                            Excel::import($import, storage_path('app/public/' . $filePath));
+                            Excel::import($import, $fullPath);
 
-                            // Simpan informasi file yang diupload
-                            UploadedFile::create([
-                                'filename' => basename($filePath),
-                                'original_filename' => $data['original_filename'] ?? basename($filePath),
-                                'file_path' => $filePath,
-                                'file_type' => 'daily_report_import',
-                                'file_size' => Storage::disk('public')->size($filePath),
-                                'uploaded_by' => Auth::id(),
-                                'title' => $title,
-                                'description' => $description,
-                                'status' => 'completed'
-                            ]);
+                            // Hitung jumlah data yang berhasil diimport
+                            $importedCount = $import->getImportedCount();
+                            $skippedCount = $import->getSkippedCount();
+                            $errorCount = $import->getErrorCount();
+
+                            // Hapus file temporary setelah import selesai
+                            if (\Storage::disk('public')->exists($filePath)) {
+                                \Storage::disk('public')->delete($filePath);
+                                Log::info("Temporary file deleted: " . $filePath);
+                            }
+
+                            // Buat pesan notifikasi berdasarkan hasil import
+                            $message = "Import selesai! ";
+                            if ($importedCount > 0) {
+                                $message .= "Berhasil mengimport {$importedCount} data. ";
+                            }
+                            if ($skippedCount > 0) {
+                                $message .= "{$skippedCount} data dilewati (sudah ada). ";
+                            }
+                            if ($errorCount > 0) {
+                                $message .= "{$errorCount} data gagal diimport.";
+                            }
 
                             Notification::make()
                                 ->title('Import Berhasil')
-                                ->body('Data berhasil diimport dari file Excel')
+                                ->body($message)
                                 ->success()
                                 ->send();
-
                         } catch (\Exception $e) {
                             Log::error('Import Excel Error: ' . $e->getMessage());
-                            
+                            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+                            // Hapus file temporary jika terjadi error
+                            if (isset($filePath) && \Storage::disk('public')->exists($filePath)) {
+                                \Storage::disk('public')->delete($filePath);
+                            }
+
                             Notification::make()
                                 ->title('Import Gagal')
                                 ->body('Terjadi kesalahan saat import: ' . $e->getMessage())
@@ -314,7 +327,7 @@ class DailyReportResource extends Resource
                     ->action(function (array $data) {
                         try {
                             $filePath = $data['uploaded_file'];
-                            
+
                             if (!$filePath) {
                                 throw new \Exception('File tidak ditemukan');
                             }
@@ -337,10 +350,9 @@ class DailyReportResource extends Resource
                                 ->body('File berhasil diupload')
                                 ->success()
                                 ->send();
-
                         } catch (\Exception $e) {
                             Log::error('Upload File Error: ' . $e->getMessage());
-                            
+
                             Notification::make()
                                 ->title('Upload Gagal')
                                 ->body('Terjadi kesalahan saat upload: ' . $e->getMessage())
@@ -360,14 +372,14 @@ class DailyReportResource extends Resource
                             ->placeholder('Pilih karyawan yang akan didownload')
                             ->options(function () {
                                 $user = Auth::user();
-                                
+
                                 $query = \App\Models\User::query()
                                     ->whereHas('dailyReports');
-                                
+
                                 if (static::isManager($user) && !$user->hasRole('hrd')) {
                                     $query->where('manager_id', $user->id);
                                 }
-                                
+
                                 return $query->orderBy('name')
                                     ->pluck('name', 'id')
                                     ->toArray();
@@ -379,12 +391,12 @@ class DailyReportResource extends Resource
                             ->options(function () {
                                 $years = [];
                                 $currentYear = now()->year;
-                                
+
                                 for ($i = 0; $i < 5; $i++) {
                                     $year = $currentYear - $i;
                                     $years[$year] = $year;
                                 }
-                                
+
                                 return $years;
                             })
                             ->required()
@@ -395,7 +407,7 @@ class DailyReportResource extends Resource
                         $year = $data['year'];
 
                         $employee = \App\Models\User::find($employeeId);
-                        
+
                         if (!$employee) {
                             \Filament\Notifications\Notification::make()
                                 ->title('Error')
