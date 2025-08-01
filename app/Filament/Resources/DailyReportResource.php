@@ -7,6 +7,7 @@ use App\Filament\Resources\DailyReportResource\Pages;
 use App\Models\DailyReport;
 use App\Models\UploadedFile;
 use App\Exports\DailyReportExcel;
+use App\Exports\DailyReportTemplateExport;
 use App\Imports\DailyReportImport;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Forms\Get;
@@ -224,14 +225,34 @@ class DailyReportResource extends Resource
                     ->color('info')
                     //->visible(fn() => Auth::user()->hasRole('hrd') || static::isManager(Auth::user()) || static::isKepala(Auth::user()))
                     ->form([
-                        FileUpload::make('excel_file')
-                            ->label('File Excel')
-                            ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', '.xlsx', '.xls'])
-                            ->required()
-                            ->maxSize(10240) // 10MB
-                            ->helperText('Format yang didukung: .xlsx, .xls (Maksimal 10MB)')
-                            ->directory('temp/imports') // Folder temporary untuk import
-                            ->disk('public'), // Menggunakan disk public untuk temporary file
+                        Forms\Components\Section::make('Template Excel')
+                            ->description('Download template terlebih dahulu untuk format yang benar')
+                            ->schema([
+                                Forms\Components\Actions::make([
+                                    Forms\Components\Actions\Action::make('download_template')
+                                        ->label('Download Template Excel')
+                                        ->icon('heroicon-o-document-arrow-down')
+                                        ->color('success')
+                                        ->action(function () {
+                                            $export = new DailyReportTemplateExport();
+                                            return Excel::download($export, 'template_laporan_harian.xlsx');
+                                        })
+                                ]),
+                            ])
+                            ->collapsible()
+                            ->collapsed(false),
+                        
+                        Forms\Components\Section::make('Upload File Excel')
+                            ->schema([
+                                FileUpload::make('excel_file')
+                                    ->label('File Excel')
+                                    ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', '.xlsx', '.xls'])
+                                    ->required()
+                                    ->maxSize(10240) // 10MB
+                                    ->helperText('Format yang didukung: .xlsx, .xls (Maksimal 10MB). Pastikan menggunakan template yang telah didownload.')
+                                    ->directory('temp/imports') // Folder temporary untuk import
+                                    ->disk('public'), // Menggunakan disk public untuk temporary file
+                            ])
                     ])
                     ->action(function (array $data) {
                         try {

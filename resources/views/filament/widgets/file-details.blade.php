@@ -59,9 +59,4 @@
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{{ $record->description }}</p>
     </div>
     @endif
-    
-    <div>
-        <h4 class="font-semibold text-gray-900 dark:text-gray-100">Path File</h4>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 font-mono">{{ $record->file_path }}</p>
-    </div>
 </div>
