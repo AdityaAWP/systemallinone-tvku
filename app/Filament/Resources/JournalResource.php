@@ -31,6 +31,7 @@ class JournalResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
     protected static ?int $navigationSort = 5;
+
     public static function getNavigationSort(): ?int
     {
         if (Auth::guard('intern')->check()) {
@@ -69,7 +70,6 @@ class JournalResource extends Resource
             return true;
         }
 
-        // Allow admin_magang dan supervisor yang membimbing anak magang
         if (Auth::guard('web')->check()) {
             /** @var User $user */
             $user = Auth::guard('web')->user();
@@ -86,12 +86,9 @@ class JournalResource extends Resource
             return true;
         }
 
-        // Hide navigation for supervisors, they can access journals through MySupervisedIntern table
         if (Auth::guard('web')->check()) {
             /** @var User $user */
             $user = Auth::guard('web')->user();
-            
-            // Only show navigation for admin_magang
             return $user->hasRole('admin_magang');
         }
 
@@ -103,7 +100,6 @@ class JournalResource extends Resource
         $query = parent::getEloquentQuery();
 
         if (Auth::guard('intern')->check()) {
-            // Intern hanya bisa melihat journal mereka sendiri
             return $query->where('intern_id', Auth::guard('intern')->id());
         }
 
@@ -111,12 +107,10 @@ class JournalResource extends Resource
             /** @var User $user */
             $user = Auth::guard('web')->user();
             
-            // Admin magang bisa melihat semua journal
             if ($user->hasRole('admin_magang')) {
                 return $query;
             }
             
-            // Supervisor hanya bisa melihat journal anak magang yang dibimbing langsung
             if ($user->canSuperviseInterns()) {
                 return $query->whereHas('intern', function (Builder $subQuery) use ($user) {
                     $subQuery->where('supervisor_id', $user->id);
@@ -124,7 +118,7 @@ class JournalResource extends Resource
             }
         }
 
-        return $query->whereRaw('1 = 0'); // Return empty result for unauthorized users
+        return $query->whereRaw('1 = 0');
     }
 
     public static function form(Form $form): Form
@@ -199,37 +193,86 @@ class JournalResource extends Resource
                     ->required(fn(Forms\Get $get): bool => in_array($get('status'), ['Izin', 'Sakit']))
                     ->placeholder('Silakan isi alasan ketidakhadiran'),
                 
-                // Hidden location fields untuk intern - akan diisi otomatis tanpa mereka tahu
                 \Filament\Forms\Components\Placeholder::make('location_capture')
                     ->content('')
                     ->visible(fn(): bool => Auth::guard('intern')->check())
                     ->extraAttributes([
                         'x-data' => '{
+                            locationPermissionGranted: false,
                             init() {
                                 console.log("Location capture initialized for intern");
+                                this.disableSubmitButton();
                                 this.$nextTick(() => {
                                     setTimeout(() => {
-                                        this.captureLocation();
+                                        this.checkLocationPermission();
                                     }, 1000);
                                 });
+
+                                // Listen for form submission
+                                const form = this.$el.closest("form");
+                                if (form) {
+                                    form.addEventListener("submit", (event) => {
+                                        if (!this.locationPermissionGranted) {
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            alert("Akses lokasi diperlukan untuk membuat jurnal. Harap izinkan akses lokasi di browser Anda dan coba lagi.");
+                                            this.checkLocationPermission();
+                                        }
+                                    });
+                                }
                             },
-                            captureLocation() {
-                                console.log("Starting location capture...");
+                            disableSubmitButton() {
+                                const form = this.$el.closest("form");
+                                const submitButton = form.querySelector("button[type=submit]");
+                                if (submitButton) {
+                                    submitButton.disabled = true;
+                                    submitButton.style.opacity = "0.5";
+                                    submitButton.style.cursor = "not-allowed";
+                                    submitButton.addEventListener("mouseover", () => {
+                                        if (!this.locationPermissionGranted) {
+                                            alert("Tombol Buat dinonaktifkan karena akses lokasi ditolak. Harap izinkan akses lokasi di pengaturan browser.");
+                                        }
+                                    });
+                                }
+                            },
+                            enableSubmitButton() {
+                                const form = this.$el.closest("form");
+                                const submitButton = form.querySelector("button[type=submit]");
+                                if (submitButton) {
+                                    submitButton.disabled = false;
+                                    submitButton.style.opacity = "1";
+                                    submitButton.style.cursor = "pointer";
+                                    // Remove mouseover event listener to prevent alert after permission is granted
+                                    submitButton.removeEventListener("mouseover", this.handleMouseOver);
+                                }
+                            },
+                            checkLocationPermission() {
+                                console.log("Checking location permission...");
                                 
                                 if (!navigator.geolocation) {
                                     console.error("Geolocation not supported");
+                                    alert("Browser Anda tidak mendukung geolocation. Harap gunakan browser yang mendukung fitur ini.");
+                                    this.disableSubmitButton();
                                     return;
                                 }
                                 
-                                // Request permission first
                                 if (typeof navigator.permissions !== "undefined") {
                                     navigator.permissions.query({name: "geolocation"}).then((permission) => {
                                         console.log("Geolocation permission:", permission.state);
-                                        if (permission.state === "denied") {
-                                            alert("Akses lokasi ditolak. Harap izinkan akses lokasi di browser untuk melanjutkan.");
-                                            return;
+                                        if (permission.state === "granted") {
+                                            this.locationPermissionGranted = true;
+                                            this.enableSubmitButton();
+                                            this.getCurrentPosition();
+                                        } else if (permission.state === "prompt") {
+                                            this.locationPermissionGranted = false;
+                                            this.disableSubmitButton();
+                                            alert("Akses lokasi diperlukan. Harap izinkan akses lokasi saat diminta oleh browser.");
+                                            this.getCurrentPosition();
+                                        } else {
+                                            this.locationPermissionGranted = false;
+                                            this.disableSubmitButton();
+                                            alert("Akses lokasi ditolak. Harap izinkan akses lokasi di pengaturan browser untuk melanjutkan.");
                                         }
-                                        this.getCurrentPosition();
                                     });
                                 } else {
                                     this.getCurrentPosition();
@@ -261,18 +304,21 @@ class JournalResource extends Resource
                                         
                                         if (accuracy > 100) {
                                             console.warn("Location accuracy is low:", accuracy + " meters");
-                                            // Try again with different options if accuracy is poor
                                             setTimeout(() => {
                                                 this.getCurrentPositionHighAccuracy();
                                             }, 2000);
                                             return;
                                         }
                                         
+                                        this.locationPermissionGranted = true;
+                                        this.enableSubmitButton();
                                         this.setLocationData(lat, lng, accuracy);
                                     },
                                     (error) => {
                                         console.error("Geolocation error:", error);
                                         this.handleLocationError(error);
+                                        this.locationPermissionGranted = false;
+                                        this.disableSubmitButton();
                                     },
                                     options
                                 );
@@ -298,12 +344,15 @@ class JournalResource extends Resource
                                             accuracy: accuracy + " meters" 
                                         });
                                         
+                                        this.locationPermissionGranted = true;
+                                        this.enableSubmitButton();
                                         this.setLocationData(lat, lng, accuracy);
                                     },
                                     (error) => {
                                         console.error("High accuracy geolocation failed:", error);
-                                        // Fallback to any available location
                                         this.getCurrentPositionFallback();
+                                        this.locationPermissionGranted = false;
+                                        this.disableSubmitButton();
                                     },
                                     highAccuracyOptions
                                 );
@@ -314,7 +363,7 @@ class JournalResource extends Resource
                                 const fallbackOptions = {
                                     enableHighAccuracy: false,
                                     timeout: 15000,
-                                    maximumAge: 300000 // 5 minutes
+                                    maximumAge: 300000
                                 };
                                 
                                 navigator.geolocation.getCurrentPosition(
@@ -325,24 +374,26 @@ class JournalResource extends Resource
                                         
                                         console.log("Fallback location:", { lat, lng, accuracy: accuracy + " meters" });
                                         
+                                        this.locationPermissionGranted = true;
+                                        this.enableSubmitButton();
                                         this.setLocationData(lat, lng, accuracy);
                                     },
                                     (error) => {
                                         console.error("All geolocation attempts failed:", error);
                                         this.handleLocationError(error);
+                                        this.locationPermissionGranted = false;
+                                        this.disableSubmitButton();
                                     },
                                     fallbackOptions
                                 );
                             },
                             setLocationData(lat, lng, accuracy) {
-                                // Use Livewire to set the data
                                 if (this.$wire) {
                                     this.$wire.set("data.latitude", lat);
                                     this.$wire.set("data.longitude", lng);
                                     
                                     console.log("Location data set via Livewire:", { lat, lng });
                                     
-                                    // Get detailed address
                                     this.getDetailedAddress(lat, lng, accuracy);
                                 } else {
                                     console.error("Livewire wire not available");
@@ -351,9 +402,7 @@ class JournalResource extends Resource
                             getDetailedAddress(lat, lng, accuracy) {
                                 console.log("Getting address for coordinates:", { lat, lng });
                                 
-                                // Try multiple geocoding services for better accuracy
                                 const geocodingPromises = [
-                                    // OpenStreetMap Nominatim
                                     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`)
                                         .then(response => response.json())
                                         .then(data => ({
@@ -379,7 +428,6 @@ class JournalResource extends Resource
                                         bestAddress = `Koordinat: ${lat}, ${lng} (Akurasi: ${accuracy}m)`;
                                         console.log("Using fallback address:", bestAddress);
                                     } else {
-                                        // Translate English terms to Indonesian
                                         bestAddress = this.translateAddressToIndonesian(bestAddress);
                                     }
                                     
@@ -392,9 +440,7 @@ class JournalResource extends Resource
                             translateAddressToIndonesian(address) {
                                 if (!address) return address;
                                 
-                                // Dictionary for English to Indonesian translation
                                 const translations = {
-                                    // Geographic terms
                                     "Street": "Jalan",
                                     "Road": "Jalan",
                                     "Avenue": "Jalan",
@@ -407,8 +453,6 @@ class JournalResource extends Resource
                                     "Square": "Lapangan",
                                     "Court": "Kompleks",
                                     "Place": "Tempat",
-                                    
-                                    // Administrative divisions
                                     "Village": "Desa",
                                     "District": "Kecamatan",
                                     "Sub-district": "Kelurahan",
@@ -422,8 +466,6 @@ class JournalResource extends Resource
                                     "Ward": "Kelurahan",
                                     "Hamlet": "Dusun",
                                     "Neighborhood": "RT/RW",
-                                    
-                                    // Building types
                                     "Building": "Gedung",
                                     "Complex": "Kompleks",
                                     "Mall": "Mall",
@@ -445,10 +487,8 @@ class JournalResource extends Resource
                                     "Station": "Stasiun",
                                     "Airport": "Bandara",
                                     "Port": "Pelabuhan",
-                                    
-                                    // Directions
                                     "North": "Utara",
-                                    "South": "Selatan", 
+                                    "South": "Selatan",
                                     "East": "Timur",
                                     "West": "Barat",
                                     "Northeast": "Timur Laut",
@@ -459,27 +499,10 @@ class JournalResource extends Resource
                                     "Lower": "Bawah",
                                     "Inner": "Dalam",
                                     "Outer": "Luar",
-                                    
-                                    // Common location terms
-                                    "Near": "Dekat",
-                                    "Behind": "Belakang",
-                                    "Front": "Depan",
-                                    "Beside": "Samping",
-                                    "Opposite": "Seberang",
-                                    "Corner": "Sudut",
-                                    "Junction": "Perempatan",
-                                    "Intersection": "Perempatan",
-                                    "Roundabout": "Bundaran",
-                                    "Terminal": "Terminal",
-                                    "Gate": "Gerbang",
-                                    "Entrance": "Pintu Masuk",
-                                    "Exit": "Pintu Keluar",
-                                    
-                                    // Indonesian provinces (in case they appear in English)
                                     "Jakarta": "DKI Jakarta",
                                     "Java": "Jawa",
                                     "Central Java": "Jawa Tengah",
-                                    "East Java": "Jawa Timur", 
+                                    "East Java": "Jawa Timur",
                                     "West Java": "Jawa Barat",
                                     "Sumatra": "Sumatera",
                                     "Kalimantan": "Kalimantan",
@@ -489,10 +512,8 @@ class JournalResource extends Resource
                                     "Lombok": "Lombok",
                                     "Yogyakarta": "Daerah Istimewa Yogyakarta",
                                     "Special Region of Yogyakarta": "Daerah Istimewa Yogyakarta",
-                                    
-                                    // Numbers (sometimes appear in English)
                                     "First": "Pertama",
-                                    "Second": "Kedua", 
+                                    "Second": "Kedua",
                                     "Third": "Ketiga",
                                     "Fourth": "Keempat",
                                     "Fifth": "Kelima",
@@ -505,23 +526,17 @@ class JournalResource extends Resource
                                 
                                 let translatedAddress = address;
                                 
-                                // Apply translations
                                 Object.keys(translations).forEach(english => {
                                     const indonesian = translations[english];
-                                    // Use word boundaries to avoid partial replacements
-                                    const regex = new RegExp("\\\\b" + english + "\\\\b", "gi");
+                                    const regex = new RegExp("\\b" + english + "\\b", "gi");
                                     translatedAddress = translatedAddress.replace(regex, indonesian);
                                 });
                                 
-                                // Additional formatting for Indonesian address style
                                 translatedAddress = translatedAddress
-                                    // Replace common English connectors
-                                    .replace(/\\s+of\\s+/gi, " ")
-                                    .replace(/\\s+in\\s+/gi, ", ")
-                                    .replace(/\\s+at\\s+/gi, " di ")
-                                    // Clean up multiple spaces
-                                    .replace(/\\s+/g, " ")
-                                    // Trim whitespace
+                                    .replace(/\s+of\s+/gi, " ")
+                                    .replace(/\s+in\s+/gi, ", ")
+                                    .replace(/\s+at\s+/gi, " di ")
+                                    .replace(/\s+/g, " ")
                                     .trim();
                                 
                                 console.log("Address translation:", { original: address, translated: translatedAddress });
@@ -533,7 +548,7 @@ class JournalResource extends Resource
                                 
                                 switch(error.code) {
                                     case error.PERMISSION_DENIED:
-                                        errorMessage += "Akses lokasi ditolak. Harap izinkan akses lokasi di browser.";
+                                        errorMessage += "Akses lokasi ditolak. Harap izinkan akses lokasi di pengaturan browser.";
                                         break;
                                     case error.POSITION_UNAVAILABLE:
                                         errorMessage += "Informasi lokasi tidak tersedia. Pastikan GPS aktif.";
@@ -548,10 +563,12 @@ class JournalResource extends Resource
                                 
                                 console.error("Location error:", errorMessage);
                                 
-                                // For intern, still allow form submission but with limited location data
                                 if (this.$wire) {
                                     this.$wire.set("data.location_address", "Lokasi tidak tersedia - " + new Date().toLocaleString());
                                 }
+                                
+                                this.locationPermissionGranted = false;
+                                this.disableSubmitButton();
                             }
                         }'
                     ]),
@@ -603,13 +620,9 @@ class JournalResource extends Resource
                             ]),
                     ])
                     ->visible(function(Forms\Get $get): bool {
-                        // Hanya tampilkan section lokasi untuk admin magang dan supervisor
-                        // Tidak tampilkan untuk intern
                         if (Auth::guard('intern')->check()) {
                             return false;
                         }
-                        
-                        // Tampilkan untuk admin magang dan supervisor ketika status Hadir
                         return Auth::guard('web')->check() && $get('status') === 'Hadir';
                     })
                     ->collapsible()
@@ -627,7 +640,6 @@ class JournalResource extends Resource
                                             const lat = position.coords.latitude.toFixed(8);
                                             const lng = position.coords.longitude.toFixed(8);
                                             
-                                            // Find inputs and set values
                                             const form = this.$el.closest("form");
                                             const latInput = form.querySelector("input[data-field-name=\"latitude\"], input[wire\\:model*=\"latitude\"]");
                                             const lngInput = form.querySelector("input[data-field-name=\"longitude\"], input[wire\\:model*=\"longitude\"]");
@@ -636,7 +648,6 @@ class JournalResource extends Resource
                                                 latInput.value = lat;
                                                 lngInput.value = lng;
                                                 
-                                                // Dispatch events to update Livewire
                                                 latInput.dispatchEvent(new Event("input", { bubbles: true }));
                                                 lngInput.dispatchEvent(new Event("input", { bubbles: true }));
                                                 
@@ -674,15 +685,10 @@ class JournalResource extends Resource
                                     .then(response => response.json())
                                     .then(data => {
                                         let address = data && data.display_name ? data.display_name : `Koordinat: ${lat}, ${lng}`;
-                                        
-                                        // Translate to Indonesian
                                         address = this.translateAddressToIndonesian(address);
-                                        
-                                        // Force use Jawa Tengah for Central Java province
                                         if (address.includes("Central Java") || address.includes("Jawa Tengah") || address.toLowerCase().includes("central java")) {
                                             address = address.replace(/Central Java/gi, "Jawa Tengah");
                                         }
-                                        
                                         addressInput.value = address;
                                         addressInput.dispatchEvent(new Event("input", { bubbles: true }));
                                     })
@@ -695,9 +701,7 @@ class JournalResource extends Resource
                             translateAddressToIndonesian(address) {
                                 if (!address) return address;
                                 
-                                // Dictionary for English to Indonesian translation
                                 const translations = {
-                                    // Geographic terms
                                     "Street": "Jalan",
                                     "Road": "Jalan", 
                                     "Avenue": "Jalan",
@@ -710,8 +714,6 @@ class JournalResource extends Resource
                                     "Square": "Lapangan",
                                     "Court": "Kompleks",
                                     "Place": "Tempat",
-                                    
-                                    // Administrative divisions
                                     "Village": "Desa",
                                     "District": "Kecamatan",
                                     "Sub-district": "Kelurahan",
@@ -725,8 +727,6 @@ class JournalResource extends Resource
                                     "Ward": "Kelurahan",
                                     "Hamlet": "Dusun",
                                     "Neighborhood": "RT/RW",
-                                    
-                                    // Building types
                                     "Building": "Gedung",
                                     "Complex": "Kompleks",
                                     "Mall": "Mall",
@@ -748,8 +748,6 @@ class JournalResource extends Resource
                                     "Station": "Stasiun",
                                     "Airport": "Bandara",
                                     "Port": "Pelabuhan",
-                                    
-                                    // Directions
                                     "North": "Utara",
                                     "South": "Selatan",
                                     "East": "Timur", 
@@ -762,8 +760,6 @@ class JournalResource extends Resource
                                     "Lower": "Bawah",
                                     "Inner": "Dalam",
                                     "Outer": "Luar",
-                                    
-                                    // Indonesian provinces (in case they appear in English) - ORDER MATTERS!
                                     "Special Region of Yogyakarta": "Daerah Istimewa Yogyakarta",
                                     "Central Java Province": "Provinsi Jawa Tengah",
                                     "East Java Province": "Provinsi Jawa Timur", 
@@ -783,19 +779,17 @@ class JournalResource extends Resource
                                 
                                 let translatedAddress = address;
                                 
-                                // Apply translations
                                 Object.keys(translations).forEach(english => {
                                     const indonesian = translations[english];
-                                    const regex = new RegExp("\\\\b" + english + "\\\\b", "gi");
+                                    const regex = new RegExp("\\b" + english + "\\b", "gi");
                                     translatedAddress = translatedAddress.replace(regex, indonesian);
                                 });
                                 
-                                // Additional formatting
                                 translatedAddress = translatedAddress
-                                    .replace(/\\s+of\\s+/gi, " ")
-                                    .replace(/\\s+in\\s+/gi, ", ")
-                                    .replace(/\\s+at\\s+/gi, " di ")
-                                    .replace(/\\s+/g, " ")
+                                    .replace(/\s+of\s+/gi, " ")
+                                    .replace(/\s+in\s+/gi, ", ")
+                                    .replace(/\s+at\s+/gi, " di ")
+                                    .replace(/\s+/g, " ")
                                     .trim();
                                 
                                 return translatedAddress;
@@ -861,12 +855,11 @@ class JournalResource extends Resource
                     ->label('Lokasi')
                     ->color('primary')
                     ->url(
-                    fn (Journal $record): ?string => ($record->latitude && $record->longitude) 
-                        ? "https://www.google.com/maps?q={$record->latitude},{$record->longitude}" 
-                        : null,
-                    shouldOpenInNewTab: true 
-                )
-
+                        fn (Journal $record): ?string => ($record->latitude && $record->longitude) 
+                            ? "https://www.google.com/maps?q={$record->latitude},{$record->longitude}" 
+                            : null,
+                        shouldOpenInNewTab: true 
+                    )
                     ->limit(30)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
                         $state = $column->getState();
@@ -878,19 +871,14 @@ class JournalResource extends Resource
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->visible(function(): bool {
-                        // Hanya tampilkan kolom lokasi untuk admin magang dan supervisor
-                        // Tidak tampilkan untuk intern
                         if (Auth::guard('intern')->check()) {
                             return false;
                         }
-                        
-                        // Tampilkan untuk admin magang dan supervisor
                         if (Auth::guard('web')->check()) {
                             $user = Auth::guard('web')->user();
                             return $user instanceof \App\Models\User && 
                                    ($user->hasRole('admin_magang') || $user->canSuperviseInterns());
                         }
-                        
                         return false;
                     }),
             ])

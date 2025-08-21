@@ -142,12 +142,21 @@
     </div>
 
     <div class="document-title">SURAT PERINTAH PENUGASAN</div>
-    <div class="document-number">{{ $assignment->spp_number }}</div>
+    <div class="document-number">No. {{ $generatedSppNumber }}</div>
 
     <div class="content">
         <div>Berdasarkan :</div>
-        <p>SPK Nomor {{ $assignment->spk_number }}</p>
-        <p>Invoice Nomor I-158/KEU/TVKU/XI/2021</p>
+        
+        @if ($assignment->type == \App\Models\Assignment::TYPE_PAID)
+            <p>SPK Nomor {{ $generatedSpkNumber }} ({{ $assignment->client }} - {{ $assignment->description }})</p>
+            @if($generatedInvoiceNumber)
+                <p>{{ $generatedInvoiceNumber }}</p>
+            @endif
+        @elseif ($assignment->type == \App\Models\Assignment::TYPE_BARTER)
+            <p>SPK Nomor {{ $generatedSpkNumber }} ({{ $assignment->client }} - {{ $assignment->description }})</p>
+        @elseif ($assignment->type == \App\Models\Assignment::TYPE_FREE)
+            <p>{{ $assignment->client }} - {{ $assignment->description }}</p>
+        @endif
 
         <p>Dengan ini menugaskan Direktur Operasional untuk melakukan produksi maupun penayangan dengan ketentuan
             sebagai berikut:</p>
@@ -194,9 +203,10 @@
                 <div class="signature">
                     @if($qrCode)
                     <img src="data:image/png;base64,{{ $qrCode }}" class="qr-code">
-                    @endif <div>{{ $assignment->approver ? $assignment->approver->name : 'Dr. Guruh Fajar Shidik, S.Kom,
-                        M.CS'
-                        }}</div>
+                    @endif 
+                    <div>
+                        {{ $assignment->approver ? $assignment->approver->name : 'Dr. Guruh Fajar Shidik, S.Kom, M.CS' }}
+                    </div>
                 </div>
             </div>
 
