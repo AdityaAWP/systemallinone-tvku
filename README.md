@@ -1039,7 +1039,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 **[⬆ Back to Top](#sistem-all-in-one-tvku)**
 
-Made with ❤️ by TVKU Development Team
+Made with by TVKU Development Team
 
 **Last Updated**: August 2025 | **Version**: 1.0.0
 
