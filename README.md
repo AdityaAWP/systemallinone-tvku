@@ -154,6 +154,7 @@ Akses aplikasi di `http://localhost:8000/admin`
 #### PHP Extensions Required
 - ext-gd (untuk image processing)
 - ext-mbstring
+- ext-imagick
 - ext-pdo
 - ext-tokenizer
 - ext-xml
@@ -395,9 +396,6 @@ php artisan serve
 # Terminal 2: Queue Worker (untuk email & notifikasi)
 php artisan queue:work --tries=3
 
-# Terminal 3: Vite Dev Server (untuk hot reload)
-npm run dev
-```
 
 **Opsi 2: All-in-One dengan Composer Script (Recommended)**
 ```powershell
@@ -771,77 +769,6 @@ php artisan queue:restart
 - Use **strict types** declaration
 - Write **docblocks** for all methods
 - Use **type hints** untuk parameters dan returns
-
-### Testing
-
-#### Feature Tests
-```php
-<?php
-
-namespace Tests\Feature;
-
-use App\Models\Intern;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-
-class DailyReportTest extends TestCase
-{
-    use RefreshDatabase;
-
-    public function test_intern_can_create_daily_report(): void
-    {
-        $intern = Intern::factory()->create();
-        
-        $response = $this->actingAs($intern->user)
-            ->post('/admin/daily-reports', [
-                'date' => now()->format('Y-m-d'),
-                'activities' => 'Completed task A',
-                'check_in' => '08:00',
-                'check_out' => '17:00',
-            ]);
-
-        $response->assertRedirect();
-        $this->assertDatabaseHas('daily_reports', [
-            'intern_id' => $intern->id,
-            'activities' => 'Completed task A',
-        ]);
-    }
-}
-```
-
-### API Endpoints
-
-#### Authentication
-```http
-POST /api/login
-Content-Type: application/json
-
-{
-    "email": "user@example.com",
-    "password": "password"
-}
-```
-
-#### Get Interns
-```http
-GET /api/interns
-Authorization: Bearer {token}
-```
-
-#### Create Daily Report
-```http
-POST /api/daily-reports
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-    "intern_id": 1,
-    "date": "2024-01-01",
-    "activities": "Completed task A and B",
-    "check_in": "08:00:00",
-    "check_out": "17:00:00"
-}
-```
 
 ---
 
