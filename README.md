@@ -11,7 +11,7 @@ Sistem manajemen sumber daya manusia terintegrasi yang dirancang khusus untuk TV
 
 # ERROR HANDLING DOCUMENTATION
 
-![Error Upload](/storage/app/private/md1.jpeg)
+![Error Upload](/md1.jpeg)
 
 ## Tambahkan header ini di config virtual host
 
