@@ -50,6 +50,7 @@ class Login extends BaseLogin
             ->label('Password')
             ->password()
             ->required()
+            ->revealable()
             ->autocomplete('current-password')
             ->extraAttributes(['tabindex' => 2]);
     }
